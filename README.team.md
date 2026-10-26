@@ -8,6 +8,7 @@ Open-LLM-VTuber를 기반으로 캐릭터 설정·Persona·대화·기억·세�
 
 - 팀 조직: [AI-SOGANG-HGHG](https://github.com/AI-SOGANG-HGHG).
 - 팀 저장소: [AI-SOGANG-HGHG/Open-LLM-VTuber](https://github.com/AI-SOGANG-HGHG/Open-LLM-VTuber).
+- GitHub에서 새로 만든 팀 저장소에 원본 코드와 main의 Git 이력을 가져와 시작한다. GitHub의 Fork 관계로 생성한 저장소는 아니다.
 - 로컬 origin은 팀 저장소, upstream은 Open-LLM-VTuber 원본으로 구분한다.
 - 이 안내문·AGENTS.md·docs/plan.md를 시작점으로 팀의 첫 2주 설계를 진행한다.
 - 기존 앱의 의존성 설치와 모델·음성 실행은 아직 확인하지 않았다.

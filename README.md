@@ -1,3 +1,5 @@
+> **AI-SOGANG-HGHG 팀 안내:** 프로젝트 목표와 첫 2주 계획은 [README.team.md](./README.team.md)에서 확인하세요.
+
 ![](./assets/banner.jpg)
 
 <h1 align="center">Open-LLM-VTuber</h1>
