@@ -1,4 +1,5 @@
 > **AI-SOGANG-HGHG 팀 안내:** 프로젝트 목표와 첫 2주 계획은 [README.team.md](./README.team.md)에서 확인하세요.
+> 이 개발 브랜치의 프론트 원본 실행·빌드 방법은 [팀 개발 안내](./docs/frontend-development.md)를 따릅니다.
 
 ![](./assets/banner.jpg)
 

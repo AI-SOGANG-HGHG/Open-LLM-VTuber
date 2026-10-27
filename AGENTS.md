@@ -9,3 +9,4 @@
 - Do not report dependency setup, model, voice, or avatar success without running the relevant checks.
 - Never put API keys or private conversation data in shared documents.
 - `origin` is `https://github.com/AI-SOGANG-HGHG/Open-LLM-VTuber.git`; `upstream` is the original repository. Share team changes through origin and keep the original remote for reference and updates.
+- On the `feat/frontend-source` branch, `frontend/` contains editable source managed by this repository. Follow `frontend/AGENTS.md` for UI work and `docs/frontend-development.md` for build/startup commands.

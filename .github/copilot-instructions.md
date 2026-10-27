@@ -20,7 +20,7 @@ Some key files and directories:
 
 ```
 doc/                 # A deprecated directory
-frontend/            # Compiled web frontend artifacts (from git submodule)
+frontend/            # React/TypeScript source; generated web output in dist/web/
 config_templates/
     conf.default.yaml    # Configuration template for English users
     conf.ZH.default.yaml # Configuration template for Chinese users
@@ -33,7 +33,7 @@ conf.yaml            # User's configuration file, generated from a template
 
 ### 1.1. Repository Structure
 
-- Frontend Repository: The frontend is a React application developed in a separate repository: `Open-LLM-VTuber-Web`. Its built artifacts are integrated into the `frontend/` directory of this backend repository via a git submodule.
+- Frontend Source: Original `Open-LLM-VTuber-Web` source is imported into `frontend/` and managed by this team repository. It is not a submodule on this branch. See `frontend/UPSTREAM.md` for provenance and `docs/frontend-development.md` for commands. The backend serves `frontend/dist/web/` after a web build, or skips the UI mount with `--frontend-dev`.
 
 - Documentation Repository: The official documentation site is hosted in the `open-llm-vtuber.github.io` repository. When asked to generate documentation, create Markdown files in the project root. The user will be responsible for migrating them to the documentation site.
 

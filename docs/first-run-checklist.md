@@ -4,21 +4,20 @@
 
 ## 1. 실행 전 준비
 
-다른 PC에서는 팀 저장소와 프론트 서브모듈을 함께 내려받는다.
+이 개발 브랜치에서는 프론트 원본이 팀 저장소에 포함되어 있다. [프론트 개발·빌드 안내](frontend-development.md)를 먼저 따라 웹 파일과 Python 실행 환경을 준비한다.
 
 ```shell
-git clone --recurse-submodules https://github.com/AI-SOGANG-HGHG/Open-LLM-VTuber.git
+git clone --branch feat/frontend-source https://github.com/AI-SOGANG-HGHG/Open-LLM-VTuber.git
 cd Open-LLM-VTuber
 ```
 
-이미 일반 clone으로 내려받았다면 저장소 안에서 다음 명령을 실행한다.
+이미 이 개발 브랜치를 내려받았다면 저장소 안에서 다음 명령을 실행한다. 기존 `main`의 서브모듈 작업 폴더가 있다면 새 폴더로 clone하는 편이 간단하다.
 
 ```shell
 git pull --ff-only
-git submodule update --init --recursive
 ```
 
-설치는 [한국어 README](../README.KR.md)와 [공식 설치 안내](https://docs.llmvtuber.com/en/docs/quick-start/)를 따른다. 현재 코드의 Python 요구 범위는 3.10 이상, 3.13 미만이다. uv·FFmpeg·프론트 파일·모델/음성 설정을 준비한다. 우선 브라우저 모드에서 확인한다.
+백엔드 설치·모델 설정은 [한국어 README](../README.KR.md)와 [공식 설치 안내](https://docs.llmvtuber.com/en/docs/quick-start/)를 참고한다. 현재 코드의 Python 요구 범위는 3.10 이상, 3.13 미만이다. uv·FFmpeg·Node.js·모델/음성 설정을 준비한다. 이 브랜치의 프론트 실행 명령은 위 개발·빌드 안내를 우선한다. 우선 브라우저 모드에서 확인한다.
 
 처음에는 LLM·STT·TTS 조합을 하나로 고정한다. Persona 비교 중에는 모델과 음성 설정을 함께 바꾸지 않는다. API를 쓰는 경우 사용한 모델 이름을 기록하되 키는 기록하지 않는다.
 

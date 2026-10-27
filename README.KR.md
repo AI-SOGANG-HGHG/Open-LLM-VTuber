@@ -1,3 +1,5 @@
+> **팀 개발 브랜치:** 프론트 원본이 포함되어 있습니다. 먼저 [팀 개발 안내](./docs/frontend-development.md)에 따라 프론트를 실행하거나 빌드하세요. 아래 원본 안내는 백엔드·모델 설정 참고용으로 함께 읽습니다.
+
 ![](./assets/banner.kr.jpg)
 
 <h1 align="center">Open-LLM-VTuber</h1>

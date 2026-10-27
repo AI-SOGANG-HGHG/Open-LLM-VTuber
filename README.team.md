@@ -14,14 +14,16 @@ Open-LLM-VTuber를 기반으로 캐릭터 설정·Persona·대화·기억·세�
 - 팀 저장소: [AI-SOGANG-HGHG/Open-LLM-VTuber](https://github.com/AI-SOGANG-HGHG/Open-LLM-VTuber)
 - 원본 코드와 Git 이력을 기반으로 팀 개발을 진행한다.
 - 로컬 `origin`은 팀 저장소, `upstream`은 Open-LLM-VTuber 원본이다.
-- 기존 앱의 의존성 설치와 모델·음성 실행은 아직 확인하지 않았다.
+- `feat/frontend-source` 개발 브랜치에는 프론트 원본을 포함했다. 프론트·백엔드를 같은 저장소에서 수정한다. `main`에는 아직 병합하지 않았다.
+- 웹 빌드는 확인했다. 원본 TypeScript 검사는 오류가 남아 있으며, 전체 백엔드·모델·음성 실행은 아직 확인하지 않았다.
 
 ## 팀원이 읽을 순서
 
 1. [첫 1–2주 계획](docs/plan.md)
-2. [다른 PC에서 첫 실행 체크리스트](docs/first-run-checklist.md)
-3. [기존 한국어 실행 안내](README.KR.md)
-4. [AI 작업 지침](AGENTS.md)과 담당 영역의 기존 코드
+2. [프론트 원본 개발·빌드 안내](docs/frontend-development.md)
+3. [다른 PC에서 첫 실행 체크리스트](docs/first-run-checklist.md)
+4. [기존 한국어 실행 안내](README.KR.md)
+5. [AI 작업 지침](AGENTS.md)과 담당 영역의 기존 코드
 
 ## 폴더 사용
 
@@ -31,6 +33,8 @@ persona-platform/              # 로컬 작업 폴더
    ├─ README.team.md           # 팀 목표·준비 상태
    ├─ AGENTS.md                # 공통 AI 작업 지침
    ├─ docs/plan.md             # 첫 2주 계획
+   ├─ frontend/                # React·TypeScript 원본 소스
+   ├─ src/open_llm_vtuber/      # Python 백엔드
    └─ 기존 코드·설정·실행 파일
 ```
 

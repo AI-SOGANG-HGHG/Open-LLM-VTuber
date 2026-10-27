@@ -14,9 +14,10 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import Response
 from starlette.staticfiles import StaticFiles as StarletteStaticFiles
 
-from .routes import init_client_ws_route, init_webtool_routes, init_proxy_route
-from .service_context import ServiceContext
 from .config_manager.utils import Config
+from .frontend_build import require_frontend_build
+from .routes import init_client_ws_route, init_proxy_route, init_webtool_routes
+from .service_context import ServiceContext
 
 
 # Create a custom StaticFiles class that adds CORS headers
@@ -62,6 +63,8 @@ class WebSocketServer:
 
     Args:
         config (Config): Application configuration containing system settings.
+        serve_frontend (bool): Serve the production web build when True.
+            Set False when the Vite development server provides the UI.
         default_context_cache (ServiceContext, optional):
             Pre‑initialized service context for sessions' service context to reference to.
             **If omitted, `initialize()` method needs to be called to load service context.**
@@ -71,7 +74,12 @@ class WebSocketServer:
         - Use `clean_cache()` to clear and recreate the local cache directory.
     """
 
-    def __init__(self, config: Config, default_context_cache: ServiceContext = None):
+    def __init__(
+        self,
+        config: Config,
+        default_context_cache: ServiceContext | None = None,
+        serve_frontend: bool = True,
+    ) -> None:
         self.app = FastAPI(title="Open-LLM-VTuber Server")  # Added title for clarity
         self.config = config
         self.default_context_cache = (
@@ -141,12 +149,13 @@ class WebSocketServer:
             name="web_tool",
         )
 
-        # Mount main frontend last (as catch-all)
-        self.app.mount(
-            "/",
-            CORSStaticFiles(directory="frontend", html=True),
-            name="frontend",
-        )
+        # Vite serves the UI separately in development; APIs and assets stay here.
+        if serve_frontend:
+            self.app.mount(
+                "/",
+                CORSStaticFiles(directory=require_frontend_build(), html=True),
+                name="frontend",
+            )
 
     async def initialize(self):
         """Asynchronously load the service context from config.

@@ -12,7 +12,10 @@ Open-LLM-VTuber is a voice-interactive AI companion with Live2D avatar support t
 - **Install dependencies**: `uv sync` (uses uv package manager)
 - **Run server**: `uv run run_server.py`
 - **Run with verbose logging**: `uv run run_server.py --verbose`
-- **Update project**: `uv run upgrade.py`
+- **Frontend development backend**: `uv run run_server.py --frontend-dev`
+- **Frontend web setup** (in `frontend/`): `npm ci --ignore-scripts`
+- **Frontend dev / build** (in `frontend/`): `npm run dev:web` / `npm run build:web`
+- **Update project**: review changes from the team remote before using the original upgrade script; see `docs/frontend-development.md`.
 
 ### Code Quality
 - **Lint code**: `ruff check .`
@@ -112,7 +115,9 @@ The codebase uses the missing `_cleanup_failed_connection` method pattern - when
 - **Main server**: `src/open_llm_vtuber/server.py`
 - **WebSocket routing**: `src/open_llm_vtuber/routes.py`
 - **Configuration**: `conf.yaml` (user), `config_templates/` (defaults)
-- **Frontend**: `frontend/` (Git submodule)
+- **Frontend**: `frontend/` (React/TypeScript source managed in this repository)
+- **Web build**: `frontend/dist/web/` (generated; ignored by Git)
+- **Frontend development guide**: `docs/frontend-development.md`
 - **Live2D models**: `live2d-models/`
 - **Character definitions**: `characters/`
 - **Chat history**: `chat_history/`
