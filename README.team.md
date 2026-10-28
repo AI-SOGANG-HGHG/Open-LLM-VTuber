@@ -20,6 +20,7 @@ Open-LLM-VTuber를 기반으로 캐릭터 설정·Persona·대화·기억·세�
 
 1. [첫 1–2주 계획](docs/plan.md)
 2. [다른 PC에서 첫 실행 체크리스트](docs/first-run-checklist.md)
+   - Ollama 없이 시작할 때: [Windows · Gemini API 실행 안내](docs/local-gemini-setup.md)
 3. [기존 한국어 실행 안내](README.KR.md)
 4. [AI 작업 지침](AGENTS.md)과 담당 영역의 기존 코드
 
