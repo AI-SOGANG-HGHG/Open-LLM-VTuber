@@ -40,3 +40,5 @@ persona-platform/              # 로컬 작업 폴더
 ## 공유 방식
 
 팀 변경은 `origin`에 공유하고, 원본 `upstream`은 참조와 필요한 업데이트에 사용한다. 문서와 코드 변경을 같은 저장소에서 관리하며 작업별 브랜치에서 검토한다.
+
+push 이후 검사와 외부 서비스 설정은 [GitHub Actions 안내](docs/ci.md)를 참고한다.

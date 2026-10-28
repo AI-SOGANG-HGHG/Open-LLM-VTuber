@@ -28,6 +28,8 @@ env:
 
 jobs:
   meta:
+    # Team repositories must provision the runners and registry credentials first.
+    if: github.repository == 'Open-LLM-VTuber/Open-LLM-VTuber' || vars.ENABLE_BLACKSMITH_BUILDS == 'true'
     runs-on: blacksmith-8vcpu-ubuntu-2204
     outputs:
       tags: ${{ steps.meta.outputs.tags }}
