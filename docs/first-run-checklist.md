@@ -20,6 +20,8 @@ git submodule update --init --recursive
 
 설치는 [한국어 README](../README.KR.md)와 [공식 설치 안내](https://docs.llmvtuber.com/en/docs/quick-start/)를 따른다. 현재 코드의 Python 요구 범위는 3.10 이상, 3.13 미만이다. uv·FFmpeg·프론트 파일·모델/음성 설정을 준비한다. 우선 브라우저 모드에서 확인한다.
 
+Windows에서 Ollama 설치 없이 API로 시작할 경우 [Gemini API 실행 안내](local-gemini-setup.md)와 [공유용 설정 예시](../config_templates/conf.gemini.example.yaml)를 사용한다. 개인 `conf.yaml`과 실제 API 키는 커밋하지 않는다.
+
 처음에는 LLM·STT·TTS 조합을 하나로 고정한다. Persona 비교 중에는 모델과 음성 설정을 함께 바꾸지 않는다. API를 쓰는 경우 사용한 모델 이름을 기록하되 키는 기록하지 않는다.
 
 | 기록할 환경 | 값 |
