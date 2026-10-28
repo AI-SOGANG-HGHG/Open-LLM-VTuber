@@ -4,13 +4,32 @@ on:
   push:
     branches:
       - main
+    paths:
+      - '**/*.py'
+      - pyproject.toml
+      - uv.lock
+      - 'requirements*.txt'
+      - .github/workflows/fossa_scan.yml
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   fossa-scan:
     runs-on: ubuntu-latest
+    env:
+      FOSSA_API_KEY: ${{ secrets.fossaApiKey }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: fossas/fossa-action@main
+      - name: Explain missing FOSSA configuration
+        if: env.FOSSA_API_KEY == ''
+        run: |
+          echo '::notice::FOSSA scan skipped: configure the fossaApiKey repository secret to enable it.'
+          echo 'FOSSA was not run because the fossaApiKey repository secret is not configured.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/checkout@v4
+        if: env.FOSSA_API_KEY != ''
+      - name: Run FOSSA scan
+        if: env.FOSSA_API_KEY != ''
+        uses: fossas/fossa-action@main
         with:
           api-key: ${{ secrets.fossaApiKey }}
