@@ -1,0 +1,2 @@
+# Separate environment: the main application dependency lock remains unchanged.
+mem0ai==2.2.1
