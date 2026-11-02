@@ -1,0 +1,32 @@
+{
+  "longmemeval_code": {
+    "repo": "xiaowu0162/LongMemEval",
+    "revision": "9e0b455f4ef0e2ab8f2e582289761153549043fc",
+    "license": "MIT",
+    "files": ["LICENSE", "README.md", "src/evaluation/evaluate_qa.py", "src/evaluation/print_retrieval_metrics.py", "src/generation/run_generation.py"]
+  },
+  "longmemeval_s": {
+    "dataset": "xiaowu0162/longmemeval-cleaned",
+    "revision": "98d7416c24c778c2fee6e6f3006e7a073259d48f",
+    "license": "MIT",
+    "files": ["README.md", "longmemeval_s_cleaned.json"]
+  },
+  "heard_ko": {
+    "dataset": "chanyoungkim/heard-bench",
+    "revision": "19ab5d0c11971f259604caee30a47cf546c44b15",
+    "license": "CC-BY-4.0",
+    "files": ["LICENSE", "README.md", "data/ko_native/metadata.json", "data/ko_native/test.jsonl"]
+  },
+  "heard_corpus": {
+    "repo": "cykim05/heard",
+    "revision": "0a01d7733e820d073f4d4ee851b2f9f4990878ee",
+    "license": "Apache-2.0 (code); corpus attribution: see upstream NOTICE",
+    "files": ["LICENSE", "NOTICE", "README.md", "data/raw/utterances.jsonl", "scripts/07_run_sweep.py", "scripts/07a_build_indices.py"]
+  },
+  "memops_adjacent_preview": {
+    "repo": "MemTensor/MemOps",
+    "revision": "312af65e2c7b6d1b70f062ffa8b4cde32aaf6f35",
+    "license": "MIT",
+    "files": ["LICENSE", "README.md", "5-test_operation_metrics.py", "5.5-evaluate_operation_metrics.py", "generated_result/2-evidence_conversation/A02_forget.json", "generated_result/2-evidence_conversation/A01_update.json", "generated_result/2-evidence_conversation/A01_remember.json", "generated_result/2-evidence_conversation/A01_reflect.json", "generated_result/2-evidence_conversation/A01_trajectory_ops.json"]
+  }
+}
