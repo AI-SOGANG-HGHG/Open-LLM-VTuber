@@ -68,6 +68,19 @@ character_config:
         # 'Plus' means that it has the ability to call tools by using OpenAI API.
         use_mcpp: True
         mcp_enabled_servers: ["time", "ddg-search"] # Enabled MCP servers
+        # Optional RAG in this agent (not the legacy mem0_agent).
+        # Scope: server connection ID + character ID + selected history ID.
+        rag:
+          enabled: false
+          backend: lexical # lexical (no API) or mem0 (requires mem0ai==2.2.1)
+          directory: chat_history/rag
+          top_k: 5
+          max_context_chars: 4000
+          recent_messages: 20
+          recent_chars: 12000
+          timeout_seconds: 2
+          mem0_settings_file: null # See experiments/memory/gemini.example.json
+          api_key_env: GEMINI_API_KEY
 
       letta_agent:
         host: 'localhost' # Host address

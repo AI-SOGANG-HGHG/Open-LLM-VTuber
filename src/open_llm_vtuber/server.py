@@ -73,10 +73,14 @@ class WebSocketServer:
 
     def __init__(self, config: Config, default_context_cache: ServiceContext = None):
         self.app = FastAPI(title="Open-LLM-VTuber Server")  # Added title for clarity
+        from .memory.runtime import close_runtime_memories
+
+        self.app.add_event_handler("shutdown", close_runtime_memories)
         self.config = config
         self.default_context_cache = (
             default_context_cache or ServiceContext()
         )  # Use provided context or initialize a new empty one waiting to be loaded
+        self.app.add_event_handler("shutdown", self.default_context_cache.close)
         # It will be populated during the initialize method call
 
         # Add global CORS middleware

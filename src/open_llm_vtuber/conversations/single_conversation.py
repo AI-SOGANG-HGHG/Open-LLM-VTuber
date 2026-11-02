@@ -66,6 +66,7 @@ async def process_single_conversation(
             from_name=context.character_config.human_name,
             metadata=metadata,
         )
+        batch_input.memory_scope = context.memory_scope()
 
         # Store user message (check if we should skip storing to history)
         skip_history = metadata and metadata.get("skip_history", False)

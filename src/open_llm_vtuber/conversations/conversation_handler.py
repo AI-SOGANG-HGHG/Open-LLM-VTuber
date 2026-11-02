@@ -96,6 +96,10 @@ async def handle_conversation_trigger(
             )
     else:
         # Use client_uid as task key for individual conversations
+        previous = current_conversation_tasks.get(client_uid)
+        if previous and not previous.done():
+            previous.cancel()
+            await asyncio.gather(previous, return_exceptions=True)
         current_conversation_tasks[client_uid] = asyncio.create_task(
             process_single_conversation(
                 context=context,

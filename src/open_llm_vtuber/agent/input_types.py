@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, Dict, Any
+from ..memory.store import MemoryScope
 
 
 class ImageSource(Enum):
@@ -92,3 +93,5 @@ class BatchInput(BaseInput):
     images: Optional[List[ImageData]] = None
     files: Optional[List[FileData]] = None
     metadata: Optional[Dict[str, Any]] = None
+    # Server-owned scope. Never populated from WebSocket metadata or display names.
+    memory_scope: Optional[MemoryScope] = None

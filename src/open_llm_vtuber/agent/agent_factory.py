@@ -10,6 +10,8 @@ from .agents.letta_agent import LettaAgent
 from ..mcpp.tool_manager import ToolManager
 from ..mcpp.tool_executor import ToolExecutor
 from typing import Optional
+from ..config_manager.memory import RAGConfig
+from ..memory.runtime import get_runtime_memory
 
 
 class AgentFactory:
@@ -46,19 +48,22 @@ class AgentFactory:
 
             # Get the LLM config for this provider
             llm_config: dict = llm_configs.get(llm_provider)
-            interrupt_method: Literal["system", "user"] = llm_config.pop(
-                "interrupt_method", "user"
-            )
-
             if not llm_config:
                 raise ValueError(
                     f"Configuration not found for LLM provider: {llm_provider}"
                 )
+            llm_config = llm_config.copy()
+            interrupt_method: Literal["system", "user"] = llm_config.pop(
+                "interrupt_method", "user"
+            )
 
             # Create the stateless LLM
-            llm = StatelessLLMFactory.create_llm(
-                llm_provider=llm_provider, system_prompt=system_prompt, **llm_config
-            )
+            shared_llm = kwargs.get("shared_llm")
+            llm = shared_llm
+            if llm is None:
+                llm = StatelessLLMFactory.create_llm(
+                    llm_provider=llm_provider, system_prompt=system_prompt, **llm_config
+                )
 
             tool_prompts = kwargs.get("system_config", {}).get("tool_prompts", {})
 
@@ -66,6 +71,11 @@ class AgentFactory:
             tool_manager: Optional[ToolManager] = kwargs.get("tool_manager")
             tool_executor: Optional[ToolExecutor] = kwargs.get("tool_executor")
             mcp_prompt_string: str = kwargs.get("mcp_prompt_string", "")
+
+            rag_config = RAGConfig.model_validate(basic_memory_settings.get("rag", {}))
+            memory_service = (
+                get_runtime_memory(rag_config) if rag_config.enabled else None
+            )
 
             # Create the agent with the LLM and live2d_model
             return BasicMemoryAgent(
@@ -83,6 +93,9 @@ class AgentFactory:
                 tool_manager=tool_manager,
                 tool_executor=tool_executor,
                 mcp_prompt_string=mcp_prompt_string,
+                rag_config=rag_config,
+                memory_service=memory_service,
+                owns_llm=shared_llm is None,
             )
 
         elif conversation_agent_choice == "mem0_agent":

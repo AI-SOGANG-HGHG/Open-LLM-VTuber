@@ -299,16 +299,16 @@ class WebSocketHandler:
 
         # Clean up other client data
         self.client_connections.pop(client_uid, None)
-        self.client_contexts.pop(client_uid, None)
+        context = self.client_contexts.pop(client_uid, None)
         self.received_data_buffers.pop(client_uid, None)
         if client_uid in self.current_conversation_tasks:
             task = self.current_conversation_tasks[client_uid]
             if task and not task.done():
                 task.cancel()
+                await asyncio.gather(task, return_exceptions=True)
             self.current_conversation_tasks.pop(client_uid, None)
 
         # Call context close to clean up resources (e.g., MCPClient)
-        context = self.client_contexts.get(client_uid)
         if context:
             await context.close()
 
@@ -318,7 +318,7 @@ class WebSocketHandler:
     async def _cleanup_failed_connection(self, client_uid: str) -> None:
         """Clean up failed connection data"""
         self.client_connections.pop(client_uid, None)
-        self.client_contexts.pop(client_uid, None)
+        context = self.client_contexts.pop(client_uid, None)
         self.received_data_buffers.pop(client_uid, None)
         self.chat_group_manager.client_group_map.pop(client_uid, None)
 
@@ -326,8 +326,11 @@ class WebSocketHandler:
             task = self.current_conversation_tasks[client_uid]
             if task and not task.done():
                 task.cancel()
+                await asyncio.gather(task, return_exceptions=True)
             self.current_conversation_tasks.pop(client_uid, None)
 
+        if context:
+            await context.close()
         message_handler.cleanup_client(client_uid)
 
     async def broadcast_to_group(
@@ -409,6 +412,7 @@ class WebSocketHandler:
         if not history_uid:
             return
 
+        await self._cancel_single_turn(client_uid)
         context = self.client_contexts[client_uid]
         # Update history_uid in service context
         context.history_uid = history_uid
@@ -433,6 +437,7 @@ class WebSocketHandler:
         self, websocket: WebSocket, client_uid: str, data: WSMessage
     ) -> None:
         """Handle creation of new chat history"""
+        await self._cancel_single_turn(client_uid)
         context = self.client_contexts[client_uid]
         history_uid = create_new_history(context.character_config.conf_uid)
         if history_uid:
@@ -459,10 +464,22 @@ class WebSocketHandler:
             return
 
         context = self.client_contexts[client_uid]
+        if history_uid == context.history_uid:
+            await self._cancel_single_turn(client_uid)
         success = delete_history(
             context.character_config.conf_uid,
             history_uid,
         )
+        if (
+            success
+            and hasattr(context.agent_engine, "forget_memory")
+            and context.client_uid
+        ):
+            from .memory.store import MemoryScope
+
+            await context.agent_engine.forget_memory(
+                MemoryScope(client_uid, context.character_config.conf_uid, history_uid)
+            )
         await websocket.send_text(
             json.dumps(
                 {
@@ -472,8 +489,11 @@ class WebSocketHandler:
                 }
             )
         )
-        if history_uid == context.history_uid:
+        if success and history_uid == context.history_uid:
             context.history_uid = None
+            context.agent_engine.set_memory_from_history(
+                context.character_config.conf_uid, history_uid
+            )
 
     async def _handle_audio_data(
         self, websocket: WebSocket, client_uid: str, data: WSMessage
@@ -544,8 +564,16 @@ class WebSocketHandler:
         """Handle switching to a different configuration"""
         config_file_name = data.get("file")
         if config_file_name:
+            await self._cancel_single_turn(client_uid)
             context = self.client_contexts[client_uid]
             await context.handle_config_switch(websocket, config_file_name)
+
+    async def _cancel_single_turn(self, client_uid):
+        """Finish cancellation before replacing this connection's mutable state."""
+        task = self.current_conversation_tasks.get(client_uid)
+        if task and not task.done():
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
 
     async def _handle_fetch_backgrounds(
         self, websocket: WebSocket, client_uid: str, data: WSMessage

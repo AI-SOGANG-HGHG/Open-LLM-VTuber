@@ -24,6 +24,12 @@ Open-LLM-VTuber를 기반으로 캐릭터 설정·Persona·대화·기억·세�
 3. [기존 한국어 실행 안내](README.KR.md)
 4. [AI 작업 지침](AGENTS.md)과 담당 영역의 기존 코드
 
+대화 저장·장기 기억·페르소나 비교는 [RAG 실험 계획](docs/memory-rag-plan.md), [Mem0 재현 절차](experiments/memory/README.md), [첫 실행 결과](docs/memory-rag-results-2026-11-02.md)를 참고한다.
+
+공개 벤치마크 평가는 [실행 규약](docs/memory-benchmark-protocol.md)과 [재현 명령](experiments/memory/BENCHMARKS.md)으로 관리한다.
+
+실제 앱의 선택형 RAG 연결은 [설정·오프라인 검사·제약](docs/rag-runtime.md), [Persona와 RAG의 결합 위치](docs/persona-rag-pipeline.md)를 참고한다. 기본값은 비활성화다.
+
 ## 폴더 사용
 
 ```text

@@ -28,6 +28,13 @@ from ...mcpp.tool_manager import ToolManager
 from ...mcpp.json_detector import StreamJSONDetector
 from ...mcpp.types import ToolCallObject
 from ...mcpp.tool_executor import ToolExecutor
+from ...config_manager.memory import RAGConfig
+from ...memory.prompt import (
+    MEMORY_GUIDANCE,
+    attach_memory,
+    bound_recent,
+    memory_context,
+)
 
 
 class BasicMemoryAgent(AgentInterface):
@@ -49,10 +56,16 @@ class BasicMemoryAgent(AgentInterface):
         tool_manager: Optional[ToolManager] = None,
         tool_executor: Optional[ToolExecutor] = None,
         mcp_prompt_string: str = "",
+        rag_config: Optional[RAGConfig] = None,
+        memory_service=None,
+        owns_llm: bool = True,
     ):
         """Initialize agent with LLM and configuration."""
         super().__init__()
         self._memory = []
+        self._rag_config = rag_config or RAGConfig()
+        self._memory_service = memory_service
+        self._owns_llm = owns_llm
         self._live2d_model = live2d_model
         self._tts_preprocessor_config = tts_preprocessor_config
         self._faster_first_response = faster_first_response
@@ -124,6 +137,51 @@ class BasicMemoryAgent(AgentInterface):
             system = f"{system}\n\nIf you received `[interrupted by user]` signal, you were interrupted."
 
         self._system = system
+        if self._rag_config.enabled:
+            self._system += "\n\n" + MEMORY_GUIDANCE
+
+    def _bound_memory(self):
+        if self._rag_config.enabled:
+            self._memory = bound_recent(
+                self._memory,
+                self._rag_config.recent_messages,
+                self._rag_config.recent_chars,
+            )
+
+    def _memory_query(self, input_data):
+        flags = input_data.metadata or {}
+        if (
+            not self._rag_config.enabled
+            or self._memory_service is None
+            or input_data.memory_scope is None
+            or any(
+                flags.get(k) for k in ("skip_memory", "skip_history", "proactive_speak")
+            )
+        ):
+            return ""
+        return "\n".join(
+            item.content for item in input_data.texts if item.source == TextSource.INPUT
+        ).strip()
+
+    async def _prepare_messages(self, input_data):
+        query = self._memory_query(input_data)
+        rows = []
+        if query:
+            rows = await self._memory_service.search(input_data.memory_scope, query)
+        self._bound_memory()
+        messages = self._to_messages(input_data)
+        return attach_memory(
+            messages, memory_context(rows, self._rag_config.max_context_chars)
+        )
+
+    async def _remember_input(self, input_data):
+        query = self._memory_query(input_data)
+        if query:
+            await self._memory_service.remember(input_data.memory_scope, query)
+
+    async def forget_memory(self, scope):
+        if self._rag_config.enabled and self._memory_service is not None:
+            await self._memory_service.forget(scope)
 
     def _add_message(
         self,
@@ -172,6 +230,7 @@ class BasicMemoryAgent(AgentInterface):
             return
 
         self._memory.append(message_data)
+        self._bound_memory()
 
     def set_memory_from_history(self, conf_uid: str, history_uid: str) -> None:
         """Load memory from chat history."""
@@ -190,6 +249,7 @@ class BasicMemoryAgent(AgentInterface):
                 )
             else:
                 logger.warning(f"Skipping invalid message from history: {msg}")
+        self._bound_memory()
         logger.info(f"Loaded {len(self._memory)} messages from history.")
 
     def handle_interrupt(self, heard_response: str) -> None:
@@ -598,7 +658,7 @@ class BasicMemoryAgent(AgentInterface):
             self.reset_interrupt()
             self.prompt_mode_flag = False
 
-            messages = self._to_messages(input_data)
+            messages = await self._prepare_messages(input_data)
             tools = None
             tool_mode = None
             llm_supports_native_tools = False
@@ -631,6 +691,7 @@ class BasicMemoryAgent(AgentInterface):
                     messages, tools if tools else []
                 ):
                     yield output
+                await self._remember_input(input_data)
                 return
             elif self._use_mcpp and tool_mode == "OpenAI":
                 logger.debug(
@@ -640,6 +701,7 @@ class BasicMemoryAgent(AgentInterface):
                     messages, tools if tools else []
                 ):
                     yield output
+                await self._remember_input(input_data)
                 return
             else:
                 logger.info("Starting simple chat completion.")
@@ -658,6 +720,7 @@ class BasicMemoryAgent(AgentInterface):
                         complete_response += text_chunk
                 if complete_response:
                     self._add_message(complete_response, "assistant")
+                await self._remember_input(input_data)
 
         return chat_with_memory
 
@@ -673,6 +736,14 @@ class BasicMemoryAgent(AgentInterface):
     def reset_interrupt(self) -> None:
         """Reset interrupt flag."""
         self._interrupt_handled = False
+
+    async def close(self):
+        # Cached stateless LLMs and retrieval workers outlive a single connection.
+        if not self._owns_llm:
+            return
+        client = getattr(self._llm, "client", None)
+        if client is not None and hasattr(client, "close"):
+            await client.close()
 
     def start_group_conversation(
         self, human_name: str, ai_participants: List[str]

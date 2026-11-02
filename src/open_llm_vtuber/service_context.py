@@ -10,7 +10,9 @@ from .asr.asr_interface import ASRInterface
 from .tts.tts_interface import TTSInterface
 from .vad.vad_interface import VADInterface
 from .agent.agents.agent_interface import AgentInterface
+from .agent.agents.basic_memory_agent import BasicMemoryAgent
 from .translate.translate_interface import TranslateInterface
+from .memory.store import MemoryScope
 
 from .mcpp.server_registry import ServerRegistry
 from .mcpp.tool_manager import ToolManager
@@ -71,6 +73,14 @@ class ServiceContext:
 
         self.send_text: Callable = None
         self.client_uid: str = None
+
+    def memory_scope(self):
+        """No authenticated accounts yet: fail closed without connection/history IDs."""
+        if not self.client_uid or not self.history_uid or not self.character_config:
+            return None
+        return MemoryScope(
+            self.client_uid, self.character_config.conf_uid, self.history_uid
+        )
 
     def __str__(self):
         return (
@@ -215,22 +225,29 @@ class ServiceContext:
         client_uid: str = None,
     ) -> None:
         """
-        Load the ServiceContext with the reference of the provided instances.
-        Pass by reference so no reinitialization will be done.
+        Reuse cached engines while giving the basic agent and configuration
+        independent per-connection state.
         """
         if not character_config:
             raise ValueError("character_config cannot be None")
         if not system_config:
             raise ValueError("system_config cannot be None")
 
-        self.config = config
-        self.system_config = system_config
-        self.character_config = character_config
+        self.config = config.model_copy(deep=True)
+        self.system_config = system_config.model_copy(deep=True)
+        self.character_config = character_config.model_copy(deep=True)
         self.live2d_model = live2d_model
         self.asr_engine = asr_engine
         self.tts_engine = tts_engine
         self.vad_engine = vad_engine
-        self.agent_engine = agent_engine
+        # BasicMemoryAgent owns mutable conversation state and cannot be cached
+        # across connections. Stateless engines may still be shared as before.
+        self.agent_engine = (
+            None
+            if character_config.agent_config.conversation_agent_choice
+            == "basic_memory_agent"
+            else agent_engine
+        )
         self.translate_engine = translate_engine
         # Load potentially shared components by reference
         self.mcp_server_registery = mcp_server_registery
@@ -243,6 +260,14 @@ class ServiceContext:
             self.character_config.agent_config.agent_settings.basic_memory_agent.use_mcpp,
             self.character_config.agent_config.agent_settings.basic_memory_agent.mcp_enabled_servers,
         )
+        if self.agent_engine is None:
+            await self.init_agent(
+                self.character_config.agent_config,
+                self.character_config.persona_prompt,
+                shared_llm=agent_engine._llm
+                if isinstance(agent_engine, BasicMemoryAgent)
+                else None,
+            )
 
         logger.debug(f"Loaded service context with cache: {character_config}")
 
@@ -254,6 +279,10 @@ class ServiceContext:
         Parameters:
         - config (Dict): The configuration dictionary.
         """
+        character_changed = bool(
+            self.character_config
+            and self.character_config.conf_uid != config.character_config.conf_uid
+        )
         if not self.config:
             self.config = config
 
@@ -300,7 +329,10 @@ class ServiceContext:
         await self.init_agent(
             config.character_config.agent_config,
             config.character_config.persona_prompt,
+            force=character_changed,
         )
+        if character_changed:
+            self.history_uid = ""
 
         self.init_translate(
             config.character_config.tts_preprocessor_config.translator_config
@@ -361,12 +393,19 @@ class ServiceContext:
         else:
             logger.info("VAD already initialized with the same config.")
 
-    async def init_agent(self, agent_config: AgentConfig, persona_prompt: str) -> None:
+    async def init_agent(
+        self,
+        agent_config: AgentConfig,
+        persona_prompt: str,
+        force: bool = False,
+        shared_llm=None,
+    ) -> None:
         """Initialize or update the LLM engine based on agent configuration."""
         logger.info(f"Initializing Agent: {agent_config.conversation_agent_choice}")
 
         if (
-            self.agent_engine is not None
+            not force
+            and self.agent_engine is not None
             and agent_config == self.character_config.agent_config
             and persona_prompt == self.character_config.persona_prompt
         ):
@@ -379,6 +418,7 @@ class ServiceContext:
         avatar = self.character_config.avatar or ""  # Get avatar from config
 
         try:
+            previous_agent = self.agent_engine
             self.agent_engine = AgentFactory.create_agent(
                 conversation_agent_choice=agent_config.conversation_agent_choice,
                 agent_settings=agent_config.agent_settings.model_dump(),
@@ -391,7 +431,10 @@ class ServiceContext:
                 tool_manager=self.tool_manager,
                 tool_executor=self.tool_executor,
                 mcp_prompt_string=self.mcp_prompt,
+                shared_llm=shared_llm,
             )
+            if isinstance(previous_agent, BasicMemoryAgent):
+                await previous_agent.close()
 
             logger.debug(f"Agent choice: {agent_config.conversation_agent_choice}")
             logger.debug(f"System prompt: {system_prompt}")

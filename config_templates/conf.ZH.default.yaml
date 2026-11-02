@@ -68,6 +68,19 @@ character_config:
         # 'Plus' 意味着它包含了通过 OpenAI API 调用工具的能力。
         use_mcpp: False
         mcp_enabled_servers: ["time", "ddg-search"] # 启用的 MCP 服务器
+        # 可选 RAG，使用当前 basic_memory_agent（不是旧 mem0_agent）。
+        # 隔离范围：服务端连接 ID + 角色 ID + 当前历史 ID。
+        rag:
+          enabled: false
+          backend: lexical # lexical 无需 API；mem0 需要 mem0ai==2.2.1
+          directory: chat_history/rag
+          top_k: 5
+          max_context_chars: 4000
+          recent_messages: 20
+          recent_chars: 12000
+          timeout_seconds: 2
+          mem0_settings_file: null # 参考 experiments/memory/gemini.example.json
+          api_key_env: GEMINI_API_KEY
 
       hume_ai_agent:
         api_key: ''

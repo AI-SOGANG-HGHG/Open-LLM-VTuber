@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from typing import Dict, ClassVar, Optional, Literal, List
 from .i18n import I18nMixin, Description
 from .stateless_llm import StatelessLLMConfigs
+from .memory import RAGConfig
 
 # ======== Configurations for different Agents ========
 
@@ -33,8 +34,10 @@ class BasicMemoryAgentConfig(I18nMixin, BaseModel):
     segment_method: Literal["regex", "pysbd"] = Field("pysbd", alias="segment_method")
     use_mcpp: Optional[bool] = Field(False, alias="use_mcpp")
     mcp_enabled_servers: Optional[List[str]] = Field([], alias="mcp_enabled_servers")
+    rag: RAGConfig = Field(default_factory=RAGConfig)
 
     DESCRIPTIONS: ClassVar[Dict[str, Description]] = {
+        "rag": Description(en="Optional scoped retrieval", zh="可选的隔离记忆检索"),
         "llm_provider": Description(
             en="LLM provider to use for this agent",
             zh="Basic Memory Agent 智能体使用的大语言模型选项",
