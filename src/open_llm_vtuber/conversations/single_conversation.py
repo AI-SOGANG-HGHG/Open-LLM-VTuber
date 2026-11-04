@@ -6,6 +6,7 @@ import numpy as np
 
 from .conversation_utils import (
     create_batch_input,
+    append_streamed_response,
     process_agent_output,
     send_conversation_start_signals,
     process_user_input,
@@ -101,6 +102,15 @@ async def process_single_conversation(
                     await websocket_send(json.dumps(output_item))
 
                 elif isinstance(output_item, (SentenceOutput, AudioOutput)):
+                    if metadata and metadata.get("text_stream"):
+                        await websocket_send(
+                            json.dumps(
+                                {
+                                    "type": "text-response",
+                                    "display_text": output_item.display_text.to_dict(),
+                                }
+                            )
+                        )
                     # Handle SentenceOutput or AudioOutput
                     response_part = await process_agent_output(
                         output=output_item,
@@ -115,7 +125,11 @@ async def process_single_conversation(
                     response_part_str = (
                         str(response_part) if response_part is not None else ""
                     )
-                    full_response += response_part_str  # Accumulate text response
+                    full_response = (
+                        append_streamed_response(full_response, response_part_str)
+                        if metadata and metadata.get("text_stream")
+                        else full_response + response_part_str
+                    )
                 else:
                     logger.warning(
                         f"Received unexpected item type from agent chat stream: {type(output_item)}"
@@ -136,11 +150,6 @@ async def process_single_conversation(
             )
             # full_response will contain partial response before error
         # --- End processing agent response ---
-
-        # Wait for any pending TTS tasks
-        if tts_manager.task_list:
-            await asyncio.gather(*tts_manager.task_list)
-            await websocket_send(json.dumps({"type": "backend-synth-complete"}))
 
         await finalize_conversation_turn(
             tts_manager=tts_manager,

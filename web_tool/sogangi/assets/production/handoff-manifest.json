@@ -1,0 +1,200 @@
+{
+  "status": "visible_parts_preparation_psd",
+  "official_layered_source": false,
+  "source_pdf_sha256": "aa1fed216c2106c3f4699e259b80cb58df22f411954b12ffb96688c66cac48e0",
+  "svg_renderer": "installed Chromium via Playwright",
+  "canvas": {
+    "width": 2048,
+    "height": 2048,
+    "mode": "RGB 8bit with layer alpha",
+    "transparent": true,
+    "margin": 128
+  },
+  "layer_order": "background to foreground; all layers share full-canvas coordinates",
+  "layer_count": 24,
+  "default_visible_count": 21,
+  "parts": [
+    {
+      "name": "ArmL_Base",
+      "file": "layers/ArmL_Base.png",
+      "visible": true,
+      "source_svg_sha256": "69f506a9a7a7a3f980291a9c622db9cb07d08e5a66124760f59deab1ef971e2c",
+      "rgba_sha256": "a85ecc7ae65420f553325e7c004b4691e2ed8cac82e12df6a198ecaca6498e6c"
+    },
+    {
+      "name": "ArmR_Base",
+      "file": "layers/ArmR_Base.png",
+      "visible": true,
+      "source_svg_sha256": "3c416b518b341d15e872ab3a994e278ab11c252a03d8d018931b8baee29a924f",
+      "rgba_sha256": "2845b505508d348653bb6e34bdb149a356a5defdc5a8124e0ac04b265becb352"
+    },
+    {
+      "name": "LegL_Base",
+      "file": "layers/LegL_Base.png",
+      "visible": true,
+      "source_svg_sha256": "a419585d7aa0f8599dcfa3f367df3834c9b7e1e6057b81d215ca305c4cc562c7",
+      "rgba_sha256": "6a9958c0f5db7d3bacb8c1480c236f2d6e32653910f0274c26b79d788d757dce"
+    },
+    {
+      "name": "LegR_Base",
+      "file": "layers/LegR_Base.png",
+      "visible": true,
+      "source_svg_sha256": "62528aca664eea43a2b442d4ddc78e4bbd544b317aa3ca87a3aee713f0a2f318",
+      "rgba_sha256": "7a4b3a8b47bc1661b6fa8c5f72b04ebe372402d0e5d2ec1ff387ce4804c8b07c"
+    },
+    {
+      "name": "Body_Tunic",
+      "file": "layers/Body_Tunic.png",
+      "visible": true,
+      "source_svg_sha256": "e2d1c1be7e480244a48002a04511f41e801eb22eb46f28771d1c771802fd7b4c",
+      "rgba_sha256": "090d231f1ff8bb09a6af452afbf72cb2fe8073ad5551d82fdf19b12130b63e12"
+    },
+    {
+      "name": "Body_Stripe",
+      "file": "layers/Body_Stripe.png",
+      "visible": true,
+      "source_svg_sha256": "c811752e75c62938c06d071bb77052fe358ff10aeaee22ce4a50221012bfaea2",
+      "rgba_sha256": "e45c28c5e367a30c711f4dc93afc8d52cc182b38434b0008dfc29b361655b3cb"
+    },
+    {
+      "name": "Body_Emblem",
+      "file": "layers/Body_Emblem.png",
+      "visible": true,
+      "source_svg_sha256": "7207c14d285eb205bb644de009f831689936f68a197af0d6a290a9c285cfe787",
+      "rgba_sha256": "dac79c6b46a41ec405c68ff2c91a8f1b699dd8d96d493097274e794d5041cbc6"
+    },
+    {
+      "name": "Hood_WingL",
+      "file": "layers/Hood_WingL.png",
+      "visible": true,
+      "source_svg_sha256": "d462a2c57c9dc97149729d06613b8614c4cf80cd8185bd37c6d525051ed32166",
+      "rgba_sha256": "1bd0f0f4bf229813cc5a0d4ef46bc6f184b85f218fae6159fc1c042ec471a6be"
+    },
+    {
+      "name": "Hood_WingR",
+      "file": "layers/Hood_WingR.png",
+      "visible": true,
+      "source_svg_sha256": "b41f84b528b5bd0725c4a70df9d43a6732bdb899cbf6233d34bb272dfc71e35a",
+      "rgba_sha256": "527cb9bbaee8456427cb11423ae1a1b719cdd96ca93dbf2549a80df5dd06d5b7"
+    },
+    {
+      "name": "Hood_Base",
+      "file": "layers/Hood_Base.png",
+      "visible": true,
+      "source_svg_sha256": "354e3f8c6a023ae22eef68297e550e185f78f11ea9def9d06f8907022cc0c172",
+      "rgba_sha256": "a85d5dfd7d8b4888c9de779116c18e1d82bdbb0a5c01e8249720f6704612c9d3"
+    },
+    {
+      "name": "Face_Base",
+      "file": "layers/Face_Base.png",
+      "visible": true,
+      "source_svg_sha256": "7fa8883dd1b3e543d1648d449078ee7c0b9604d44c6672d39cc8262506dcb067",
+      "rgba_sha256": "33998955bca4d6625a999a67c8d931e8147a30e6416518912349665730a0555e"
+    },
+    {
+      "name": "EyeR_Open",
+      "file": "layers/EyeR_Open.png",
+      "visible": true,
+      "source_svg_sha256": "b23d1db623dcea066fe64ef4f9d026096aeba1e4382348853b4c8cf9ebf9e5ef",
+      "rgba_sha256": "32f8e6d52d368837986901f2f2afaa0dd9b5fada6aee43f15396c27e3a9affe9"
+    },
+    {
+      "name": "EyeR_Highlight",
+      "file": "layers/EyeR_Highlight.png",
+      "visible": true,
+      "source_svg_sha256": "eccc8c6211d46f3f9906372ea8d557870f11236097aa0d332dfeaa0175dbe719",
+      "rgba_sha256": "a4568bea0690216a661b89966482090f964ed6974abb9519c00ab4c4a1957348"
+    },
+    {
+      "name": "EyeL_Open",
+      "file": "layers/EyeL_Open.png",
+      "visible": true,
+      "source_svg_sha256": "f7eac68476fbe2f05b968a19dcd7a8610889e74889c06c09a398418a10ac3986",
+      "rgba_sha256": "956b212b88d770e253f71768ca76e94f0016385a31de7be40d247e240e758f6a"
+    },
+    {
+      "name": "EyeL_Highlight",
+      "file": "layers/EyeL_Highlight.png",
+      "visible": true,
+      "source_svg_sha256": "dcbe43c26dd309c83dcabc2cf941c5f84eba4a7b36102dc3ccc505d60dd25218",
+      "rgba_sha256": "849e88a91de84c9ba2bdb08e2b909dbad3c22a6b188e56a6f931ae31456c2cef"
+    },
+    {
+      "name": "Mouth_Closed",
+      "file": "layers/Mouth_Closed.png",
+      "visible": true,
+      "source_svg_sha256": "6e63db8759e8adc5b58ca787101ee6de40aa3373ba6f40d2b6d4cf83041cf322",
+      "rgba_sha256": "071c9913d256359d58ff2fa6b539ef2afa14fe70c335b1c178214b8d01d90b91"
+    },
+    {
+      "name": "Hood_BirdEyeL",
+      "file": "layers/Hood_BirdEyeL.png",
+      "visible": true,
+      "source_svg_sha256": "7e85c14ea59d2ac4862d707e2f3ce37a1c7dde0dfdb04fe4ea4882d58b57aa06",
+      "rgba_sha256": "5bca18a1c4a4863d448b360783f0ee3649d204c1f8969cc445e5f7a687a6b8a4"
+    },
+    {
+      "name": "Hood_BirdEyeR",
+      "file": "layers/Hood_BirdEyeR.png",
+      "visible": true,
+      "source_svg_sha256": "c79db89ebb39154e7d686ba8b8cc40c897d6f1f929cf8ab0d7494a70378dfea4",
+      "rgba_sha256": "2ac37cef60de9132356a06a596edc263fad836aae6c91f551dd63a47f115eae0"
+    },
+    {
+      "name": "Hood_Beak",
+      "file": "layers/Hood_Beak.png",
+      "visible": true,
+      "source_svg_sha256": "eecfa77056e4b375de4429e7479e81bf3bb854138dc08d1911c85f13b4fa2d29",
+      "rgba_sha256": "476fd2558d634c19bdeebc0f5b2dfb659822b1899ae322d8f471c1b3702afdea"
+    },
+    {
+      "name": "Face_CheekR",
+      "file": "layers/Face_CheekR.png",
+      "visible": true,
+      "source_svg_sha256": "3c40b0950d9cffeea1e30ac87e75b3c1604524b7e49477180e4afdd607c93317",
+      "rgba_sha256": "355aa38c1aef1949fc869f282e593e4ae084ab0b0a2cd5a4457071b69c17c6cf"
+    },
+    {
+      "name": "Face_CheekL",
+      "file": "layers/Face_CheekL.png",
+      "visible": true,
+      "source_svg_sha256": "ed05709bba510ac60504c15ee1e1d438e158bbce132b1b45de3f957c5ce7ec97",
+      "rgba_sha256": "891aa113ad5dcd02ab60a120d03c01787535e552956e6b21f25bebc283187569"
+    },
+    {
+      "name": "EyeL_Closed",
+      "file": "layers/EyeL_Closed.png",
+      "visible": false,
+      "source_svg_sha256": "f568738dc8736637deca4c210f6c04aa5ffae429ece47c4b124f06c2e6b61cb8",
+      "rgba_sha256": "0d3846a19bcfe56b61dbcadeb2e6110382c340829e3b519837c1a09f535cbdfc"
+    },
+    {
+      "name": "EyeR_Closed",
+      "file": "layers/EyeR_Closed.png",
+      "visible": false,
+      "source_svg_sha256": "0d661a2996222ac939601d6945c96e610f37aff1299647762d33ee3ebb2a1a1e",
+      "rgba_sha256": "09ee25d68884ca1c69b6e5253bd355c8dca91f46f44b7acb8be9cf00a490cefc"
+    },
+    {
+      "name": "Mouth_Open",
+      "file": "layers/Mouth_Open.png",
+      "visible": false,
+      "source_svg_sha256": "3fe92ced4cbc9a5638b67021603f3ca6b98dc7f7e3dcb9591ac4559937222c13",
+      "rgba_sha256": "2ba4be5a86181bed514947a64a95e5feb2930d6b4ad3996f2081359b03c9fdfe"
+    }
+  ],
+  "verification": {
+    "mean_channel_error_255": 0.001181,
+    "fraction_pixels_over_16": 0.0,
+    "individual_layer_pixels_exact": true
+  },
+  "psd_sha256": "f627dbeb000b191fd9434e3187cec69e4eecfea44aaa653bce8fec041934a5c1",
+  "not_completed": [
+    "hidden-overlap artwork",
+    "artist review of expression candidates",
+    "deformation topology",
+    "Cubism import check",
+    "cmo3 project",
+    "moc3 runtime"
+  ]
+}

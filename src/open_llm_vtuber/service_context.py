@@ -6,6 +6,7 @@ from fastapi import WebSocket
 
 from prompts import prompt_loader
 from .live2d_model import Live2dModel
+from .logging_utils import secret_redactor
 from .asr.asr_interface import ASRInterface
 from .tts.tts_interface import TTSInterface
 from .vad.vad_interface import VADInterface
@@ -74,20 +75,11 @@ class ServiceContext:
 
     def __str__(self):
         return (
-            f"ServiceContext:\n"
-            f"  System Config: {'Loaded' if self.system_config else 'Not Loaded'}\n"
-            f"    Details: {json.dumps(self.system_config.model_dump(), indent=6) if self.system_config else 'None'}\n"
-            f"  Live2D Model: {self.live2d_model.model_info if self.live2d_model else 'Not Loaded'}\n"
-            f"  ASR Engine: {type(self.asr_engine).__name__ if self.asr_engine else 'Not Loaded'}\n"
-            f"    Config: {json.dumps(self.character_config.asr_config.model_dump(), indent=6) if self.character_config.asr_config else 'None'}\n"
-            f"  TTS Engine: {type(self.tts_engine).__name__ if self.tts_engine else 'Not Loaded'}\n"
-            f"    Config: {json.dumps(self.character_config.tts_config.model_dump(), indent=6) if self.character_config.tts_config else 'None'}\n"
-            f"  LLM Engine: {type(self.agent_engine).__name__ if self.agent_engine else 'Not Loaded'}\n"
-            f"    Agent Config: {json.dumps(self.character_config.agent_config.model_dump(), indent=6) if self.character_config.agent_config else 'None'}\n"
-            f"  VAD Engine: {type(self.vad_engine).__name__ if self.vad_engine else 'Not Loaded'}\n"
-            f"    Agent Config: {json.dumps(self.character_config.vad_config.model_dump(), indent=6) if self.character_config.vad_config else 'None'}\n"
-            f"  System Prompt: {self.system_prompt or 'Not Set'}\n"
-            f"  MCP Enabled: {'Yes' if self.mcp_client else 'No'}"
+            f"ServiceContext(conf_uid={getattr(self.character_config, 'conf_uid', None)}, "
+            f"asr={type(self.asr_engine).__name__}, "
+            f"tts={type(self.tts_engine).__name__}, "
+            f"agent={type(self.agent_engine).__name__}, "
+            f"mcp_enabled={bool(self.mcp_client)})"
         )
 
     # ==== Initializers
@@ -190,12 +182,16 @@ class ServiceContext:
     async def close(self):
         """Clean up resources, especially the MCPClient."""
         logger.info("Closing ServiceContext resources...")
-        if self.mcp_client:
-            logger.info(f"Closing MCPClient for context instance {id(self)}...")
-            await self.mcp_client.aclose()
-            self.mcp_client = None
-        if self.agent_engine and hasattr(self.agent_engine, "close"):
-            await self.agent_engine.close()  # Ensure agent resources are also closed
+        agent, mcp_client = self.agent_engine, self.mcp_client
+        self.agent_engine = None
+        self.mcp_client = None
+        try:
+            if mcp_client:
+                logger.info(f"Closing MCPClient for context instance {id(self)}...")
+                await mcp_client.aclose()
+        finally:
+            if agent and hasattr(agent, "close"):
+                await agent.close()
         logger.info("ServiceContext closed.")
 
     async def load_cache(
@@ -207,7 +203,6 @@ class ServiceContext:
         asr_engine: ASRInterface,
         tts_engine: TTSInterface,
         vad_engine: VADInterface,
-        agent_engine: AgentInterface,
         translate_engine: TranslateInterface | None,
         mcp_server_registery: ServerRegistry | None = None,
         tool_adapter: ToolAdapter | None = None,
@@ -215,8 +210,7 @@ class ServiceContext:
         client_uid: str = None,
     ) -> None:
         """
-        Load the ServiceContext with the reference of the provided instances.
-        Pass by reference so no reinitialization will be done.
+        Reuse expensive speech engines, but create a separate conversation agent.
         """
         if not character_config:
             raise ValueError("character_config cannot be None")
@@ -230,7 +224,6 @@ class ServiceContext:
         self.asr_engine = asr_engine
         self.tts_engine = tts_engine
         self.vad_engine = vad_engine
-        self.agent_engine = agent_engine
         self.translate_engine = translate_engine
         # Load potentially shared components by reference
         self.mcp_server_registery = mcp_server_registery
@@ -244,7 +237,10 @@ class ServiceContext:
             self.character_config.agent_config.agent_settings.basic_memory_agent.mcp_enabled_servers,
         )
 
-        logger.debug(f"Loaded service context with cache: {character_config}")
+        await self.init_agent(
+            character_config.agent_config, character_config.persona_prompt
+        )
+        logger.debug("Loaded session context for {}", character_config.conf_uid)
 
     async def load_from_config(self, config: Config) -> None:
         """
@@ -254,6 +250,7 @@ class ServiceContext:
         Parameters:
         - config (Dict): The configuration dictionary.
         """
+        secret_redactor.add_config(config)
         if not self.config:
             self.config = config
 
@@ -511,12 +508,10 @@ class ServiceContext:
                     "system_config": self.system_config.model_dump(),
                     "character_config": new_character_config_data,
                 }
+                secret_redactor.add_config(new_config)
                 new_config = validate_config(new_config)
                 await self.load_from_config(new_config)  # Await the async load
                 logger.debug(f"New config: {self}")
-                logger.debug(
-                    f"New character config: {self.character_config.model_dump()}"
-                )
 
                 # Send responses to client
                 await websocket.send_text(

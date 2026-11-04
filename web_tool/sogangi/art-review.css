@@ -1,0 +1,201 @@
+.art-page {
+  max-width: 1320px;
+  margin: auto;
+  padding: 32px 28px 55px;
+}
+.art-page h1 {
+  font-size: 29px;
+  letter-spacing: -1px;
+  margin: 0 0 14px;
+}
+.art-intro {
+  max-width: 840px;
+  font-size: 13px;
+  line-height: 1.9;
+  color: #756958;
+}
+.art-decision {
+  border-left: 3px solid #8a9b77;
+  background: #f0f0e4;
+  padding: 12px 16px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: #586447;
+}
+.art-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 24px;
+  margin: 25px 0 12px;
+}
+.art-controls label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+.art-controls select,
+.art-views button {
+  min-height: 40px;
+  border: 1px solid #d8cfc0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: #fffdf8;
+  color: #756958;
+  font: inherit;
+}
+.art-views {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+.art-views button[aria-pressed='true'] {
+  color: #a1273b;
+  background: #f5e2e4;
+  border-color: #c998a2;
+}
+.art-guide input {
+  accent-color: #a1273b;
+}
+.art-pose-note {
+  min-height: 24px;
+  font-size: 12px;
+  color: #756958;
+  line-height: 1.8;
+}
+.art-pose-note[data-stress='true'] {
+  color: #9b5c10;
+}
+.art-comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.art-comparison figure {
+  margin: 0;
+  border: 1px solid #ded5c5;
+  border-radius: 15px;
+  overflow: hidden;
+  background: #fffdf8;
+}
+.art-comparison figcaption {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 15px 18px;
+  font-size: 12px;
+  border-bottom: 1px solid #ded5c5;
+}
+.art-comparison figcaption span {
+  color: #938472;
+  font-size: 11px;
+}
+.art-stage {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 270/337;
+  background-color: #faf8f2;
+  background-image:
+    linear-gradient(45deg, #eee9df 25%, transparent 25%),
+    linear-gradient(-45deg, #eee9df 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #eee9df 75%),
+    linear-gradient(-45deg, transparent 75%, #eee9df 75%);
+  background-size: 24px 24px;
+  background-position:
+    0 0,
+    0 12px,
+    12px -12px,
+    -12px 0;
+}
+.art-details {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 25px;
+  margin-top: 25px;
+}
+.art-details section {
+  border-top: 1px solid #ded5c5;
+  padding-top: 8px;
+}
+.art-details h2 {
+  font-size: 15px;
+  font-weight: 500;
+  margin: 15px 0;
+}
+.art-details p,
+.art-details li,
+.art-details dl {
+  font-size: 12px;
+  line-height: 1.9;
+}
+.art-details .art-small {
+  color: #8a7c6a;
+  font-size: 11px;
+}
+.art-details a {
+  display: block;
+  font-size: 11px;
+  line-height: 2.3;
+  color: #9c2c3f;
+  overflow-wrap: anywhere;
+}
+.art-details dl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+.art-details dt {
+  overflow-wrap: anywhere;
+}
+.art-details dd {
+  margin: 0;
+}
+.art-details ul {
+  padding-left: 18px;
+  color: #756958;
+}
+#artError {
+  color: #a1273b;
+}
+@media (max-width: 700px) {
+  .topbar {
+    padding: 0 16px;
+    gap: 14px;
+  }
+  .topbar > a:last-child {
+    font-size: 10px;
+  }
+  .art-page {
+    padding: 24px 14px;
+  }
+  .art-page h1 {
+    font-size: 23px;
+  }
+  .art-controls {
+    gap: 14px;
+  }
+  .art-controls select {
+    max-width: 235px;
+  }
+  .art-comparison {
+    gap: 9px;
+  }
+  .art-comparison[data-view='shoulder'],
+  .art-comparison[data-view='face'] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .art-comparison figcaption {
+    padding: 11px;
+  }
+  .art-comparison figcaption span {
+    font-size: 9px;
+  }
+  .art-details {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+  }
+}

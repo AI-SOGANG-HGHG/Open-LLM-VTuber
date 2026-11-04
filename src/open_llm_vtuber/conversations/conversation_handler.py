@@ -30,7 +30,11 @@ async def handle_conversation_trigger(
     broadcast_to_group: Callable,
 ) -> None:
     """Handle triggers that start a conversation"""
-    metadata = None
+    metadata = {
+        key: True
+        for key in ("text_stream", "require_spoken_response")
+        if data.get(key) is True
+    } or None
 
     if msg_type == "ai-speak-signal":
         try:
@@ -96,10 +100,29 @@ async def handle_conversation_trigger(
             )
     else:
         # Use client_uid as task key for individual conversations
+        previous_task = current_conversation_tasks.get(client_uid)
+        if previous_task and not previous_task.done():
+            previous_task.cancel()
+            try:
+                await previous_task
+            except asyncio.CancelledError:
+                pass
+
+        request_id = data.get("request_id")
+        if not isinstance(request_id, str) or len(request_id) > 128:
+            request_id = None
+
+        async def send_turn_message(payload: str) -> None:
+            if request_id:
+                message = json.loads(payload)
+                message["request_id"] = request_id
+                payload = json.dumps(message)
+            await websocket.send_text(payload)
+
         current_conversation_tasks[client_uid] = asyncio.create_task(
             process_single_conversation(
                 context=context,
-                websocket_send=websocket.send_text,
+                websocket_send=send_turn_message,
                 client_uid=client_uid,
                 user_input=user_input,
                 images=images,

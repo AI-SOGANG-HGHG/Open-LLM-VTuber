@@ -192,7 +192,6 @@ class WebSocketHandler:
             asr_engine=self.default_context_cache.asr_engine,
             tts_engine=self.default_context_cache.tts_engine,
             vad_engine=self.default_context_cache.vad_engine,
-            agent_engine=self.default_context_cache.agent_engine,
             translate_engine=self.default_context_cache.translate_engine,
             mcp_server_registery=self.default_context_cache.mcp_server_registery,
             tool_adapter=self.default_context_cache.tool_adapter,
@@ -299,26 +298,35 @@ class WebSocketHandler:
 
         # Clean up other client data
         self.client_connections.pop(client_uid, None)
-        self.client_contexts.pop(client_uid, None)
+        context = self.client_contexts.pop(client_uid, None)
         self.received_data_buffers.pop(client_uid, None)
         if client_uid in self.current_conversation_tasks:
             task = self.current_conversation_tasks[client_uid]
             if task and not task.done():
                 task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+                except Exception as error:
+                    logger.debug(
+                        "Turn ended with {} during disconnect", type(error).__name__
+                    )
             self.current_conversation_tasks.pop(client_uid, None)
 
         # Call context close to clean up resources (e.g., MCPClient)
-        context = self.client_contexts.get(client_uid)
-        if context:
-            await context.close()
+        try:
+            if context:
+                await context.close()
+        finally:
+            message_handler.cleanup_client(client_uid)
 
         logger.info(f"Client {client_uid} disconnected")
-        message_handler.cleanup_client(client_uid)
 
     async def _cleanup_failed_connection(self, client_uid: str) -> None:
         """Clean up failed connection data"""
         self.client_connections.pop(client_uid, None)
-        self.client_contexts.pop(client_uid, None)
+        context = self.client_contexts.pop(client_uid, None)
         self.received_data_buffers.pop(client_uid, None)
         self.chat_group_manager.client_group_map.pop(client_uid, None)
 
@@ -326,9 +334,22 @@ class WebSocketHandler:
             task = self.current_conversation_tasks[client_uid]
             if task and not task.done():
                 task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+                except Exception as error:
+                    logger.debug(
+                        "Turn ended with {} during failed connection cleanup",
+                        type(error).__name__,
+                    )
             self.current_conversation_tasks.pop(client_uid, None)
 
-        message_handler.cleanup_client(client_uid)
+        try:
+            if context:
+                await context.close()
+        finally:
+            message_handler.cleanup_client(client_uid)
 
     async def broadcast_to_group(
         self, group_members: list[str], message: dict, exclude_uid: str = None
@@ -407,26 +428,51 @@ class WebSocketHandler:
         """Handle fetching and setting specific chat history"""
         history_uid = data.get("history_uid")
         if not history_uid:
+            await websocket.send_text(
+                json.dumps(
+                    {
+                        "type": "history-error",
+                        "operation": "fetch",
+                        "code": "invalid_id",
+                    }
+                )
+            )
             return
 
         context = self.client_contexts[client_uid]
-        # Update history_uid in service context
-        context.history_uid = history_uid
-        context.agent_engine.set_memory_from_history(
-            conf_uid=context.character_config.conf_uid,
-            history_uid=history_uid,
-        )
-
-        messages = [
-            msg
-            for msg in get_history(
-                context.character_config.conf_uid,
-                history_uid,
+        # Validate before replacing the current session's history/memory.
+        try:
+            messages = get_history(
+                context.character_config.conf_uid, history_uid, strict=True
             )
-            if msg["role"] != "system"
-        ]
+            context.agent_engine.set_memory_from_history(
+                conf_uid=context.character_config.conf_uid,
+                history_uid=history_uid,
+            )
+        except (OSError, ValueError, TypeError):
+            await websocket.send_text(
+                json.dumps(
+                    {
+                        "type": "history-error",
+                        "operation": "fetch",
+                        "history_uid": history_uid
+                        if isinstance(history_uid, str)
+                        else None,
+                        "code": "unavailable",
+                    }
+                )
+            )
+            return
+        context.history_uid = history_uid
+        messages = [msg for msg in messages if msg["role"] != "system"]
         await websocket.send_text(
-            json.dumps({"type": "history-data", "messages": messages})
+            json.dumps(
+                {
+                    "type": "history-data",
+                    "history_uid": history_uid,
+                    "messages": messages,
+                }
+            )
         )
 
     async def _handle_create_history(
@@ -434,7 +480,10 @@ class WebSocketHandler:
     ) -> None:
         """Handle creation of new chat history"""
         context = self.client_contexts[client_uid]
-        history_uid = create_new_history(context.character_config.conf_uid)
+        try:
+            history_uid = create_new_history(context.character_config.conf_uid)
+        except (OSError, ValueError, TypeError):
+            history_uid = None
         if history_uid:
             context.history_uid = history_uid
             context.agent_engine.set_memory_from_history(
@@ -447,6 +496,12 @@ class WebSocketHandler:
                         "type": "new-history-created",
                         "history_uid": history_uid,
                     }
+                )
+            )
+        else:
+            await websocket.send_text(
+                json.dumps(
+                    {"type": "history-error", "operation": "new", "code": "unavailable"}
                 )
             )
 

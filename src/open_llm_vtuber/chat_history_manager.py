@@ -2,6 +2,8 @@ import os
 import re
 import json
 import uuid
+import tempfile
+from pathlib import Path
 from datetime import datetime
 from typing import Literal, List, TypedDict, Optional
 from loguru import logger
@@ -18,24 +20,40 @@ class HistoryMessage(TypedDict):
 
 def _is_safe_filename(filename: str) -> bool:
     """Validate filename for safety and allowed characters"""
-    if not filename or len(filename) > 255:
+    if not isinstance(filename, str) or not filename or len(filename) > 180:
         return False
-
-    # Allow alphanumeric, hyphen, underscore, and common unicode characters
-    # Block any filesystem special characters, control characters, and path separators
-    pattern = re.compile(r"^[\w\-_\u0020-\u007E\u00A0-\uFFFF]+$")
-    return bool(pattern.match(filename))
+    if (
+        filename in {".", ".."}
+        or filename != filename.strip()
+        or filename.endswith(".")
+    ):
+        return False
+    if re.search(r'[<>:"/\\|?*\x00-\x1f\x7f]', filename):
+        return False
+    stem = filename.split(".", 1)[0].upper()
+    return stem not in {
+        "CON",
+        "PRN",
+        "AUX",
+        "NUL",
+        *(f"COM{i}" for i in range(1, 10)),
+        *(f"LPT{i}" for i in range(1, 10)),
+    }
 
 
 def _sanitize_path_component(component: str) -> str:
     """Sanitize and validate a path component"""
-    # Remove any path components, get just the basename
-    sanitized = os.path.basename(component.strip())
+    if not _is_safe_filename(component):
+        raise ValueError("Invalid history path component")
+    return component
 
-    if not _is_safe_filename(sanitized):
-        raise ValueError(f"Invalid characters in path component: {component}")
 
-    return sanitized
+def _conf_directory(conf_uid: str) -> Path:
+    root = Path("chat_history").resolve()
+    directory = (root / _sanitize_path_component(conf_uid)).resolve()
+    if not directory.is_relative_to(root) or directory == root:
+        raise ValueError("Invalid history directory")
+    return directory
 
 
 def _ensure_conf_dir(conf_uid: str) -> str:
@@ -43,21 +61,40 @@ def _ensure_conf_dir(conf_uid: str) -> str:
     if not conf_uid:
         raise ValueError("conf_uid cannot be empty")
 
-    safe_conf_uid = _sanitize_path_component(conf_uid)
-    base_dir = os.path.join("chat_history", safe_conf_uid)
+    base_dir = str(_conf_directory(conf_uid))
     os.makedirs(base_dir, exist_ok=True)
     return base_dir
 
 
 def _get_safe_history_path(conf_uid: str, history_uid: str) -> str:
     """Get sanitized path for history file"""
-    safe_conf_uid = _sanitize_path_component(conf_uid)
     safe_history_uid = _sanitize_path_component(history_uid)
-    base_dir = os.path.join("chat_history", safe_conf_uid)
-    full_path = os.path.normpath(os.path.join(base_dir, f"{safe_history_uid}.json"))
-    if not full_path.startswith(base_dir):
-        raise ValueError("Invalid path: Path traversal detected")
-    return full_path
+    base_dir = _conf_directory(conf_uid)
+    full_path = (base_dir / f"{safe_history_uid}.json").resolve()
+    if full_path.parent != base_dir:
+        raise ValueError("Invalid history file path")
+    return str(full_path)
+
+
+def _write_history(filepath: str, data: list) -> None:
+    """Replace a completed file, so failed writes cannot truncate the previous record."""
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=Path(filepath).parent,
+            suffix=".tmp",
+            delete=False,
+        ) as file:
+            temporary = file.name
+            json.dump(data, file, ensure_ascii=False, indent=2)
+            file.flush()
+            os.fsync(file.fileno())
+        os.replace(temporary, filepath)
+    finally:
+        if temporary and os.path.exists(temporary):
+            os.unlink(temporary)
 
 
 def create_new_history(conf_uid: str) -> str:
@@ -80,8 +117,7 @@ def create_new_history(conf_uid: str) -> str:
                 "timestamp": datetime.now().isoformat(timespec="seconds"),
             }
         ]
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(initial_data, f, ensure_ascii=False, indent=2)
+        _write_history(filepath, initial_data)
     except Exception as e:
         logger.error(f"Failed to create new history file: {e}")
         return ""
@@ -125,7 +161,11 @@ def store_message(
                 history_data = json.load(f)
         except Exception:
             logger.error(f"Failed to load history file: {filepath}")
-            pass
+            raise ValueError(
+                "Existing history cannot be read; refusing to overwrite it"
+            ) from None
+        if not isinstance(history_data, list):
+            raise ValueError("Existing history is not a message list")
 
     now_str = datetime.now().isoformat(timespec="seconds")
     new_item = {
@@ -142,8 +182,7 @@ def store_message(
 
     history_data.append(new_item)
 
-    with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(history_data, f, ensure_ascii=False, indent=2)
+    _write_history(filepath, history_data)
     logger.debug(f"Successfully stored {role} message")
 
 
@@ -196,8 +235,7 @@ def update_metadate(conf_uid: str, history_uid: str, metadata: dict) -> bool:
             new_metadata.update(metadata)  # Add new fields
             history_data.insert(0, new_metadata)
 
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(history_data, f, ensure_ascii=False, indent=2)
+        _write_history(filepath, history_data)
 
         logger.debug(f"Updated metadata for history {history_uid}")
         return True
@@ -206,7 +244,9 @@ def update_metadate(conf_uid: str, history_uid: str, metadata: dict) -> bool:
     return False
 
 
-def get_history(conf_uid: str, history_uid: str) -> List[HistoryMessage]:
+def get_history(
+    conf_uid: str, history_uid: str, *, strict: bool = False
+) -> List[HistoryMessage]:
     """Read chat history for the given conf_uid and history_uid"""
     if not conf_uid or not history_uid:
         if not conf_uid:
@@ -218,15 +258,29 @@ def get_history(conf_uid: str, history_uid: str) -> List[HistoryMessage]:
     filepath = _get_safe_history_path(conf_uid, history_uid)
 
     if not os.path.exists(filepath):
+        if strict:
+            raise FileNotFoundError("History does not exist")
         logger.warning(f"History file not found: {filepath}")
         return []
 
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             history_data = json.load(f)
+            if not isinstance(history_data, list) or any(
+                not isinstance(msg, dict)
+                or not isinstance(msg.get("role"), str)
+                or (
+                    msg["role"] != "metadata"
+                    and not isinstance(msg.get("content"), str)
+                )
+                for msg in history_data
+            ):
+                raise ValueError("Invalid history data")
             # Filter out metadata
             return [msg for msg in history_data if msg["role"] != "metadata"]
     except Exception:
+        if strict:
+            raise
         return []
 
 
@@ -254,7 +308,6 @@ def get_history_list(conf_uid: str) -> List[dict]:
 
     histories = []
     conf_dir = _ensure_conf_dir(conf_uid)
-    empty_history_uids = []
 
     try:
         for filename in os.listdir(conf_dir):
@@ -273,7 +326,6 @@ def get_history_list(conf_uid: str) -> List[dict]:
                         msg for msg in messages if msg["role"] != "metadata"
                     ]
                     if not actual_messages:
-                        empty_history_uids.append(history_uid)
                         continue
 
                     latest_message = actual_messages[-1]
@@ -288,15 +340,6 @@ def get_history_list(conf_uid: str) -> List[dict]:
             except Exception as e:
                 logger.error(f"Error reading history file {filename}: {e}")
                 continue
-
-        # Clean up empty histories if there are other non-empty ones
-        if len(empty_history_uids) > 0 and len(os.listdir(conf_dir)) > 1:
-            for uid in empty_history_uids:
-                try:
-                    os.remove(os.path.join(conf_dir, f"{uid}.json"))
-                    logger.info(f"Removed empty history file: {uid}")
-                except Exception as e:
-                    logger.error(f"Failed to remove empty history file {uid}: {e}")
 
         histories.sort(
             key=lambda x: x["timestamp"] if x["timestamp"] else "", reverse=True
@@ -340,8 +383,7 @@ def modify_latest_message(
             return False
 
         latest_message["content"] = new_content
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(history_data, f, ensure_ascii=False, indent=2)
+        _write_history(filepath, history_data)
 
         logger.debug(f"Successfully modified latest {role} message")
         return True

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>서강이 · 원화 동작 비교</title>
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./art-review.css" />
+    <script type="module" src="./art-review.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./"
+        ><span class="brand-mark" aria-hidden="true">S</span
+        ><span>서강이 <b>원화 동작 비교</b></span></a
+      >
+      <a href="./rigging-map.html">리깅 좌표도 ↗</a>
+    </header>
+    <main class="art-page">
+      <p class="eyebrow">ARTWORK / MOTION REVIEW</p>
+      <h1>같은 자세에서, 원본과 후보를 비교해요.</h1>
+      <p class="art-intro">
+        기존 벡터 파츠와 어깨 겹침을 보강한 후보입니다. 고개·팔을 고정 회전한 SVG 비교이며, 실제
+        Cubism 메시 변형과는 다릅니다. 추가 원화가 필요한지 먼저 확인합니다.
+      </p>
+      <p id="artError" role="alert" hidden>
+        비교 자료를 불러오지 못했어요. 서버와 원화 자료를 확인해 주세요.
+      </p>
+      <div id="artContent" hidden>
+        <p id="artDecision" class="art-decision"></p>
+        <div class="art-controls" aria-label="자세와 보기 선택">
+          <label
+            >검토할 자세
+            <select id="artPose"></select
+          ></label>
+          <div class="art-views" aria-label="확대 범위">
+            <button type="button" data-art-view="full" aria-pressed="true">전체 모습</button>
+            <button type="button" data-art-view="shoulder" aria-pressed="false">어깨 확대</button>
+            <button type="button" data-art-view="face" aria-pressed="false">얼굴 확대</button>
+          </div>
+          <label class="art-guide"><input id="artGuide" type="checkbox" /> 어깨 피벗 표시</label>
+        </div>
+        <p id="artPoseNote" class="art-pose-note" role="status"></p>
+        <div class="art-comparison">
+          <figure>
+            <figcaption>
+              <strong>기존 원화</strong><span>공식 벡터에서 분리한 파츠</span>
+            </figcaption>
+            <svg
+              id="originalArt"
+              class="art-stage"
+              viewBox="175 315 270 337"
+              role="img"
+              aria-label="기존 원화의 선택한 자세"
+            >
+              <image x="175" y="315" width="270" height="337" />
+            </svg>
+          </figure>
+          <figure>
+            <figcaption>
+              <strong>어깨 보완 후보</strong><span>기존 24개 + 새 어깨 캡 2개</span>
+            </figcaption>
+            <svg
+              id="candidateArt"
+              class="art-stage"
+              viewBox="175 315 270 337"
+              role="img"
+              aria-label="어깨 보완 후보의 선택한 자세"
+            >
+              <image x="175" y="315" width="270" height="337" />
+            </svg>
+          </figure>
+        </div>
+        <div class="art-details">
+          <section>
+            <h2>정면 보존 검사</h2>
+            <p id="artNeutral"></p>
+            <p class="art-small">
+              기존 PSD·24개 레이어는 변경하지 않았습니다. 후보 PSD는 별도 파일이며 Cubism
+              가져오기·리깅 검수는 아직 하지 않았습니다.
+            </p>
+            <a href="./assets/overlap-candidates/sogangi-shoulder-candidate.zip" download
+              >후보 PSD·PNG·자세 비교 묶음 받기 ↗</a
+            >
+            <a href="./assets/overlap-candidates/review.json" download>측정 결과 JSON 받기 ↗</a>
+          </section>
+          <section>
+            <h2>이미 그려져 있는 가림 부분</h2>
+            <p class="art-small">
+              기존 레이어의 불투명 픽셀 중, 앞쪽 레이어가 완전히 가리는 비율입니다. 가림이 있다는
+              사실만으로 동작 중 연결이 안전하다고 판단하지는 않습니다.
+            </p>
+            <dl id="artOverlap"></dl>
+          </section>
+          <section>
+            <h2>확인할 것</h2>
+            <ul>
+              <li>어깨가 옷 밖으로 뜨거나 검은 선이 두 겹으로 드러나는가?</li>
+              <li>고개를 기울일 때 얼굴·모자 아래가 비거나 의상을 가리는가?</li>
+              <li>정면으로 돌아왔을 때 실루엣·의상 문양이 그대로인가?</li>
+            </ul>
+            <p class="art-small">
+              픽셀 차이는 변경된 위치를 알려 줄 뿐, 품질이 좋아졌다는 판정이 아닙니다. 범위 밖
+              자세는 한계를 찾는 용도입니다.
+            </p>
+          </section>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

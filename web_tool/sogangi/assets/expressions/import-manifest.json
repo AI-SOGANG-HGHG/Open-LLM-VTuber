@@ -1,0 +1,546 @@
+{
+  "schema_version": 1,
+  "status": "official_expression_parts_preparation",
+  "source_pdf_sha256": "aa1fed216c2106c3f4699e259b80cb58df22f411954b12ffb96688c66cac48e0",
+  "baseline_psd_sha256": "cdb5dab0a79906b643233bdaed1ee480879ea9eeaba246c50cd5de5a31fd8065",
+  "psd_sha256": "2b55044100f94369b109b8685a34101350e06970eabd45224aa59ca22a8a2d37",
+  "canvas": {
+    "width": 2048,
+    "height": 2048
+  },
+  "parts": [
+    {
+      "name": "ArmL_Base",
+      "path": [
+        "Arm L",
+        "ArmL_Base"
+      ],
+      "visible": true,
+      "bounds": [
+        582,
+        1212,
+        896,
+        1544
+      ],
+      "file": "layers/ArmL_Base.png",
+      "rgba_sha256": "a85ecc7ae65420f553325e7c004b4691e2ed8cac82e12df6a198ecaca6498e6c",
+      "trimmed_rgba_sha256": "968a33311af0ab1da6c14235da6dcb7c20396c0a788fb34a7aa3e3cf29b61955"
+    },
+    {
+      "name": "ArmR_Base",
+      "path": [
+        "Arm R",
+        "ArmR_Base"
+      ],
+      "visible": true,
+      "bounds": [
+        1144,
+        1212,
+        1458,
+        1544
+      ],
+      "file": "layers/ArmR_Base.png",
+      "rgba_sha256": "2845b505508d348653bb6e34bdb149a356a5defdc5a8124e0ac04b265becb352",
+      "trimmed_rgba_sha256": "0455fa7b5bc2e5f56efa124833843c29e770e474bb95a4076fc2cf0b51eac552"
+    },
+    {
+      "name": "LegL_Base",
+      "path": [
+        "Lower Body",
+        "LegL_Base"
+      ],
+      "visible": true,
+      "bounds": [
+        741,
+        1597,
+        957,
+        1895
+      ],
+      "file": "layers/LegL_Base.png",
+      "rgba_sha256": "6a9958c0f5db7d3bacb8c1480c236f2d6e32653910f0274c26b79d788d757dce",
+      "trimmed_rgba_sha256": "ea499a8fb126bdbc3af7fc35dfa174359cd09dde3646f26ff97bdb137df17722"
+    },
+    {
+      "name": "LegR_Base",
+      "path": [
+        "Lower Body",
+        "LegR_Base"
+      ],
+      "visible": true,
+      "bounds": [
+        1082,
+        1597,
+        1299,
+        1895
+      ],
+      "file": "layers/LegR_Base.png",
+      "rgba_sha256": "7a4b3a8b47bc1661b6fa8c5f72b04ebe372402d0e5d2ec1ff387ce4804c8b07c",
+      "trimmed_rgba_sha256": "abd39a400a92467464fa52891631d93de0b85c0140c4b02891350a160c852db5"
+    },
+    {
+      "name": "Body_Tunic",
+      "path": [
+        "Body",
+        "Body_Tunic"
+      ],
+      "visible": true,
+      "bounds": [
+        673,
+        1198,
+        1366,
+        1786
+      ],
+      "file": "layers/Body_Tunic.png",
+      "rgba_sha256": "090d231f1ff8bb09a6af452afbf72cb2fe8073ad5551d82fdf19b12130b63e12",
+      "trimmed_rgba_sha256": "611f73b4142d9c71b917c8ac41dfcf08299b947430ee170cab13af3bfb6e70ab"
+    },
+    {
+      "name": "Body_Stripe",
+      "path": [
+        "Body",
+        "Body_Stripe"
+      ],
+      "visible": true,
+      "bounds": [
+        691,
+        1373,
+        1348,
+        1640
+      ],
+      "file": "layers/Body_Stripe.png",
+      "rgba_sha256": "e45c28c5e367a30c711f4dc93afc8d52cc182b38434b0008dfc29b361655b3cb",
+      "trimmed_rgba_sha256": "da41ac3254b53644d3ade628be3ebfef254dbd4821db0c824736be9d1033a88a"
+    },
+    {
+      "name": "Body_Emblem",
+      "path": [
+        "Body",
+        "Body_Emblem"
+      ],
+      "visible": true,
+      "bounds": [
+        886,
+        1589,
+        1153,
+        1703
+      ],
+      "file": "layers/Body_Emblem.png",
+      "rgba_sha256": "dac79c6b46a41ec405c68ff2c91a8f1b699dd8d96d493097274e794d5041cbc6",
+      "trimmed_rgba_sha256": "10ac2f37d7dfec13b0900422ab97e08ddc28bbb4b2a8a4926ee9b4fa8c71b956"
+    },
+    {
+      "name": "Hood_WingL",
+      "path": [
+        "Hood",
+        "Hood_WingL"
+      ],
+      "visible": true,
+      "bounds": [
+        329,
+        181,
+        813,
+        599
+      ],
+      "file": "layers/Hood_WingL.png",
+      "rgba_sha256": "1bd0f0f4bf229813cc5a0d4ef46bc6f184b85f218fae6159fc1c042ec471a6be",
+      "trimmed_rgba_sha256": "6cd5ba48e443b984c34a740b280e9ddb38bc5f17f84e51767e414a0770e022a8"
+    },
+    {
+      "name": "Hood_WingR",
+      "path": [
+        "Hood",
+        "Hood_WingR"
+      ],
+      "visible": true,
+      "bounds": [
+        1226,
+        181,
+        1710,
+        599
+      ],
+      "file": "layers/Hood_WingR.png",
+      "rgba_sha256": "527cb9bbaee8456427cb11423ae1a1b719cdd96ca93dbf2549a80df5dd06d5b7",
+      "trimmed_rgba_sha256": "ebf10a49ab733abfc831f35a452eae94fec54dd81dadc729508de080832fadac"
+    },
+    {
+      "name": "Hood_Base",
+      "path": [
+        "Hood",
+        "Hood_Base"
+      ],
+      "visible": true,
+      "bounds": [
+        445,
+        156,
+        1594,
+        1273
+      ],
+      "file": "layers/Hood_Base.png",
+      "rgba_sha256": "a85d5dfd7d8b4888c9de779116c18e1d82bdbb0a5c01e8249720f6704612c9d3",
+      "trimmed_rgba_sha256": "39324121e2940a8e9d4183a4d6c7c11cf50677f35b36eefdaf583ec20239f3d9"
+    },
+    {
+      "name": "Hood_BirdEyeL",
+      "path": [
+        "Hood",
+        "Hood_BirdEyeL"
+      ],
+      "visible": true,
+      "bounds": [
+        833,
+        270,
+        879,
+        316
+      ],
+      "file": "layers/Hood_BirdEyeL.png",
+      "rgba_sha256": "5bca18a1c4a4863d448b360783f0ee3649d204c1f8969cc445e5f7a687a6b8a4",
+      "trimmed_rgba_sha256": "55710bbd52a7112c6681292c461b65d2989896fd7f772e21e278cc01307d0bdd"
+    },
+    {
+      "name": "Hood_BirdEyeR",
+      "path": [
+        "Hood",
+        "Hood_BirdEyeR"
+      ],
+      "visible": true,
+      "bounds": [
+        1160,
+        270,
+        1206,
+        316
+      ],
+      "file": "layers/Hood_BirdEyeR.png",
+      "rgba_sha256": "2ac37cef60de9132356a06a596edc263fad836aae6c91f551dd63a47f115eae0",
+      "trimmed_rgba_sha256": "7e068e40b63a2ee581d1936e95206432f719b5191935ece98bd2616c7706b9f4"
+    },
+    {
+      "name": "Hood_Beak",
+      "path": [
+        "Hood",
+        "Hood_Beak"
+      ],
+      "visible": true,
+      "bounds": [
+        907,
+        261,
+        1132,
+        420
+      ],
+      "file": "layers/Hood_Beak.png",
+      "rgba_sha256": "476fd2558d634c19bdeebc0f5b2dfb659822b1899ae322d8f471c1b3702afdea",
+      "trimmed_rgba_sha256": "583de22feb823b4eba041e104802169d5a87dedc7f3cac94e4a16bf96294618f"
+    },
+    {
+      "name": "Face_Base",
+      "path": [
+        "Face",
+        "Face_Base"
+      ],
+      "visible": true,
+      "bounds": [
+        567,
+        424,
+        1473,
+        1273
+      ],
+      "file": "layers/Face_Base.png",
+      "rgba_sha256": "33998955bca4d6625a999a67c8d931e8147a30e6416518912349665730a0555e",
+      "trimmed_rgba_sha256": "693e7c6cf6eef71ea866055c9184c0228e0132e8e8c487eed3c55efc8f003db7"
+    },
+    {
+      "name": "Face_CheekR",
+      "path": [
+        "Face",
+        "Face_CheekR"
+      ],
+      "visible": true,
+      "bounds": [
+        1264,
+        941,
+        1378,
+        990
+      ],
+      "file": "layers/Face_CheekR.png",
+      "rgba_sha256": "355aa38c1aef1949fc869f282e593e4ae084ab0b0a2cd5a4457071b69c17c6cf",
+      "trimmed_rgba_sha256": "f293a1f5bab904c9a90e655ab9821d65ca8a380353a2da8754f5c31ac2e8baaa"
+    },
+    {
+      "name": "Face_CheekL",
+      "path": [
+        "Face",
+        "Face_CheekL"
+      ],
+      "visible": true,
+      "bounds": [
+        661,
+        941,
+        775,
+        990
+      ],
+      "file": "layers/Face_CheekL.png",
+      "rgba_sha256": "891aa113ad5dcd02ab60a120d03c01787535e552956e6b21f25bebc283187569",
+      "trimmed_rgba_sha256": "1954b23128ab26d5053ace8c9c065282cb7d1188197e88db45f56ef85c596cc6"
+    },
+    {
+      "name": "EyeR_Open",
+      "path": [
+        "Eye R",
+        "EyeR_Open"
+      ],
+      "visible": true,
+      "bounds": [
+        1141,
+        732,
+        1332,
+        923
+      ],
+      "file": "layers/EyeR_Open.png",
+      "rgba_sha256": "32f8e6d52d368837986901f2f2afaa0dd9b5fada6aee43f15396c27e3a9affe9",
+      "trimmed_rgba_sha256": "54a8eea0de475caa1d83ee8085d41f40e079d30a573227a16570245412d431ca"
+    },
+    {
+      "name": "EyeR_Highlight",
+      "path": [
+        "Eye R",
+        "EyeR_Highlight"
+      ],
+      "visible": true,
+      "bounds": [
+        1173,
+        765,
+        1218,
+        810
+      ],
+      "file": "layers/EyeR_Highlight.png",
+      "rgba_sha256": "a4568bea0690216a661b89966482090f964ed6974abb9519c00ab4c4a1957348",
+      "trimmed_rgba_sha256": "c5bcf9eeec8ea1484f611376ce7cc7a7bbc508d12309f28326cda63f4305dbbc"
+    },
+    {
+      "name": "EyeR_Closed",
+      "path": [
+        "Eye R",
+        "EyeR_Closed"
+      ],
+      "visible": false,
+      "bounds": [
+        1144,
+        804,
+        1357,
+        861
+      ],
+      "file": "layers/EyeR_Closed.png",
+      "rgba_sha256": "09ee25d68884ca1c69b6e5253bd355c8dca91f46f44b7acb8be9cf00a490cefc",
+      "trimmed_rgba_sha256": "4120ac1e291b23db92d1e8224fed4b8c71a6b3d810e09776adf8677cc613a38d"
+    },
+    {
+      "name": "EyeL_Open",
+      "path": [
+        "Eye L",
+        "EyeL_Open"
+      ],
+      "visible": true,
+      "bounds": [
+        708,
+        732,
+        898,
+        923
+      ],
+      "file": "layers/EyeL_Open.png",
+      "rgba_sha256": "956b212b88d770e253f71768ca76e94f0016385a31de7be40d247e240e758f6a",
+      "trimmed_rgba_sha256": "74f0a7bdd496d8ec2442be4c990ea5d892f414b21bb2291ccad0cfffb70d5b50"
+    },
+    {
+      "name": "EyeL_Highlight",
+      "path": [
+        "Eye L",
+        "EyeL_Highlight"
+      ],
+      "visible": true,
+      "bounds": [
+        740,
+        765,
+        785,
+        810
+      ],
+      "file": "layers/EyeL_Highlight.png",
+      "rgba_sha256": "849e88a91de84c9ba2bdb08e2b909dbad3c22a6b188e56a6f931ae31456c2cef",
+      "trimmed_rgba_sha256": "bab58863f2071531d43e02b9d30b66ea69055ffa8aaa277e6b0193229cabe167"
+    },
+    {
+      "name": "EyeL_Closed",
+      "path": [
+        "Eye L",
+        "EyeL_Closed"
+      ],
+      "visible": false,
+      "bounds": [
+        682,
+        804,
+        895,
+        861
+      ],
+      "file": "layers/EyeL_Closed.png",
+      "rgba_sha256": "0d3846a19bcfe56b61dbcadeb2e6110382c340829e3b519837c1a09f535cbdfc",
+      "trimmed_rgba_sha256": "6fdf03f71ee87164db12164dcac9188f5609446c0902f23156875e9e9069f979"
+    },
+    {
+      "name": "Mouth_Closed",
+      "path": [
+        "Mouth",
+        "Mouth_Closed"
+      ],
+      "visible": true,
+      "bounds": [
+        913,
+        1041,
+        1126,
+        1098
+      ],
+      "file": "layers/Mouth_Closed.png",
+      "rgba_sha256": "071c9913d256359d58ff2fa6b539ef2afa14fe70c335b1c178214b8d01d90b91",
+      "trimmed_rgba_sha256": "48a76f0376e1fc4ba67e646011fe2f86608bc7f0eb0fa0c65602fa03c25ac3c4"
+    },
+    {
+      "name": "Mouth_Open",
+      "path": [
+        "Mouth",
+        "Mouth_Open"
+      ],
+      "visible": false,
+      "bounds": [
+        888,
+        1000,
+        1152,
+        1159
+      ],
+      "file": "layers/Mouth_Open.png",
+      "rgba_sha256": "2ba4be5a86181bed514947a64a95e5feb2930d6b4ad3996f2081359b03c9fdfe",
+      "trimmed_rgba_sha256": "e322193f8406b77849896c3a4fa5b6a25802d70856e89774c7fd6bc242c0546f"
+    },
+    {
+      "name": "EyeL_Anger",
+      "path": [
+        "Eye L",
+        "EyeL_Anger"
+      ],
+      "visible": false,
+      "bounds": [
+        708,
+        825,
+        898,
+        921
+      ],
+      "file": "layers/EyeL_Anger.png",
+      "source_page": 20,
+      "drawing_index": 50,
+      "alignment": [
+        2.0109202319487136,
+        -509.61707177815595,
+        -650.8065420935945
+      ],
+      "trimmed_rgba_sha256": "901779fff4eb7b7a5592c9b5e865e5d19e35dafd19c51775fc8ee9bd2f90bb84"
+    },
+    {
+      "name": "EyeR_Anger",
+      "path": [
+        "Eye R",
+        "EyeR_Anger"
+      ],
+      "visible": false,
+      "bounds": [
+        1141,
+        825,
+        1332,
+        921
+      ],
+      "file": "layers/EyeR_Anger.png",
+      "source_page": 20,
+      "drawing_index": 51,
+      "alignment": [
+        2.0109202319487136,
+        -509.61707177815595,
+        -650.8065420935945
+      ],
+      "trimmed_rgba_sha256": "181f2512f48e8349efc8f0487a742348cc86f6da7abc1853bb61525d456cb5d9"
+    },
+    {
+      "name": "Mouth_AngerClosed",
+      "path": [
+        "Mouth",
+        "Mouth_AngerClosed"
+      ],
+      "visible": false,
+      "bounds": [
+        913,
+        1074,
+        1126,
+        1098
+      ],
+      "file": "layers/Mouth_AngerClosed.png",
+      "source_page": 20,
+      "drawing_index": 47,
+      "alignment": [
+        2.0109202319487136,
+        -509.61707177815595,
+        -650.8065420935945
+      ],
+      "trimmed_rgba_sha256": "9d1033159d26abb4914ea24d4ec8f391505f5a2800e471014a5b7d9345e531e6"
+    },
+    {
+      "name": "Mouth_SurpriseOpen",
+      "path": [
+        "Mouth",
+        "Mouth_SurpriseOpen"
+      ],
+      "visible": false,
+      "bounds": [
+        956,
+        1001,
+        1083,
+        1150
+      ],
+      "file": "layers/Mouth_SurpriseOpen.png",
+      "source_page": 20,
+      "drawing_index": 203,
+      "alignment": [
+        2.0109202319487136,
+        -1138.0535165756735,
+        -154.10985848641508
+      ],
+      "trimmed_rgba_sha256": "c4aee19fb8e6876c67cd1011b97fc2ca8877bee866092b0c98fd19c0ab280459"
+    },
+    {
+      "name": "Mouth_AngerOpen",
+      "path": [
+        "Mouth",
+        "Mouth_AngerOpen"
+      ],
+      "visible": false,
+      "bounds": [
+        956,
+        1001,
+        1083,
+        1150
+      ],
+      "file": "layers/Mouth_AngerOpen.png",
+      "source_page": 20,
+      "drawing_index": 203,
+      "alignment": [
+        2.0109202319487136,
+        -1138.0535165756735,
+        -154.10985848641508
+      ],
+      "trimmed_rgba_sha256": "c4aee19fb8e6876c67cd1011b97fc2ca8877bee866092b0c98fd19c0ab280459"
+    }
+  ],
+  "layer_count": 29,
+  "group_count": 9,
+  "layer_pixels_offsets_and_visibility_exact": true,
+  "neutral_composite_exact": true,
+  "official_layered_source": false,
+  "notes": [
+    "Anger-open reuses the discovery mouth; its wider/flatter shape is a project keyform adaptation.",
+    "Surprise eye widening is a project affine adaptation of the neutral eyes.",
+    "No sadness, fear or smirk artwork was added."
+  ]
+}

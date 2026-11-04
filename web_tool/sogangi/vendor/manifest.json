@@ -1,0 +1,22 @@
+{
+  "packages": [
+    {
+      "package": "pixi.js",
+      "version": "6.5.10",
+      "tarball": "https://registry.npmjs.org/pixi.js/-/pixi.js-6.5.10.tgz",
+      "npm_integrity": "sha512-Z2mjeoISml2iuVwT1e/BQwERYM2yKoiR08ZdGrg8y5JjeuVptfTrve4DbPMRN/kEDodesgQZGV/pFv0fE9Q2SA==",
+      "file": "pixi.min.js",
+      "sha256": "403f2f2ee8145fa17f60c5c89403056efe2680e5096ec2762036486914ed19c5"
+    },
+    {
+      "package": "pixi-live2d-display",
+      "version": "0.4.0",
+      "tarball": "https://registry.npmjs.org/pixi-live2d-display/-/pixi-live2d-display-0.4.0.tgz",
+      "npm_integrity": "sha512-xeYC6y4Y0Bxe9ksWNlGFZC1rII/MPrzPQK7t1c3ubA8RhkOISIqHJl38fNumXqhGEs+yItmgDOkFT+9dsyGDjA==",
+      "file": "cubism4.min.js",
+      "sha256": "af1267e6d52759b245766c578d905bfa025b532d5c3cc727c370957c4409e21b"
+    }
+  ],
+  "cubism_framework_notice_source": "https://raw.githubusercontent.com/Live2D/CubismWebFramework/4bbfb54/LICENSE.md",
+  "core": "Existing /libs/live2dcubismcore.min.js from frontend; not copied here"
+}

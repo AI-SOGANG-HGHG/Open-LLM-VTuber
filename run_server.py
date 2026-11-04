@@ -12,6 +12,7 @@ from upgrade_codes.upgrade_manager import UpgradeManager
 
 from src.open_llm_vtuber.server import WebSocketServer
 from src.open_llm_vtuber.config_manager import Config, read_yaml, validate_config
+from src.open_llm_vtuber.logging_utils import secret_redactor
 
 os.environ["HF_HOME"] = str(Path(__file__).parent / "models")
 os.environ["MODELSCOPE_CACHE"] = str(Path(__file__).parent / "models")
@@ -27,12 +28,14 @@ def get_version() -> str:
 
 def init_logger(console_log_level: str = "INFO") -> None:
     logger.remove()
+    logger.configure(patcher=secret_redactor)
     # Console output
     logger.add(
         sys.stderr,
         level=console_log_level,
         format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | {message}",
         colorize=True,
+        diagnose=False,
     )
 
     # File output
@@ -43,7 +46,7 @@ def init_logger(console_log_level: str = "INFO") -> None:
         level="DEBUG",
         format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} | {message} | {extra}",
         backtrace=True,
-        diagnose=True,
+        diagnose=False,
     )
 
 
@@ -136,7 +139,9 @@ def run(console_log_level: str):
     atexit.register(WebSocketServer.clean_cache)
 
     # Load configurations from yaml file
-    config: Config = validate_config(read_yaml("conf.yaml"))
+    raw_config = read_yaml("conf.yaml")
+    secret_redactor.add_config(raw_config)
+    config: Config = validate_config(raw_config)
     server_config = config.system_config
 
     if server_config.enable_proxy:
@@ -161,6 +166,7 @@ def run(console_log_level: str):
         host=server_config.host,
         port=server_config.port,
         log_level=console_log_level.lower(),
+        ws="websockets-sansio",
     )
 
 

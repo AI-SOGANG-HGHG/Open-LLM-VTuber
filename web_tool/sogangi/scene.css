@@ -1,0 +1,63 @@
+.stage {
+  background-image:
+    linear-gradient(110deg, #f8f1e38c 0%, #f8f1e333 48%, transparent 80%),
+    url('./assets/project-room.png');
+  background-size: cover;
+  background-position: center;
+}
+.stage-copy > p:last-child {
+  color: #61564a;
+}
+.stage-copy .eyebrow {
+  color: #8c755f;
+}
+.stage-copy h1 {
+  color: #393127;
+}
+.mascot {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.mascot-halo {
+  background: #fff5dd40;
+}
+.stage-bottom {
+  margin: -2px -12px -10px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: #fff9eddd;
+}
+.stage-location {
+  color: #6e5842;
+}
+@media (max-width: 680px) {
+  .stage {
+    background-position: center 40%;
+  }
+  .stage-copy {
+    max-width: 54%;
+  }
+  .stage h1 {
+    font-size: 20px;
+    line-height: 1.45;
+  }
+  .stage-copy > p:last-child {
+    color: #625647;
+  }
+  .mascot {
+    border: 0;
+  }
+  .mascot-wrap {
+    bottom: 50px;
+    width: 135px;
+    height: 168px;
+  }
+  .stage-bottom {
+    margin: 0;
+    padding: 3px 7px;
+    left: 17px;
+    right: 17px;
+    bottom: 8px;
+  }
+}

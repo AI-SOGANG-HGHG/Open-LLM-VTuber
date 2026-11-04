@@ -1,0 +1,292 @@
+{
+  "schema_version": 1,
+  "status": "four_semantic_expressions_rig",
+  "active_app_renderer": "live2d",
+  "app_renderer_options": ["svg-parts", "live2d"],
+  "live2d_conversation_url": "./?avatar=live2d",
+  "active_model": {
+    "runtime_url": "/live2d-models/sogangi-expressions/runtime/sogangi.model3.json",
+    "project_url": "/live2d-models/sogangi-expressions/source/sogangi-expressions.cmo3",
+    "build_manifest": "/live2d-models/sogangi-expressions/build-manifest.json",
+    "wired_parameters": [
+      "ParamEyeLOpen",
+      "ParamEyeROpen",
+      "ParamMouthOpenY",
+      "ParamAngleZ",
+      "ParamBreath",
+      "ParamArmRWave",
+      "ParamFaceMood"
+    ],
+    "geometry": "composed ArtMesh affine keys; no deformer hierarchy",
+    "head_tilt_degrees": [-3, 3],
+    "breathing_period_seconds": 4.8,
+    "greeting_duration_seconds": 1.6,
+    "greeting_parameter_range": [0, 1],
+    "arm_rotation_degrees": [-32, 0],
+    "supported_expressions": ["neutral", "joy", "anger", "surprise"],
+    "unsupported_expression_fallback": "neutral",
+    "pending": ["3D head turns", "additional emotion artwork", "physics", "deformer hierarchy"]
+  },
+  "minimum_model": {
+    "runtime_url": "/live2d-models/sogangi-minimum/runtime/sogangi.model3.json",
+    "project_url": "/live2d-models/sogangi-minimum/source/sogangi-minimum.cmo3",
+    "build_manifest": "/live2d-models/sogangi-minimum/build-manifest.json",
+    "wired_parameters": ["ParamEyeLOpen", "ParamEyeROpen", "ParamMouthOpenY"],
+    "pending": [
+      "head angles",
+      "breathing",
+      "arm greeting",
+      "expanded expression artwork and exported expressions"
+    ]
+  },
+  "model_id": "sogangi",
+  "rigging_map": "./rigging-map.json",
+  "art_review": "./art-review.html",
+  "overlap_candidate_review": "./assets/overlap-candidates/review.json",
+  "runtime_inspector": "./live2d-preview.html",
+  "svg_expression_support": {
+    "supported": ["neutral", "joy"],
+    "unsupported_fallback": "neutral",
+    "timing": "playing audio sentence; text timing when muted",
+    "shape_transition": "continuous opacity/scale in SVG; not Cubism mesh keyforms"
+  },
+  "canvas": { "width": 2048, "height": 2048, "color": "RGB 8bit", "background": "transparent" },
+  "source": {
+    "article": "https://pr.sogang.ac.kr/front/boardview.do?bbsConfigFK=264&pkid=901406",
+    "image": "./assets/sogangi-official-sheet.jpg",
+    "vector_available": true,
+    "vector_source": "Official UI guide PDF pages 19-20; viewport SVG exports, not the original AI file",
+    "layered_psd_available": true,
+    "layered_psd_kind": "generated_visible_parts_preparation",
+    "official_layered_psd_available": false,
+    "rig_ready_artwork": false,
+    "cubism_import_preparation_psd_url": "./assets/cubism-import/sogangi-cubism-import.psd",
+    "cubism_import_preparation_bundle": "./assets/cubism-import/sogangi-cubism-import.zip",
+    "cubism_import_keyform_plan": "./assets/cubism-import/keyform-plan.json",
+    "cubism_editor_import_verified": true,
+    "layered_psd_url": "./assets/production/sogangi-visible-parts.psd",
+    "art_handoff_bundle": "./assets/production/sogangi-art-handoff.zip",
+    "visible_vector_parts_available": true,
+    "visible_vector_parts_count": 21,
+    "expression_candidate_parts_count": 3,
+    "total_vector_parts_count": 24,
+    "visible_vector_parts_bundle": "./assets/sogangi-visible-parts.zip",
+    "cmo3_available": true,
+    "moc3_available": true
+  },
+  "layers": [
+    {
+      "id": "Hood",
+      "label": "알바트로스 모자",
+      "parts": ["Back", "Front", "WingL", "WingR", "BirdEyeL", "BirdEyeR", "Beak"],
+      "bounds": [72, 53, 261, 208],
+      "note": "얼굴 앞뒤와 날개를 분리. 새 눈·부리의 배치는 원본을 유지한다."
+    },
+    {
+      "id": "Face",
+      "label": "얼굴과 볼",
+      "parts": ["Base", "CheekL", "CheekR"],
+      "bounds": [121, 107, 166, 152],
+      "note": "모자 아래 가려진 얼굴까지 이어 그려 움직임 중 틈을 막는다."
+    },
+    {
+      "id": "EyeL",
+      "label": "왼쪽 눈",
+      "parts": ["Open", "Highlight", "Closed"],
+      "bounds": [143, 159, 41, 42],
+      "note": "검은 눈·반사광·감은 눈 모양을 분리한다. 좌우는 캐릭터가 아닌 화면 기준 초안이다."
+    },
+    {
+      "id": "EyeR",
+      "label": "오른쪽 눈",
+      "parts": ["Open", "Highlight", "Closed"],
+      "bounds": [223, 159, 42, 42],
+      "note": "좌우 이름 기준을 PSD와 파라미터에서 일치시킨다."
+    },
+    {
+      "id": "Mouth",
+      "label": "입",
+      "parts": ["Closed", "Open", "Inner"],
+      "bounds": [176, 215, 49, 27],
+      "note": "공식 기본 미소와 기쁨 표정을 기준으로 입 벌림을 제작한다."
+    },
+    {
+      "id": "Body",
+      "label": "몸통·의상·문양",
+      "parts": ["Base", "Tunic", "Emblem"],
+      "bounds": [135, 257, 135, 104],
+      "note": "호흡 중에도 문양 형태가 과도하게 변형되지 않게 한다."
+    },
+    {
+      "id": "ArmL",
+      "label": "왼쪽 팔",
+      "parts": ["Base", "Hand"],
+      "bounds": [118, 263, 39, 55],
+      "note": "처음에는 어깨 기준 단순 인사. 가려진 어깨를 보완한다."
+    },
+    {
+      "id": "ArmR",
+      "label": "오른쪽 팔",
+      "parts": ["Base", "Hand"],
+      "bounds": [249, 263, 39, 55],
+      "note": "몸통 뒤에 가려지는 부분까지 원화를 준비한다."
+    },
+    {
+      "id": "LegL",
+      "label": "왼쪽 다리",
+      "parts": ["Base", "Foot"],
+      "bounds": [147, 345, 48, 40],
+      "note": "첫 버전은 거의 고정. 의상 아래 겹침을 확보한다."
+    },
+    {
+      "id": "LegR",
+      "label": "오른쪽 다리",
+      "parts": ["Base", "Foot"],
+      "bounds": [210, 345, 48, 40],
+      "note": "작은 몸 기울기에서도 발이 지면에서 뜨지 않게 한다."
+    }
+  ],
+  "parameters": [
+    {
+      "id": "ParamAngleX",
+      "label": "고개 좌우",
+      "min": -30,
+      "default": 0,
+      "max": 30,
+      "stage": "mvp"
+    },
+    {
+      "id": "ParamAngleY",
+      "label": "고개 위아래",
+      "min": -30,
+      "default": 0,
+      "max": 30,
+      "stage": "mvp"
+    },
+    {
+      "id": "ParamAngleZ",
+      "label": "고개 기울기",
+      "min": -30,
+      "default": 0,
+      "max": 30,
+      "stage": "mvp"
+    },
+    {
+      "id": "ParamEyeLOpen",
+      "label": "왼쪽 눈 열림",
+      "min": 0,
+      "default": 1,
+      "max": 1,
+      "stage": "mvp"
+    },
+    {
+      "id": "ParamEyeROpen",
+      "label": "오른쪽 눈 열림",
+      "min": 0,
+      "default": 1,
+      "max": 1,
+      "stage": "mvp"
+    },
+    {
+      "id": "ParamMouthOpenY",
+      "label": "입 벌림",
+      "min": 0,
+      "default": 0,
+      "max": 1,
+      "stage": "mvp"
+    },
+    {
+      "id": "ParamMouthForm",
+      "label": "입 모양",
+      "min": -1,
+      "default": 0,
+      "max": 1,
+      "stage": "mvp"
+    },
+    { "id": "ParamBreath", "label": "호흡", "min": 0, "default": 0, "max": 1, "stage": "mvp" },
+    {
+      "id": "ParamBodyAngleZ",
+      "label": "몸 기울기",
+      "min": -10,
+      "default": 0,
+      "max": 10,
+      "stage": "mvp"
+    },
+    {
+      "id": "ParamArmRWave",
+      "label": "인사하는 팔",
+      "min": 0,
+      "default": 0,
+      "max": 1,
+      "stage": "optional"
+    }
+  ],
+  "groups": { "EyeBlink": ["ParamEyeLOpen", "ParamEyeROpen"], "LipSync": ["ParamMouthOpenY"] },
+  "expressions": [
+    { "name": "neutral", "label": "기본", "index": 0 },
+    { "name": "joy", "label": "기쁨", "index": 1 },
+    { "name": "sadness", "label": "공감·아쉬움", "index": 2 },
+    { "name": "surprise", "label": "발견·놀람", "index": 3 },
+    { "name": "anger", "label": "화남", "index": 4 }
+  ],
+  "emotion_map": {
+    "neutral": 0,
+    "joy": 1,
+    "smirk": 1,
+    "sadness": 2,
+    "surprise": 3,
+    "fear": 3,
+    "anger": 4,
+    "disgust": 4
+  },
+  "motions": [
+    {
+      "id": "Idle",
+      "label": "대기",
+      "duration_seconds": 5,
+      "loop": true,
+      "parameters": ["ParamBreath", "ParamEyeLOpen", "ParamEyeROpen"],
+      "acceptance": "기본 자세에서 자연스럽게 반복하며 표정과 발화를 방해하지 않음"
+    },
+    {
+      "id": "Waiting",
+      "label": "생각·응답 대기",
+      "duration_seconds": 4,
+      "loop": true,
+      "parameters": ["ParamAngleZ", "ParamBreath"],
+      "acceptance": "입을 움직여 이미 답하는 것처럼 보이지 않음"
+    },
+    {
+      "id": "Speaking",
+      "label": "말하기",
+      "duration_seconds": null,
+      "loop": false,
+      "parameters": ["ParamMouthOpenY", "ParamMouthForm"],
+      "acceptance": "실제 오디오 시작·종료·음소거·중단과 동기화"
+    },
+    {
+      "id": "Greet",
+      "label": "인사",
+      "duration_seconds": 1.5,
+      "loop": false,
+      "parameters": ["ParamArmRWave", "ParamAngleZ"],
+      "acceptance": "끝나면 Idle에 자연스럽게 복귀"
+    },
+    {
+      "id": "Cheer",
+      "label": "응원",
+      "duration_seconds": 1.2,
+      "loop": false,
+      "parameters": ["ParamBodyAngleZ", "ParamArmRWave"],
+      "acceptance": "정해진 횟수만 실행하고 대화 입력을 막지 않음"
+    },
+    {
+      "id": "Interrupt",
+      "label": "중단 후 복귀",
+      "duration_seconds": 0.2,
+      "loop": false,
+      "parameters": ["ParamMouthOpenY", "ParamAngleZ", "ParamBodyAngleZ"],
+      "acceptance": "이전 요청의 음성과 표정이 다음 요청에서 되살아나지 않음"
+    }
+  ]
+}

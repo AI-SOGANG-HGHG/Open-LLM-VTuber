@@ -1,0 +1,228 @@
+{
+  "status": "manual_keyform_plan_not_applied",
+  "coordinate_convention": "screen L/R",
+  "pivot_coordinate_system": "PSD pixels, origin top-left; not native Cubism model coordinates",
+  "parameters": [
+    {
+      "id": "ParamEyeLOpen",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 1,
+      "key_values": [
+        0,
+        1
+      ],
+      "targets": [
+        {
+          "path": [
+            "Eye L",
+            "EyeL_Open"
+          ],
+          "pivot_psd": [
+            803.004,
+            827.624
+          ],
+          "states": [
+            {
+              "value": 0,
+              "opacity": 0,
+              "scale_y": 0.08
+            },
+            {
+              "value": 1,
+              "opacity": 1,
+              "scale_y": 1
+            }
+          ]
+        },
+        {
+          "path": [
+            "Eye L",
+            "EyeL_Highlight"
+          ],
+          "pivot_psd": [
+            803.004,
+            827.624
+          ],
+          "states": [
+            {
+              "value": 0,
+              "opacity": 0,
+              "scale_y": 0.08
+            },
+            {
+              "value": 1,
+              "opacity": 1,
+              "scale_y": 1
+            }
+          ]
+        },
+        {
+          "path": [
+            "Eye L",
+            "EyeL_Closed"
+          ],
+          "pivot_psd": [
+            803.004,
+            827.624
+          ],
+          "states": [
+            {
+              "value": 0,
+              "opacity": 1
+            },
+            {
+              "value": 1,
+              "opacity": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ParamEyeROpen",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 1,
+      "key_values": [
+        0,
+        1
+      ],
+      "targets": [
+        {
+          "path": [
+            "Eye R",
+            "EyeR_Open"
+          ],
+          "pivot_psd": [
+            1236.434,
+            827.624
+          ],
+          "states": [
+            {
+              "value": 0,
+              "opacity": 0,
+              "scale_y": 0.08
+            },
+            {
+              "value": 1,
+              "opacity": 1,
+              "scale_y": 1
+            }
+          ]
+        },
+        {
+          "path": [
+            "Eye R",
+            "EyeR_Highlight"
+          ],
+          "pivot_psd": [
+            1236.434,
+            827.624
+          ],
+          "states": [
+            {
+              "value": 0,
+              "opacity": 0,
+              "scale_y": 0.08
+            },
+            {
+              "value": 1,
+              "opacity": 1,
+              "scale_y": 1
+            }
+          ]
+        },
+        {
+          "path": [
+            "Eye R",
+            "EyeR_Closed"
+          ],
+          "pivot_psd": [
+            1236.434,
+            827.624
+          ],
+          "states": [
+            {
+              "value": 0,
+              "opacity": 1
+            },
+            {
+              "value": 1,
+              "opacity": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ParamMouthOpenY",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0,
+      "key_values": [
+        0,
+        1
+      ],
+      "targets": [
+        {
+          "path": [
+            "Mouth",
+            "Mouth_Closed"
+          ],
+          "pivot_psd": [
+            1019.693,
+            1074.516
+          ],
+          "states": [
+            {
+              "value": 0,
+              "opacity": 1
+            },
+            {
+              "value": 1,
+              "opacity": 0
+            }
+          ]
+        },
+        {
+          "path": [
+            "Mouth",
+            "Mouth_Open"
+          ],
+          "pivot_psd": [
+            1019.693,
+            1074.516
+          ],
+          "states": [
+            {
+              "value": 0,
+              "opacity": 0,
+              "scale_y": 0.25
+            },
+            {
+              "value": 1,
+              "opacity": 1,
+              "scale_y": 1
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "groups": {
+    "EyeBlink": [
+      "ParamEyeLOpen",
+      "ParamEyeROpen"
+    ],
+    "LipSync": [
+      "ParamMouthOpenY"
+    ]
+  },
+  "notes": [
+    "Validate the imported drawable IDs and eye/mouth pivots in Editor first.",
+    "Add mesh keyforms in Editor; this JSON does not apply them.",
+    "Do not auto-infer head transforms or hair physics from mascot layer names.",
+    "Confirm hidden expression layers are imported as editable meshes."
+  ]
+}

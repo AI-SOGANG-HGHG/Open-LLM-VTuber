@@ -1,0 +1,128 @@
+diff --git a/src/cubism/official.ts b/src/cubism/official.ts
+index e3bb015..2189e04 100644
+--- a/src/cubism/official.ts
++++ b/src/cubism/official.ts
+@@ -1500,62 +1500,72 @@ public final class PsdExportBridge {
+       return;
+     }
+ 
+-    final int atlasSize = 4096;
+-    int atlasIndex = 0;
+-    int cursorX = 0;
+-    int cursorY = 0;
+-    int rowHeight = 0;
+-    CTextureAtlas currentAtlas = null;
+-
+-    for (CModelImage modelImage : modelSource.getTextureManager().getAllModelImages()) {
+-      int imageWidth = modelImage.getWidth();
+-      int imageHeight = modelImage.getHeight();
+-
+-      if (imageWidth <= 0 || imageHeight <= 0) {
+-        throw new IllegalStateException(
+-          "Model image has invalid dimensions: " + modelImage.getName()
+-        );
++    // Project adapter: preserve source resolution, but leave transparent gutters
++    // so bilinear sampling cannot pick up a neighbouring part's edge pixels.
++    final int atlasSize = 2048;
++    final int padding = 4;
++    CTextureAtlas atlas = new CTextureAtlas(modelSource, "texture_00", atlasSize, atlasSize);
++    modelSource.getTextureManager().addTextureAtlas(atlas, -1);
++    List<CModelImage> images = new ArrayList<>(modelSource.getTextureManager().getAllModelImages());
++    images.sort((left, right) -> {
++      int order = Integer.compare(Math.max(right.getWidth(), right.getHeight()), Math.max(left.getWidth(), left.getHeight()));
++      return order != 0 ? order : left.getName().compareTo(right.getName());
++    });
++    List<int[]> free = new ArrayList<>();
++    free.add(new int[] {0, 0, atlasSize, atlasSize});
++    for (CModelImage image : images) {
++      int width = image.getWidth() + 2 * padding;
++      int height = image.getHeight() + 2 * padding;
++      int[] best = null;
++      int shortSide = Integer.MAX_VALUE;
++      int waste = Integer.MAX_VALUE;
++      for (int[] rect : free) {
++        if (width <= rect[2] && height <= rect[3]) {
++          int score = Math.min(rect[2] - width, rect[3] - height);
++          int area = rect[2] * rect[3] - width * height;
++          if (score < shortSide || (score == shortSide && area < waste)) {
++            best = rect;
++            shortSide = score;
++            waste = area;
++          }
++        }
+       }
+-
+-      if (imageWidth > atlasSize || imageHeight > atlasSize) {
+-        throw new IllegalStateException(
+-          "Model image exceeds atlas size limit: " + modelImage.getName()
+-        );
++      if (best == null || image.getWidth() <= 0 || image.getHeight() <= 0) {
++        throw new IllegalStateException("Image does not fit one padded 2048 atlas: " + image.getName());
+       }
+-
+-      if (currentAtlas == null || cursorX + imageWidth > atlasSize) {
+-        cursorX = 0;
+-        cursorY += rowHeight;
+-        rowHeight = 0;
++      int x = best[0], y = best[1];
++      List<int[]> split = new ArrayList<>();
++      for (int[] rect : free) {
++        int fx = rect[0], fy = rect[1], fw = rect[2], fh = rect[3];
++        if (x >= fx + fw || x + width <= fx || y >= fy + fh || y + height <= fy) {
++          split.add(rect);
++          continue;
++        }
++        if (x > fx) split.add(new int[] {fx, fy, x - fx, fh});
++        if (x + width < fx + fw) split.add(new int[] {x + width, fy, fx + fw - x - width, fh});
++        if (y > fy) split.add(new int[] {fx, fy, fw, y - fy});
++        if (y + height < fy + fh) split.add(new int[] {fx, y + height, fw, fy + fh - y - height});
+       }
+-
+-      if (currentAtlas == null || cursorY + imageHeight > atlasSize) {
+-        currentAtlas = new CTextureAtlas(
+-          modelSource,
+-          String.format("texture_%02d", atlasIndex),
+-          atlasSize,
+-          atlasSize
+-        );
+-        modelSource.getTextureManager().addTextureAtlas(currentAtlas, -1);
+-        atlasIndex += 1;
+-        cursorX = 0;
+-        cursorY = 0;
+-        rowHeight = 0;
++      free = new ArrayList<>();
++      for (int i = 0; i < split.size(); i++) {
++        int[] rect = split.get(i);
++        boolean contained = false;
++        for (int j = 0; j < split.size(); j++) {
++          if (i == j) continue;
++          int[] other = split.get(j);
++          if (other[0] <= rect[0] && other[1] <= rect[1] && other[0] + other[2] >= rect[0] + rect[2] && other[1] + other[3] >= rect[1] + rect[3]
++              && (!java.util.Arrays.equals(rect, other) || j < i)) {
++            contained = true;
++            break;
++          }
++        }
++        if (!contained) free.add(rect);
+       }
+-
+-      CAffine modelImageLocalToAtlasTransform = new CAffine();
+-      modelImageLocalToAtlasTransform.translate((float) cursorX, (float) cursorY);
+-
+-      CTextureAtlas.ModelImageEntry entry = new CTextureAtlas.ModelImageEntry(
+-        currentAtlas,
+-        modelImage.getGuid(),
+-        modelImageLocalToAtlasTransform
+-      );
++      CAffine transform = new CAffine();
++      transform.translate((float) x + padding, (float) y + padding);
++      CTextureAtlas.ModelImageEntry entry = new CTextureAtlas.ModelImageEntry(atlas, image.getGuid(), transform);
+       entry.setup();
+-      currentAtlas.getModelImages().add(entry);
+-
+-      cursorX += imageWidth;
+-      rowHeight = Math.max(rowHeight, imageHeight);
++      atlas.getModelImages().add(entry);
+     }
+   }
+ 

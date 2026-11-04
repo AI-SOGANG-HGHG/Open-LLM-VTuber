@@ -1,0 +1,482 @@
+{
+  "schema_version": 1,
+  "status": "rigging_design_not_cubism_project",
+  "psd_sha256": "f627dbeb000b191fd9434e3187cec69e4eecfea44aaa653bce8fec041934a5c1",
+  "canvas": {
+    "width": 2048,
+    "height": 2048,
+    "coordinate_system": "PSD pixels; origin top-left; L/R use screen coordinates"
+  },
+  "preview": "./assets/production/neutral-preview.png",
+  "parts": [
+    {
+      "id": "ArmL_Base",
+      "label": "ArmL_Base",
+      "bounds": [582, 1212, 314, 332],
+      "visible": true,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "ArmR_Base",
+      "label": "ArmR_Base",
+      "bounds": [1144, 1212, 314, 332],
+      "visible": true,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "LegL_Base",
+      "label": "LegL_Base",
+      "bounds": [741, 1597, 216, 298],
+      "visible": true,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "LegR_Base",
+      "label": "LegR_Base",
+      "bounds": [1082, 1597, 217, 298],
+      "visible": true,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "Body_Tunic",
+      "label": "Body_Tunic",
+      "bounds": [673, 1198, 693, 588],
+      "visible": true,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "Body_Stripe",
+      "label": "Body_Stripe",
+      "bounds": [691, 1373, 657, 267],
+      "visible": true,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "Body_Emblem",
+      "label": "Body_Emblem",
+      "bounds": [886, 1589, 267, 114],
+      "visible": true,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "Hood_WingL",
+      "label": "Hood_WingL",
+      "bounds": [329, 181, 484, 418],
+      "visible": true,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "Hood_WingR",
+      "label": "Hood_WingR",
+      "bounds": [1226, 181, 484, 418],
+      "visible": true,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "Hood_Base",
+      "label": "Hood_Base",
+      "bounds": [445, 156, 1149, 1117],
+      "visible": true,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "Face_Base",
+      "label": "Face_Base",
+      "bounds": [567, 424, 906, 849],
+      "visible": true,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "EyeR_Open",
+      "label": "EyeR_Open",
+      "bounds": [1141, 732, 191, 191],
+      "visible": true,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "EyeR_Highlight",
+      "label": "EyeR_Highlight",
+      "bounds": [1173, 765, 45, 45],
+      "visible": true,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "EyeL_Open",
+      "label": "EyeL_Open",
+      "bounds": [708, 732, 190, 191],
+      "visible": true,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "EyeL_Highlight",
+      "label": "EyeL_Highlight",
+      "bounds": [740, 765, 45, 45],
+      "visible": true,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "Mouth_Closed",
+      "label": "Mouth_Closed",
+      "bounds": [913, 1041, 213, 57],
+      "visible": true,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "Hood_BirdEyeL",
+      "label": "Hood_BirdEyeL",
+      "bounds": [833, 270, 46, 46],
+      "visible": true,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "Hood_BirdEyeR",
+      "label": "Hood_BirdEyeR",
+      "bounds": [1160, 270, 46, 46],
+      "visible": true,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "Hood_Beak",
+      "label": "Hood_Beak",
+      "bounds": [907, 261, 225, 159],
+      "visible": true,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "Face_CheekR",
+      "label": "Face_CheekR",
+      "bounds": [1264, 941, 114, 49],
+      "visible": true,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "Face_CheekL",
+      "label": "Face_CheekL",
+      "bounds": [661, 941, 114, 49],
+      "visible": true,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "EyeL_Closed",
+      "label": "EyeL_Closed",
+      "bounds": [682, 804, 213, 57],
+      "visible": false,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "EyeR_Closed",
+      "label": "EyeR_Closed",
+      "bounds": [1144, 804, 213, 57],
+      "visible": false,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    },
+    {
+      "id": "Mouth_Open",
+      "label": "Mouth_Open",
+      "bounds": [888, 1000, 264, 159],
+      "visible": false,
+      "note": "PSD에 실제 있는 레이어의 투명도 경계입니다. 가려진 부분을 이어 그린 완성 원화는 아닙니다."
+    }
+  ],
+  "deformers": [
+    {
+      "id": "Root",
+      "label": "전체 기준",
+      "parent": null,
+      "pivot": [1019.69, 1884.9],
+      "source_svg_pivot": [309.19, 645.4],
+      "parts": [
+        "ArmL_Base",
+        "ArmR_Base",
+        "LegL_Base",
+        "LegR_Base",
+        "Body_Tunic",
+        "Body_Stripe",
+        "Body_Emblem",
+        "Hood_WingL",
+        "Hood_WingR",
+        "Hood_Base",
+        "Face_Base",
+        "EyeR_Open",
+        "EyeR_Highlight",
+        "EyeL_Open",
+        "EyeL_Highlight",
+        "Mouth_Closed",
+        "Hood_BirdEyeL",
+        "Hood_BirdEyeR",
+        "Hood_Beak",
+        "Face_CheekR",
+        "Face_CheekL",
+        "EyeL_Closed",
+        "EyeR_Closed",
+        "Mouth_Open"
+      ],
+      "note": "발의 기준선과 화면 배치 기준. Idle에서 전체를 위아래로 띄우지 않습니다.",
+      "status": "proposed_for_artist_review"
+    },
+    {
+      "id": "BodyBreath",
+      "label": "상체 호흡",
+      "parent": "Root",
+      "pivot": [1019.69, 1786.0],
+      "source_svg_pivot": [309.19, 626.8],
+      "parts": [
+        "ArmL_Base",
+        "ArmR_Base",
+        "Body_Tunic",
+        "Body_Stripe",
+        "Body_Emblem",
+        "Hood_WingL",
+        "Hood_WingR",
+        "Hood_Base",
+        "Face_Base",
+        "EyeR_Open",
+        "EyeR_Highlight",
+        "EyeL_Open",
+        "EyeL_Highlight",
+        "Mouth_Closed",
+        "Hood_BirdEyeL",
+        "Hood_BirdEyeR",
+        "Hood_Beak",
+        "Face_CheekR",
+        "Face_CheekL",
+        "EyeL_Closed",
+        "EyeR_Closed",
+        "Mouth_Open"
+      ],
+      "note": "다리는 유지하고 몸통·팔·머리의 작은 호흡을 함께 조정합니다.",
+      "status": "proposed_for_artist_review"
+    },
+    {
+      "id": "BodyTilt",
+      "label": "몸 기울기",
+      "parent": "BodyBreath",
+      "pivot": [1019.69, 1733.89],
+      "source_svg_pivot": [309.19, 617],
+      "parts": [
+        "ArmL_Base",
+        "ArmR_Base",
+        "Body_Tunic",
+        "Body_Stripe",
+        "Body_Emblem",
+        "Hood_WingL",
+        "Hood_WingR",
+        "Hood_Base",
+        "Face_Base",
+        "EyeR_Open",
+        "EyeR_Highlight",
+        "EyeL_Open",
+        "EyeL_Highlight",
+        "Mouth_Closed",
+        "Hood_BirdEyeL",
+        "Hood_BirdEyeR",
+        "Hood_Beak",
+        "Face_CheekR",
+        "Face_CheekL",
+        "EyeL_Closed",
+        "EyeR_Closed",
+        "Mouth_Open"
+      ],
+      "note": "의상·문양은 같은 변형 계층에 둡니다. 발 접지와 허리 경계는 원화 보완 후 검수합니다.",
+      "status": "proposed_for_artist_review"
+    },
+    {
+      "id": "HeadTurn",
+      "label": "머리·후드",
+      "parent": "BodyTilt",
+      "pivot": [1019.69, 1202.14],
+      "source_svg_pivot": [309.19, 517],
+      "parts": [
+        "Hood_WingL",
+        "Hood_WingR",
+        "Hood_Base",
+        "Face_Base",
+        "EyeR_Open",
+        "EyeR_Highlight",
+        "EyeL_Open",
+        "EyeL_Highlight",
+        "Mouth_Closed",
+        "Hood_BirdEyeL",
+        "Hood_BirdEyeR",
+        "Hood_Beak",
+        "Face_CheekR",
+        "Face_CheekL",
+        "EyeL_Closed",
+        "EyeR_Closed",
+        "Mouth_Open"
+      ],
+      "note": "얼굴·후드·새 눈·부리·눈·입의 상대 위치를 유지합니다. 목과 후드 아래 틈을 먼저 보완합니다.",
+      "status": "proposed_for_artist_review"
+    },
+    {
+      "id": "ArmLWave",
+      "label": "화면 왼팔",
+      "parent": "BodyTilt",
+      "pivot": [875.11, 1287.22],
+      "source_svg_pivot": [282, 533],
+      "parts": ["ArmL_Base"],
+      "note": "어깨 피벗은 검토용 초안입니다. 팔 안쪽의 가려진 부분을 보완한 뒤 확정합니다.",
+      "status": "proposed_for_artist_review"
+    },
+    {
+      "id": "ArmRWave",
+      "label": "화면 오른팔 인사",
+      "parent": "BodyTilt",
+      "pivot": [1167.57, 1287.22],
+      "source_svg_pivot": [337, 533],
+      "parts": ["ArmR_Base"],
+      "note": "현재 SVG 인사는 화면 오른팔을 사용합니다. ParamArmRWave와 연결하고 어깨 접합을 검수합니다.",
+      "status": "proposed_for_artist_review"
+    },
+    {
+      "id": "EyeL",
+      "label": "화면 왼눈",
+      "parent": "HeadTurn",
+      "pivot": [803.0, 827.62],
+      "source_svg_pivot": [268.44, 446.57],
+      "parts": ["EyeL_Open", "EyeL_Highlight", "EyeL_Closed"],
+      "note": "검은 눈·하이라이트·감은 눈 후보를 함께 정렬합니다. 중간 닫힘 모양은 검토가 필요합니다.",
+      "status": "proposed_for_artist_review"
+    },
+    {
+      "id": "EyeR",
+      "label": "화면 오른눈",
+      "parent": "HeadTurn",
+      "pivot": [1236.43, 827.62],
+      "source_svg_pivot": [349.95, 446.57],
+      "parts": ["EyeR_Open", "EyeR_Highlight", "EyeR_Closed"],
+      "note": "좌우 눈을 독립 조작해 완전 닫힘과 반사광 잔상을 확인합니다.",
+      "status": "proposed_for_artist_review"
+    },
+    {
+      "id": "Mouth",
+      "label": "입",
+      "parent": "HeadTurn",
+      "pivot": [1019.69, 1074.52],
+      "source_svg_pivot": [309.19, 493],
+      "parts": ["Mouth_Closed", "Mouth_Open"],
+      "note": "닫힘/열림 두 후보만 있습니다. 중간 벌림과 입 모양 원화를 보완해야 합니다.",
+      "status": "proposed_for_artist_review"
+    }
+  ],
+  "underpainting": [
+    {
+      "id": "face-hood",
+      "label": "얼굴·후드 겹침",
+      "bounds": [540.11, 399.19, 967.79, 903.98],
+      "parts": ["Face_Base", "Hood_Base"],
+      "note": "좌우 회전 시 드러나는 얼굴/후드 안쪽을 검토합니다. 경계선이 벌어지거나 두 겹으로 보이지 않도록 겹침 여유를 보완합니다.",
+      "status": "review_and_underpaint_required"
+    },
+    {
+      "id": "shoulder-left",
+      "label": "왼쪽 어깨",
+      "bounds": [662.41, 1133.01, 244.61, 265.88],
+      "parts": ["ArmL_Base", "Body_Tunic"],
+      "note": "팔이 움직여도 어깨가 끊어지지 않도록 의상 아래까지 연장해 그릴 영역입니다.",
+      "status": "review_and_underpaint_required"
+    },
+    {
+      "id": "shoulder-right",
+      "label": "오른쪽 어깨",
+      "bounds": [1130.35, 1133.01, 249.92, 265.88],
+      "parts": ["ArmR_Base", "Body_Tunic"],
+      "note": "인사 끝 자세에서 팔이 머리 뒤로 사라지거나 어깨에서 떨어져 보이는지 확인합니다.",
+      "status": "review_and_underpaint_required"
+    },
+    {
+      "id": "mouth-shapes",
+      "label": "입의 중간 원화",
+      "bounds": [875.11, 994.75, 292.46, 186.11],
+      "parts": ["Mouth_Closed", "Mouth_Open"],
+      "note": "작은 벌림·큰 벌림 사이의 모양과 웃는 입 형태를 보완합니다. 두 이미지를 단순 교체하는 것으로 리깅 완료 판정하지 않습니다.",
+      "status": "review_and_underpaint_required"
+    },
+    {
+      "id": "eyes",
+      "label": "눈 닫힘 중간 형태",
+      "bounds": [683.68, 696.97, 670.01, 207.38],
+      "parts": [
+        "EyeR_Open",
+        "EyeR_Highlight",
+        "EyeL_Open",
+        "EyeL_Highlight",
+        "EyeL_Closed",
+        "EyeR_Closed"
+      ],
+      "note": "검은 눈이 얇아지는 중간 형태와 감은 눈 곡선의 연결, 반사광 숨김을 검수합니다.",
+      "status": "review_and_underpaint_required"
+    },
+    {
+      "id": "tunic",
+      "label": "의상 문양과 다리 경계",
+      "bounds": [651.77, 1196.82, 733.82, 670.01],
+      "parts": ["Body_Tunic", "Body_Stripe", "Body_Emblem", "LegL_Base", "LegR_Base"],
+      "note": "문양은 몸통과 같은 변형 계층으로 유지합니다. 상체 기울기에서 의상 아래 다리와 발이 어색하게 분리되지 않도록 겹침을 검수합니다.",
+      "status": "review_and_underpaint_required"
+    }
+  ],
+  "bindings": [
+    {
+      "parameter": "ParamAngleX",
+      "deformer": "HeadTurn",
+      "initial_keys": [-10, 0, 10],
+      "note": "단위는 파라미터 값입니다. 큰 회전은 가림 보완 후 확장합니다."
+    },
+    {
+      "parameter": "ParamAngleY",
+      "deformer": "HeadTurn",
+      "initial_keys": [-10, 0, 10],
+      "note": "얼굴·후드·부리 원근과 안쪽 원화를 함께 검수합니다."
+    },
+    {
+      "parameter": "ParamAngleZ",
+      "deformer": "HeadTurn",
+      "initial_keys": [-5, 0, 5],
+      "note": "작은 기울기로 시작해 후드/목 경계가 유지되는지 확인합니다."
+    },
+    {
+      "parameter": "ParamEyeLOpen",
+      "deformer": "EyeL",
+      "initial_keys": [0, 0.5, 1],
+      "note": "감음·중간·열림을 따로 검수합니다."
+    },
+    {
+      "parameter": "ParamEyeROpen",
+      "deformer": "EyeR",
+      "initial_keys": [0, 0.5, 1],
+      "note": "감음·중간·열림을 따로 검수합니다."
+    },
+    {
+      "parameter": "ParamMouthOpenY",
+      "deformer": "Mouth",
+      "initial_keys": [0, 0.3, 0.65, 1],
+      "note": "음성 크기와 연결. 종료/중단 시 0으로 돌아옵니다."
+    },
+    {
+      "parameter": "ParamMouthForm",
+      "deformer": "Mouth",
+      "initial_keys": [-1, 0, 1],
+      "note": "새 중간 원화와 입 모양 검토 후 제작합니다."
+    },
+    {
+      "parameter": "ParamBreath",
+      "deformer": "BodyBreath",
+      "initial_keys": [0, 1],
+      "note": "상체의 작은 호흡. 발은 유지합니다."
+    },
+    {
+      "parameter": "ParamBodyAngleZ",
+      "deformer": "BodyTilt",
+      "initial_keys": [-3, 0, 3],
+      "note": "문양과 다리 접합을 먼저 검수합니다."
+    },
+    {
+      "parameter": "ParamArmRWave",
+      "deformer": "ArmRWave",
+      "initial_keys": [0, 0.5, 1],
+      "note": "화면 오른팔 인사. PSD 좌우 명명 규칙과 일치시킵니다."
+    }
+  ],
+  "scope": "Visible-layer bounds are measured; pivots, deformation hierarchy and repair zones are review proposals. No underpainting or Cubism mesh has been completed."
+}

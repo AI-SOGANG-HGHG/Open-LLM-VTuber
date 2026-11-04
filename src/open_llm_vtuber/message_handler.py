@@ -44,14 +44,20 @@ class MessageHandler:
                 # Wait indefinitely
                 await event.wait()
 
-            return self._response_data[client_uid].pop(response_key, None)
+            return self._response_data.get(client_uid, {}).pop(response_key, None)
         except asyncio.TimeoutError:
             logger.warning(
                 f"Timeout waiting for {response_type} (ID: {request_id}) from {client_uid}"
             )
             return None
         finally:
-            self._response_events[client_uid].pop(response_key, None)
+            events = self._response_events.get(client_uid)
+            if events is not None:
+                events.pop(response_key, None)
+                if not events:
+                    self._response_events.pop(client_uid, None)
+            if not self._response_data.get(client_uid):
+                self._response_data.pop(client_uid, None)
 
     def handle_message(self, client_uid: str, message: dict) -> None:
         """
@@ -86,7 +92,7 @@ class MessageHandler:
             for event in self._response_events[client_uid].values():
                 event.set()
             self._response_events.pop(client_uid)
-            self._response_data.pop(client_uid, None)
+        self._response_data.pop(client_uid, None)
 
 
 message_handler = MessageHandler()

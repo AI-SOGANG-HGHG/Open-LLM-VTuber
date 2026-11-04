@@ -1,0 +1,369 @@
+{
+  "status": "independent_psd_parser_verified_not_editor_import",
+  "reader": "autoLive2d TypeScript parser / ag-psd",
+  "psd_sha256": "cdb5dab0a79906b643233bdaed1ee480879ea9eeaba246c50cd5de5a31fd8065",
+  "canvas": {
+    "width": 2048,
+    "height": 2048
+  },
+  "group_count": 9,
+  "root_part_count": 9,
+  "layer_count": 24,
+  "layer_pixels_exact": true,
+  "layers": [
+    {
+      "name": "ArmL_Base",
+      "path": [
+        "Arm L",
+        "ArmL_Base"
+      ],
+      "bounds": {
+        "left": 582,
+        "top": 1212,
+        "right": 896,
+        "bottom": 1544
+      },
+      "rgba_sha256": "968a33311af0ab1da6c14235da6dcb7c20396c0a788fb34a7aa3e3cf29b61955"
+    },
+    {
+      "name": "ArmR_Base",
+      "path": [
+        "Arm R",
+        "ArmR_Base"
+      ],
+      "bounds": {
+        "left": 1144,
+        "top": 1212,
+        "right": 1458,
+        "bottom": 1544
+      },
+      "rgba_sha256": "0455fa7b5bc2e5f56efa124833843c29e770e474bb95a4076fc2cf0b51eac552"
+    },
+    {
+      "name": "LegL_Base",
+      "path": [
+        "Lower Body",
+        "LegL_Base"
+      ],
+      "bounds": {
+        "left": 741,
+        "top": 1597,
+        "right": 957,
+        "bottom": 1895
+      },
+      "rgba_sha256": "ea499a8fb126bdbc3af7fc35dfa174359cd09dde3646f26ff97bdb137df17722"
+    },
+    {
+      "name": "LegR_Base",
+      "path": [
+        "Lower Body",
+        "LegR_Base"
+      ],
+      "bounds": {
+        "left": 1082,
+        "top": 1597,
+        "right": 1299,
+        "bottom": 1895
+      },
+      "rgba_sha256": "abd39a400a92467464fa52891631d93de0b85c0140c4b02891350a160c852db5"
+    },
+    {
+      "name": "Body_Tunic",
+      "path": [
+        "Body",
+        "Body_Tunic"
+      ],
+      "bounds": {
+        "left": 673,
+        "top": 1198,
+        "right": 1366,
+        "bottom": 1786
+      },
+      "rgba_sha256": "611f73b4142d9c71b917c8ac41dfcf08299b947430ee170cab13af3bfb6e70ab"
+    },
+    {
+      "name": "Body_Stripe",
+      "path": [
+        "Body",
+        "Body_Stripe"
+      ],
+      "bounds": {
+        "left": 691,
+        "top": 1373,
+        "right": 1348,
+        "bottom": 1640
+      },
+      "rgba_sha256": "da41ac3254b53644d3ade628be3ebfef254dbd4821db0c824736be9d1033a88a"
+    },
+    {
+      "name": "Body_Emblem",
+      "path": [
+        "Body",
+        "Body_Emblem"
+      ],
+      "bounds": {
+        "left": 886,
+        "top": 1589,
+        "right": 1153,
+        "bottom": 1703
+      },
+      "rgba_sha256": "10ac2f37d7dfec13b0900422ab97e08ddc28bbb4b2a8a4926ee9b4fa8c71b956"
+    },
+    {
+      "name": "Hood_WingL",
+      "path": [
+        "Hood",
+        "Hood_WingL"
+      ],
+      "bounds": {
+        "left": 329,
+        "top": 181,
+        "right": 813,
+        "bottom": 599
+      },
+      "rgba_sha256": "6cd5ba48e443b984c34a740b280e9ddb38bc5f17f84e51767e414a0770e022a8"
+    },
+    {
+      "name": "Hood_WingR",
+      "path": [
+        "Hood",
+        "Hood_WingR"
+      ],
+      "bounds": {
+        "left": 1226,
+        "top": 181,
+        "right": 1710,
+        "bottom": 599
+      },
+      "rgba_sha256": "ebf10a49ab733abfc831f35a452eae94fec54dd81dadc729508de080832fadac"
+    },
+    {
+      "name": "Hood_Base",
+      "path": [
+        "Hood",
+        "Hood_Base"
+      ],
+      "bounds": {
+        "left": 445,
+        "top": 156,
+        "right": 1594,
+        "bottom": 1273
+      },
+      "rgba_sha256": "39324121e2940a8e9d4183a4d6c7c11cf50677f35b36eefdaf583ec20239f3d9"
+    },
+    {
+      "name": "Hood_BirdEyeL",
+      "path": [
+        "Hood",
+        "Hood_BirdEyeL"
+      ],
+      "bounds": {
+        "left": 833,
+        "top": 270,
+        "right": 879,
+        "bottom": 316
+      },
+      "rgba_sha256": "55710bbd52a7112c6681292c461b65d2989896fd7f772e21e278cc01307d0bdd"
+    },
+    {
+      "name": "Hood_BirdEyeR",
+      "path": [
+        "Hood",
+        "Hood_BirdEyeR"
+      ],
+      "bounds": {
+        "left": 1160,
+        "top": 270,
+        "right": 1206,
+        "bottom": 316
+      },
+      "rgba_sha256": "7e068e40b63a2ee581d1936e95206432f719b5191935ece98bd2616c7706b9f4"
+    },
+    {
+      "name": "Hood_Beak",
+      "path": [
+        "Hood",
+        "Hood_Beak"
+      ],
+      "bounds": {
+        "left": 907,
+        "top": 261,
+        "right": 1132,
+        "bottom": 420
+      },
+      "rgba_sha256": "583de22feb823b4eba041e104802169d5a87dedc7f3cac94e4a16bf96294618f"
+    },
+    {
+      "name": "Face_Base",
+      "path": [
+        "Face",
+        "Face_Base"
+      ],
+      "bounds": {
+        "left": 567,
+        "top": 424,
+        "right": 1473,
+        "bottom": 1273
+      },
+      "rgba_sha256": "693e7c6cf6eef71ea866055c9184c0228e0132e8e8c487eed3c55efc8f003db7"
+    },
+    {
+      "name": "Face_CheekR",
+      "path": [
+        "Face",
+        "Face_CheekR"
+      ],
+      "bounds": {
+        "left": 1264,
+        "top": 941,
+        "right": 1378,
+        "bottom": 990
+      },
+      "rgba_sha256": "f293a1f5bab904c9a90e655ab9821d65ca8a380353a2da8754f5c31ac2e8baaa"
+    },
+    {
+      "name": "Face_CheekL",
+      "path": [
+        "Face",
+        "Face_CheekL"
+      ],
+      "bounds": {
+        "left": 661,
+        "top": 941,
+        "right": 775,
+        "bottom": 990
+      },
+      "rgba_sha256": "1954b23128ab26d5053ace8c9c065282cb7d1188197e88db45f56ef85c596cc6"
+    },
+    {
+      "name": "EyeR_Open",
+      "path": [
+        "Eye R",
+        "EyeR_Open"
+      ],
+      "bounds": {
+        "left": 1141,
+        "top": 732,
+        "right": 1332,
+        "bottom": 923
+      },
+      "rgba_sha256": "54a8eea0de475caa1d83ee8085d41f40e079d30a573227a16570245412d431ca"
+    },
+    {
+      "name": "EyeR_Highlight",
+      "path": [
+        "Eye R",
+        "EyeR_Highlight"
+      ],
+      "bounds": {
+        "left": 1173,
+        "top": 765,
+        "right": 1218,
+        "bottom": 810
+      },
+      "rgba_sha256": "c5bcf9eeec8ea1484f611376ce7cc7a7bbc508d12309f28326cda63f4305dbbc"
+    },
+    {
+      "name": "EyeR_Closed",
+      "path": [
+        "Eye R",
+        "EyeR_Closed"
+      ],
+      "bounds": {
+        "left": 1144,
+        "top": 804,
+        "right": 1357,
+        "bottom": 861
+      },
+      "rgba_sha256": "4120ac1e291b23db92d1e8224fed4b8c71a6b3d810e09776adf8677cc613a38d"
+    },
+    {
+      "name": "EyeL_Open",
+      "path": [
+        "Eye L",
+        "EyeL_Open"
+      ],
+      "bounds": {
+        "left": 708,
+        "top": 732,
+        "right": 898,
+        "bottom": 923
+      },
+      "rgba_sha256": "74f0a7bdd496d8ec2442be4c990ea5d892f414b21bb2291ccad0cfffb70d5b50"
+    },
+    {
+      "name": "EyeL_Highlight",
+      "path": [
+        "Eye L",
+        "EyeL_Highlight"
+      ],
+      "bounds": {
+        "left": 740,
+        "top": 765,
+        "right": 785,
+        "bottom": 810
+      },
+      "rgba_sha256": "bab58863f2071531d43e02b9d30b66ea69055ffa8aaa277e6b0193229cabe167"
+    },
+    {
+      "name": "EyeL_Closed",
+      "path": [
+        "Eye L",
+        "EyeL_Closed"
+      ],
+      "bounds": {
+        "left": 682,
+        "top": 804,
+        "right": 895,
+        "bottom": 861
+      },
+      "rgba_sha256": "6fdf03f71ee87164db12164dcac9188f5609446c0902f23156875e9e9069f979"
+    },
+    {
+      "name": "Mouth_Closed",
+      "path": [
+        "Mouth",
+        "Mouth_Closed"
+      ],
+      "bounds": {
+        "left": 913,
+        "top": 1041,
+        "right": 1126,
+        "bottom": 1098
+      },
+      "rgba_sha256": "48a76f0376e1fc4ba67e646011fe2f86608bc7f0eb0fa0c65602fa03c25ac3c4"
+    },
+    {
+      "name": "Mouth_Open",
+      "path": [
+        "Mouth",
+        "Mouth_Open"
+      ],
+      "bounds": {
+        "left": 888,
+        "top": 1000,
+        "right": 1152,
+        "bottom": 1159
+      },
+      "rgba_sha256": "e322193f8406b77849896c3a4fa5b6a25802d70856e89774c7fd6bc242c0546f"
+    }
+  ],
+  "heuristic_parameter_ids": [
+    "ParamAngleX",
+    "ParamBodyAngleX"
+  ],
+  "heuristic_messages": [
+    "Skipped ParamEyeLOpen: could not infer a stable open/closed eye pair.",
+    "Skipped ParamEyeROpen: could not infer a stable open/closed eye pair.",
+    "Skipped ParamMouthOpenY: could not infer mouth open states.",
+    "Skipped ParamCheek: could not infer additive cheek overlays.",
+    "Skipped ParamHairFront: could not infer hair transform targets.",
+    "Skipped ParamHairSide: could not infer hair transform targets.",
+    "Skipped ParamHairBack: could not infer hair transform targets."
+  ],
+  "default_visibility_source": "Original preparation manifest; converter intermediate drawables omit visibility",
+  "auto_inference_approved": false,
+  "editor_import_verified": false,
+  "cmo3_available": false,
+  "moc3_available": false
+}

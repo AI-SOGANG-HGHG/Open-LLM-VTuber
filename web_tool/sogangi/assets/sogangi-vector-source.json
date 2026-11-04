@@ -1,0 +1,96 @@
+{
+  "source_url": "https://www.sogang.ac.kr/intro/symbol/data/Sogang_UI_renewal.pdf",
+  "source_sha256": "aa1fed216c2106c3f4699e259b80cb58df22f411954b12ffb96688c66cac48e0",
+  "method": "Original PDF vector paths, cropped SVG viewport; no generated character artwork",
+  "layered_psd_available": false,
+  "exports": [
+    {
+      "name": "neutral",
+      "page": 19,
+      "viewport": [
+        175,
+        315,
+        270,
+        337
+      ],
+      "file": "sogangi-neutral.svg"
+    },
+    {
+      "name": "joy",
+      "page": 20,
+      "viewport": [
+        242,
+        230,
+        140,
+        176
+      ],
+      "file": "sogangi-joy.svg"
+    },
+    {
+      "name": "love",
+      "page": 20,
+      "viewport": [
+        442,
+        230,
+        146,
+        176
+      ],
+      "file": "sogangi-love.svg"
+    },
+    {
+      "name": "discovery",
+      "page": 20,
+      "viewport": [
+        650,
+        230,
+        145,
+        176
+      ],
+      "file": "sogangi-discovery.svg"
+    },
+    {
+      "name": "teaching",
+      "page": 20,
+      "viewport": [
+        130,
+        475,
+        164,
+        178
+      ],
+      "file": "sogangi-teaching.svg"
+    },
+    {
+      "name": "anger",
+      "page": 20,
+      "viewport": [
+        337,
+        475,
+        145,
+        178
+      ],
+      "file": "sogangi-anger.svg"
+    },
+    {
+      "name": "peek",
+      "page": 20,
+      "viewport": [
+        520,
+        475,
+        184,
+        178
+      ],
+      "file": "sogangi-peek.svg"
+    },
+    {
+      "name": "cheer",
+      "page": 20,
+      "viewport": [
+        730,
+        475,
+        169,
+        178
+      ],
+      "file": "sogangi-cheer.svg"
+    }
+  ]
+}

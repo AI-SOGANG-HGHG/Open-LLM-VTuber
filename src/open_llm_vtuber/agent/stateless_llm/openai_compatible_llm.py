@@ -4,6 +4,7 @@ endpoints for language generation.
 """
 
 from typing import AsyncIterator, List, Dict, Any
+import time
 from openai import (
     AsyncStream,
     AsyncOpenAI,
@@ -30,6 +31,9 @@ class AsyncLLM(StatelessLLMInterface):
         organization_id: str = "z",
         project_id: str = "z",
         temperature: float = 1.0,
+        request_timeout: float | None = None,
+        max_retries: int | None = None,
+        raise_on_error: bool = False,
     ):
         """
         Initializes an instance of the `AsyncLLM` class.
@@ -45,17 +49,27 @@ class AsyncLLM(StatelessLLMInterface):
         self.base_url = base_url
         self.model = model
         self.temperature = temperature
+        self.raise_on_error = raise_on_error
+        client_options = {}
+        if request_timeout is not None:
+            client_options["timeout"] = request_timeout
+        if max_retries is not None:
+            client_options["max_retries"] = max_retries
         self.client = AsyncOpenAI(
             base_url=base_url,
             organization=organization_id,
             project=project_id,
             api_key=llm_api_key,
+            **client_options,
         )
         self.support_tools = True
 
         logger.info(
             f"Initialized AsyncLLM with the parameters: {self.base_url}, {self.model}"
         )
+
+    async def close(self) -> None:
+        await self.client.close()
 
     async def chat_completion(
         self,
@@ -81,6 +95,10 @@ class AsyncLLM(StatelessLLMInterface):
         - APIError: For other API-related errors
         """
         stream = None
+        started_at = time.monotonic()
+        first_text_at = None
+        output_chars = 0
+        finish_reason = None
         # Tool call related state variables
         accumulated_tool_calls = {}
         in_tool_call = False
@@ -93,7 +111,11 @@ class AsyncLLM(StatelessLLMInterface):
                     {"role": "system", "content": system},
                     *messages,
                 ]
-            logger.debug(f"Messages: {messages_with_system}")
+            logger.debug(
+                "LLM request: model={}, messages={}",
+                self.model,
+                len(messages_with_system),
+            )
 
             available_tools = tools if self.support_tools else NOT_GIVEN
 
@@ -114,6 +136,8 @@ class AsyncLLM(StatelessLLMInterface):
                 # Guard against chunks with missing choices field (e.g., from OpenWebUI)
                 if not chunk.choices:
                     continue
+                if chunk.choices[0].finish_reason:
+                    finish_reason = chunk.choices[0].finish_reason
 
                 if self.support_tools:
                     has_tool_calls = (
@@ -187,6 +211,10 @@ class AsyncLLM(StatelessLLMInterface):
                     continue
                 elif chunk.choices[0].delta.content is None:
                     chunk.choices[0].delta.content = ""
+                if chunk.choices[0].delta.content:
+                    if first_text_at is None:
+                        first_text_at = time.monotonic()
+                    output_chars += len(chunk.choices[0].delta.content)
                 yield chunk.choices[0].delta.content
 
             # If stream ends while still in a tool call, make sure to yield the tool call
@@ -202,12 +230,18 @@ class AsyncLLM(StatelessLLMInterface):
                 yield complete_tool_calls
 
         except APIConnectionError as e:
+            if self.raise_on_error:
+                raise RuntimeError(
+                    "LLM connection failed or response timed out"
+                ) from None
             logger.error(
                 f"Error calling the chat endpoint: Connection error. Failed to connect to the LLM API. \nCheck the configurations and the reachability of the LLM backend. \nSee the logs for details. \nTroubleshooting with documentation: https://open-llm-vtuber.github.io/docs/faq#%E9%81%87%E5%88%B0-error-calling-the-chat-endpoint-%E9%94%99%E8%AF%AF%E6%80%8E%E4%B9%88%E5%8A%9E \n{e.__cause__}"
             )
             yield "Error calling the chat endpoint: Connection error. Failed to connect to the LLM API. Check the configurations and the reachability of the LLM backend. See the logs for details. Troubleshooting with documentation: [https://open-llm-vtuber.github.io/docs/faq#%E9%81%87%E5%88%B0-error-calling-the-chat-endpoint-%E9%94%99%E8%AF%AF%E6%80%8E%E4%B9%88%E5%8A%9E]"
 
         except RateLimitError as e:
+            if self.raise_on_error:
+                raise RuntimeError("LLM rate limit exceeded") from None
             logger.error(
                 f"Error calling the chat endpoint: Rate limit exceeded: {e.response}"
             )
@@ -224,11 +258,22 @@ class AsyncLLM(StatelessLLMInterface):
             logger.error(f"LLM API: Error occurred: {e}")
             logger.info(f"Base URL: {self.base_url}")
             logger.info(f"Model: {self.model}")
-            logger.info(f"Messages: {messages}")
+            logger.info("LLM request message count: {}", len(messages))
             logger.info(f"temperature: {self.temperature}")
+            if self.raise_on_error:
+                raise RuntimeError("LLM request failed") from None
             yield "Error calling the chat endpoint: Error occurred while generating response. See the logs for details."
 
         finally:
+            logger.info(
+                "LLM timing: model={}, first_text_s={}, total_s={:.3f}, "
+                "output_chars={}, finish_reason={}",
+                self.model,
+                round(first_text_at - started_at, 3) if first_text_at else None,
+                time.monotonic() - started_at,
+                output_chars,
+                finish_reason,
+            )
             # make sure the stream is properly closed
             # so when interrupted, no more tokens will being generated.
             if stream:

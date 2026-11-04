@@ -1,0 +1,15 @@
+# Sogangi expression model
+
+Four semantic expression states, built on 2026-11-03. This is the default Sogangi conversation model. Earlier facial, movement and greeting models remain unchanged for comparison.
+
+- 29 drawables, one original-resolution 2048 texture, 29 Core parameters with seven wired controls. `ParamFaceMood` is a discrete selector: 0 neutral/joy, 1 anger, 2 surprise. Joy in the app uses the existing brief smiling-eye reaction.
+- Five extra layers come from the pinned official PDF: anger eyes/closed mouth and the discovery mouth. The angry open mouth reuses the discovery mouth with a wider/flatter project keyform; surprise widens the original eyes by 12%. These adaptations are not official school-issued expressions. No sadness/fear/smirk artwork was added; those tags fall back to neutral. SVG still supports neutral/joy only.
+- Mood visibility multiplies the blink/lip visibility in one composed keyform grid. This keeps a muted mouth closed, allows angry blinking without switching to smiling eyes, and preserves lip sync under every supported mood. Head, breathing and arm keys remain independent.
+- Original PSD pixels/offsets/visibility and the neutral preparation composite are unchanged. Original atlas placements are retained before packing the five additions; neutral runtime pixels exactly match the greeting baseline. Reset returns exactly to neutral.
+- Four real `exp3.json` files are supplied and checked through the inspector. They do not bind mouth parameters. They use zero fade because interpolating a discrete mood through another mood would briefly show the wrong emotion. The app applies semantic states directly to Core at the playing sentence, with text timing when muted. The exported joy file holds closed eyes; the app instead uses its timed eye reaction.
+
+[Conversation](http://localhost:12393/web-tool/sogangi/?avatar=live2d) · [Inspector](http://localhost:12393/web-tool/sogangi/live2d-preview.html?model=sogangi-expressions). Turn off manual priority to test exported expression files. The generated cmo3 opens in Cubism Editor 5.1.03; direct GUI keyform editing is not certified. 3D head turns, deformer hierarchy, physics and additional emotion art remain unfinished.
+
+Reproduce with `tools/prepare_sogangi_expressions.py` in the optional art environment, then `tools/build_sogangi_minimum.mjs --expressions --stage-preview` using the local Node/Editor prerequisites. Source preparation is `web_tool/sogangi/assets/expressions/`; original PDF hashes and extraction indices are recorded. `tools/sogangi-expression-bridge.mjs` and `sogangi-expression-bindings.mjs` extend the pinned project adapters; no reference-checkout or Editor/Core binaries are modified. Build hashes and observed checks are recorded separately.
+
+Original artwork belongs to Sogang University/relevant owners (official UI guide pages 19–20). This is a project-generated model. The repository MIT software license does not grant character-artwork rights. Editor/Core binaries and license files are not included.

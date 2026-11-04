@@ -17,6 +17,7 @@ live2d-models/*
 
 # Characters
 characters/*
+!characters/ko_sogangi.yaml
 # All default characters tracked via git
 
 
@@ -63,6 +64,8 @@ src/open_llm_vtuber/asr/models/*
 # Misc
 tmp/
 private/
+/data/.property/
+/data/.tmp/
 legacy/
 chat_history/
 knowledge_base/

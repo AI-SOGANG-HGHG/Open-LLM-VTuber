@@ -1,0 +1,87 @@
+.conversation-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+#historyDialog {
+  width: min(520px, calc(100vw - 32px));
+  max-height: min(640px, calc(100dvh - 64px));
+  padding: 28px;
+  border: 1px solid #ded4c6;
+  border-radius: 18px;
+  background: #f9f5ed;
+  color: #332c25;
+  box-shadow: 0 20px 80px #33281b30;
+}
+#historyDialog::backdrop {
+  background: #31251955;
+  backdrop-filter: blur(3px);
+}
+.history-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+.history-heading h2 {
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: -0.7px;
+  margin: 0;
+}
+.history-heading .eyebrow {
+  margin-bottom: 8px;
+}
+.history-help {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #817b72;
+  margin: 18px 0;
+}
+.history-items {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.history-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  text-align: left;
+  width: 100%;
+  padding: 15px 16px;
+  border: 1px solid #e1d7ca;
+  background: #fffcf6;
+  border-radius: 10px;
+}
+.history-item:hover {
+  border-color: #b51f3866;
+}
+.history-item-title {
+  color: #3a3029;
+  font-size: 13px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.history-item-date {
+  color: #948879;
+  font-size: 10px;
+}
+.history-empty {
+  color: #8c7d6c;
+  font-size: 13px;
+  line-height: 1.8;
+  padding: 24px 0;
+}
+@media (max-width: 680px) {
+  #historyDialog {
+    padding: 22px;
+  }
+  .history-heading h2 {
+    font-size: 19px;
+  }
+  .conversation-actions button {
+    min-height: 40px;
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "Version": 3,
+  "FileReferences": {
+    "Moc": "sogangi.moc3",
+    "Textures": [
+      "textures/texture_00.png"
+    ],
+    "Expressions": [
+      {
+        "Name": "neutral",
+        "File": "expressions/neutral.exp3.json"
+      },
+      {
+        "Name": "joy",
+        "File": "expressions/joy.exp3.json"
+      },
+      {
+        "Name": "anger",
+        "File": "expressions/anger.exp3.json"
+      },
+      {
+        "Name": "surprise",
+        "File": "expressions/surprise.exp3.json"
+      }
+    ]
+  },
+  "Groups": [
+    {
+      "Target": "Parameter",
+      "Name": "EyeBlink",
+      "Ids": [
+        "ParamEyeLOpen",
+        "ParamEyeROpen"
+      ]
+    },
+    {
+      "Target": "Parameter",
+      "Name": "LipSync",
+      "Ids": [
+        "ParamMouthOpenY"
+      ]
+    }
+  ],
+  "SogangiMinimum": {
+    "Stage": "four_semantic_expressions_rig",
+    "WiredParameters": [
+      "ParamEyeLOpen",
+      "ParamEyeROpen",
+      "ParamMouthOpenY",
+      "ParamArmRWave",
+      "ParamFaceMood",
+      "ParamAngleZ",
+      "ParamBreath"
+    ],
+    "Pending": [
+      "3D head turns",
+      "additional emotion artwork",
+      "physics",
+      "deformer hierarchy"
+    ],
+    "Geometry": "Official face variants with project affine adaptations; composed mood/blink/lip/head/breath/arm keys; no deformers"
+  }
+}

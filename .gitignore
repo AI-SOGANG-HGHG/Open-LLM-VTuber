@@ -9,9 +9,14 @@ conf.yaml
 /live2d-models/*
 !/live2d-models/mao_pro
 !/live2d-models/shizuku
+!/live2d-models/sogangi-minimum
+!/live2d-models/sogangi-motion
+!/live2d-models/sogangi-greeting
+!/live2d-models/sogangi-expressions
 
 # ignore non-default character configs
 /characters/*
+!/characters/ko_sogangi.yaml
 !/characters/README.md
 # but all of the defaults are already tracked, so no need to un-ignore them
 
@@ -73,6 +78,8 @@ conf.yaml.backup
 
 tmp/
 private/
+/data/.property/
+/data/.tmp/
 mcp_servers.json
 
 .vscode/
