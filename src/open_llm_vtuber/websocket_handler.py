@@ -7,6 +7,7 @@ import numpy as np
 from loguru import logger
 
 from .service_context import ServiceContext
+from .studio_persona import StudioPersona, apply_studio_persona
 from .chat_group import (
     ChatGroupManager,
     handle_group_operation,
@@ -40,7 +41,7 @@ class MessageType(Enum):
         "delete-history",
     ]
     CONVERSATION = ["mic-audio-end", "text-input", "ai-speak-signal"]
-    CONFIG = ["fetch-configs", "switch-config"]
+    CONFIG = ["fetch-configs", "switch-config", "apply-studio-persona"]
     CONTROL = ["interrupt-signal", "audio-play-start"]
     DATA = ["mic-audio-data"]
 
@@ -91,6 +92,7 @@ class WebSocketHandler:
             "ai-speak-signal": self._handle_conversation_trigger,
             "fetch-configs": self._handle_fetch_configs,
             "switch-config": self._handle_config_switch,
+            "apply-studio-persona": self._handle_studio_persona,
             "fetch-backgrounds": self._handle_fetch_backgrounds,
             "audio-play-start": self._handle_audio_play_start,
             "request-init-config": self._handle_init_config_request,
@@ -601,6 +603,45 @@ class WebSocketHandler:
         if config_file_name:
             context = self.client_contexts[client_uid]
             await context.handle_config_switch(websocket, config_file_name)
+
+    async def _handle_studio_persona(
+        self, websocket: WebSocket, client_uid: str, data: dict
+    ):
+        task = self.current_conversation_tasks.get(client_uid)
+        if task and not task.done():
+            await websocket.send_text(
+                json.dumps({"type": "studio-persona-error", "code": "busy"})
+            )
+            return
+        try:
+            profile = StudioPersona.model_validate(data.get("profile", {}))
+        except ValueError:
+            await websocket.send_text(
+                json.dumps({"type": "studio-persona-error", "code": "invalid_profile"})
+            )
+            return
+        try:
+            await apply_studio_persona(self.client_contexts[client_uid], profile)
+        except Exception:
+            logger.warning("Studio character initialization failed for a connection")
+            await websocket.send_text(
+                json.dumps(
+                    {"type": "studio-persona-error", "code": "initialization_failed"}
+                )
+            )
+            return
+        await websocket.send_text(
+            json.dumps(
+                {
+                    "type": "studio-persona-applied",
+                    "character_id": profile.character_id,
+                    "conf_uid": profile.history_scope,
+                    "name": profile.name,
+                    "avatar": profile.avatar,
+                    "memory_count": len(profile.memories),
+                }
+            )
+        )
 
     async def _handle_fetch_backgrounds(
         self, websocket: WebSocket, client_uid: str, data: WSMessage

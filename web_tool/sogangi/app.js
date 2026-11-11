@@ -1,10 +1,16 @@
 import { AvatarRenderer } from './avatar-renderer.js';
 import { expressionFor } from './expressions.js';
-import { loadPreferences, savePreferences, loadSession, saveSession } from './local-state.js';
+import { loadPreferences, savePreferences, loadSession, saveSession, studioScenes, loadStudioScene, saveStudioScene } from './local-state.js?studio=5';
+import { getStudioProfile, studioEvent, onStudioShutdown } from './studio-bridge.js';
+import { StudioAvatarRenderer } from './studio-avatar.js';
+
+const studioProfile = await getStudioProfile();
 
 (() => {
   'use strict';
   const $ = (id) => document.getElementById(id);
+  const characterName = studioProfile?.name || '서강이';
+  const sessionScope = studioProfile ? `${studioProfile.workspace_id}.${studioProfile.character_id}` : '';
   const ui = Object.fromEntries(
     [
       'connection',
@@ -58,7 +64,35 @@ import { loadPreferences, savePreferences, loadSession, saveSession } from './lo
     preferences.avatarRenderer = avatarPreview;
     savePreferences(preferences);
   }
-  const savedSession = loadSession();
+  const savedSession = loadSession(sessionScope);
+  if (studioProfile) {
+    preferences.background = loadStudioScene(sessionScope, studioProfile.avatar);
+    ui.backgroundInput.replaceChildren(...Object.entries(studioScenes).map(([value, scene]) => new Option(scene.label, value)));
+    document.querySelector('.stage-actions').append(ui.settingsButton);
+    ui.settingsButton.textContent = '대화 설정';
+    document.title = `${characterName} · Persona Studio`;
+    document.querySelector('.stage').setAttribute('aria-label', `${characterName} 캐릭터`);
+    document.querySelector('.conversation').setAttribute('aria-label', `${characterName}와 대화`);
+    ui.mascot.setAttribute('aria-label', `${characterName} 캐릭터`);
+    ui.avatarCanvas.setAttribute('aria-label', `Live2D ${characterName}`);
+    document.querySelector('label[for="messageInput"]').textContent = `${characterName}에게 보낼 말`;
+    document.querySelector('.stage-copy h1').textContent = characterName;
+    document.querySelector('.stage-copy .eyebrow').textContent = 'YOUR CHARACTER · LIVE CONVERSATION';
+    document.querySelector('.stage-copy > p:last-child').textContent = studioProfile.description || '함께하는 우리의 이야기';
+    document.querySelector('.conversation-heading h2').textContent = `${characterName}와 대화`;
+    document.querySelector('#welcome h3').textContent = '우리의 첫 번째 이야기';
+    document.querySelector('#welcome p').textContent = studioProfile.greeting || '편하게 이야기해 주세요.';
+    document.querySelector('#historyTitle').textContent = `${characterName}와 나눈 이야기`;
+    document.querySelector('.history-help').textContent = '이 스튜디오 캐릭터의 대화 기록이에요.';
+    document.querySelector('.settings-about strong').textContent = `${characterName} · Persona Studio`;
+    document.querySelector('.stage-location').textContent = 'PERSONA STUDIO · LIVE CONVERSATION';
+    document.querySelector('#mascotNote').textContent = studioProfile.greeting || '반가워요!';
+    document.querySelectorAll('[data-prompt]').forEach((button, index) => {
+      if (index === 0) { button.textContent = '반갑게 인사하기'; button.dataset.prompt = '안녕! 짧게 자기소개해 줘.'; }
+    });
+    document.documentElement.dataset.studioAvatar = studioProfile.avatar;
+    document.querySelector('.conversation-footnote a').hidden = studioProfile.avatar !== 'sogangi';
+  }
   const state = {
     ws: null,
     ready: false,
@@ -117,15 +151,25 @@ import { loadPreferences, savePreferences, loadSession, saveSession } from './lo
             : renderer.active === 'svg'
               ? 'SVG 모션을 사용하고 있어요. 고개·인사도 확인할 수 있어요.'
               : '캐릭터를 이미지로 표시하고 있어요. 대화는 계속할 수 있어요.';
+    if (studioProfile && studioProfile.avatar !== 'sogangi') {
+      ui.avatarStatus.textContent = renderer.active === 'live2d' ? 'Live2D 캐릭터가 음성에 맞춰 입을 움직여요.' : renderer.active === 'loading' ? '캐릭터를 준비하고 있어요.' : '캐릭터를 이미지로 표시해요. 음성 대화는 계속 사용할 수 있어요.';
+      ui.avatarInput.closest('label').hidden = true;
+      ui.greetButton.textContent = '모션 재생';
+      ui.greetButton.title = '기본 Live2D 모션을 재생해요.';
+      ui.greetButton.hidden = studioProfile.avatar === 'symbol';
+    }
   }
-  const renderer = new AvatarRenderer(ui.mascot, ui.avatarCanvas, avatarChanged);
+  const renderer = studioProfile && studioProfile.avatar !== 'sogangi'
+    ? new StudioAvatarRenderer(ui.mascot, ui.avatarCanvas, avatarChanged, studioProfile.avatar)
+    : new AvatarRenderer(ui.mascot, ui.avatarCanvas, avatarChanged);
   renderer.init(preferences.avatarRenderer).then(() => {
     renderer.setPhase(ui.mascotWrap.dataset.state || 'idle');
     avatarChanged();
   });
+  delete document.documentElement.dataset.studioPending;
   ui.messageInput.value = savedSession.draft;
   function persistSession() {
-    if (!saveSession({ historyUid: state.historyUid, draft: ui.messageInput.value }))
+    if (!saveSession({ historyUid: state.historyUid, draft: ui.messageInput.value }, sessionScope))
       ui.timing.textContent = '이 브라우저에서는 초안을 저장하지 못해. 닫기 전에 복사해 줘.';
   }
   function applyPreferences(persist = true) {
@@ -134,6 +178,12 @@ import { loadPreferences, savePreferences, loadSession, saveSession } from './lo
     document.body.classList.toggle('reduce-motion', preferences.reducedMotion);
     document.body.classList.toggle('large-text', preferences.largeText);
     document.body.dataset.background = preferences.background;
+    if (studioProfile) {
+      const scene = studioScenes[preferences.background] || studioScenes.night;
+      document.documentElement.dataset.studioScene = preferences.background;
+      document.documentElement.style.setProperty('--studio-scene-image', scene.image ? `url("${scene.image}")` : 'none');
+      document.querySelector('.stage-location').textContent = `${scene.label} · PERSONA STUDIO`;
+    }
     renderer.setReducedMotion(preferences.reducedMotion);
     renderer.setMode(preferences.avatarRenderer);
     ui.soundToggle.textContent = state.muted ? '음성 꺼짐' : '음성 켜짐';
@@ -156,10 +206,13 @@ import { loadPreferences, savePreferences, loadSession, saveSession } from './lo
       stopAudio();
       completePlayback();
     }
-    if (persist)
-      ui.settingsStatus.textContent = savePreferences(preferences)
+    if (persist) {
+      const sceneSaved = !studioProfile || saveStudioScene(sessionScope, preferences.background);
+      const settingsSaved = savePreferences(studioProfile ? { ...preferences, background: loadPreferences().background } : preferences);
+      ui.settingsStatus.textContent = sceneSaved && settingsSaved
         ? '저장했어요. 다음에 열 때도 적용돼요.'
         : '지금은 적용됐지만 저장하지 못했어요. 브라우저 저장 공간을 확인해 주세요.';
+    }
   }
   function send(payload) {
     if (state.ws?.readyState === WebSocket.OPEN) state.ws.send(JSON.stringify(payload));
@@ -175,7 +228,7 @@ import { loadPreferences, savePreferences, loadSession, saveSession } from './lo
   function mascot(frame, phase, text) {
     renderer.setExpression(frame);
     renderer.setPhase(phase);
-    if (!renderer.ready)
+    if (!renderer.ready && (!studioProfile || studioProfile.avatar === 'sogangi'))
       ui.mascot
         .querySelector('image')
         ?.setAttribute('href', `./assets/sogangi-${frames[frame] || frames.neutral}.svg`);
@@ -190,7 +243,7 @@ import { loadPreferences, savePreferences, loadSession, saveSession } from './lo
       ? '연결을 기다리는 동안 적어 둬도 좋아.'
       : state.busy
         ? '기다리는 동안 다음 이야기를 적어 둬도 좋아.'
-        : '서강아, 오늘은…';
+        : `${characterName}, 오늘은…`;
     ui.sendButton.disabled = blocked;
     ui.newChat.disabled = !state.ready || state.busy || Boolean(microphoneBusy);
     ui.historyButton.disabled = !state.ready || state.busy || Boolean(microphoneBusy);
@@ -211,7 +264,7 @@ import { loadPreferences, savePreferences, loadSession, saveSession } from './lo
     node.className = `message ${role}`;
     const label = document.createElement('span');
     label.className = 'message-label';
-    label.textContent = role === 'user' ? '나' : '서강이';
+    label.textContent = role === 'user' ? '나' : characterName;
     const body = document.createElement('div');
     body.className = 'message-body';
     body.textContent = role === 'user' ? String(text || '') : clean(text);
@@ -258,7 +311,7 @@ import { loadPreferences, savePreferences, loadSession, saveSession } from './lo
     audio.volume = preferences.volume;
     audio.playbackRate = preferences.rate;
     state.playing = audio;
-    ui.phase.textContent = '서강이가 말하고 있어';
+    ui.phase.textContent = `${characterName}가 말하고 있어`;
     state.lastExpression = item.expression || 'neutral';
     mascot(state.lastExpression, 'speaking', '같이 이야기하자!');
     const done = () => {
@@ -429,6 +482,7 @@ import { loadPreferences, savePreferences, loadSession, saveSession } from './lo
     ui.connection.textContent = '연결됨';
     ui.connection.className = 'connection connected';
     ready();
+    studioEvent('connected', { historyUid: uid, characterId: studioProfile?.character_id, avatar: studioProfile?.avatar, name: characterName });
   }
   function resetMessages() {
     renderer.cancelGesture();
@@ -537,8 +591,21 @@ import { loadPreferences, savePreferences, loadSession, saveSession } from './lo
       if (data.request_id && data.request_id !== state.requestId) return;
       if (data.type === 'set-model-and-conf' && !requestedConfig) {
         requestedConfig = true;
-        send({ type: 'switch-config', file: 'ko_sogangi.yaml' });
-      } else if (data.type === 'config-switched') {
+        if (studioProfile) {
+          const { greeting, ...profile } = studioProfile;
+          send({ type: 'apply-studio-persona', profile });
+        } else send({ type: 'switch-config', file: 'ko_sogangi.yaml' });
+      } else if (data.type === 'studio-persona-error') {
+        notice('캐릭터 설정을 연결하지 못했어. 스튜디오에서 다시 연결해 줘.', false, 'error');
+        studioEvent('error', { code: data.code });
+      } else if (data.type === 'config-switched' || data.type === 'studio-persona-applied') {
+        if (studioProfile && (data.type !== 'studio-persona-applied' || data.character_id !== studioProfile.character_id || data.avatar !== studioProfile.avatar || data.name !== studioProfile.name)) {
+          notice('선택한 캐릭터와 서버의 연결 정보가 달라 연결을 중단했어요.', false, 'error');
+          studioEvent('error', { code: 'character_mismatch' });
+          state.closing = true;
+          ws.close();
+          return;
+        }
         if (state.historyUid) restoreHistory(state.historyUid, true);
         else newHistory();
       } else if (data.type === 'new-history-created') {
@@ -615,6 +682,7 @@ import { loadPreferences, savePreferences, loadSession, saveSession } from './lo
         state.busy &&
         !state.discard
       ) {
+        if (!state.failed && state.assistant?.body.textContent) studioEvent('turn-complete', { requestId: state.requestId });
         if (!state.failed && !state.assistant?.body.textContent) {
           state.recoverable = true;
           notice('답변을 완성하지 못했어. 질문을 다시 적어 보낼 수 있어.');
@@ -650,6 +718,7 @@ import { loadPreferences, savePreferences, loadSession, saveSession } from './lo
       controls();
       ui.connection.textContent = '연결 끊김';
       ui.connection.className = 'connection disconnected';
+      studioEvent('disconnected');
       ui.phase.textContent = '서버 연결을 확인해 줘';
       mascot('neutral', 'idle', '잠깐 연결을 기다릴게');
       if (state.reconnectAttempts < 5 && navigator.onLine) {
@@ -713,10 +782,10 @@ import { loadPreferences, savePreferences, loadSession, saveSession } from './lo
     renderHistories(state.histories);
   });
   ui.exportChat.addEventListener('click', () => {
-    const lines = ['서강이와 나눈 이야기', new Date().toLocaleString('ko-KR'), ''];
+    const lines = [`${characterName}와 나눈 이야기`, new Date().toLocaleString('ko-KR'), ''];
     for (const node of ui.messages.querySelectorAll('.message'))
       lines.push(
-        `${node.classList.contains('user') ? '나' : '서강이'}: ${node.querySelector('.message-body').textContent}`,
+        `${node.classList.contains('user') ? '나' : characterName}: ${node.querySelector('.message-body').textContent}`,
         '',
       );
     const url = URL.createObjectURL(
@@ -724,7 +793,7 @@ import { loadPreferences, savePreferences, loadSession, saveSession } from './lo
     );
     const link = document.createElement('a');
     link.href = url;
-    link.download = `서강이-대화-${new Date().toISOString().slice(0, 10)}.txt`;
+    link.download = `${studioProfile ? '캐릭터' : '서강이'}-대화-${new Date().toISOString().slice(0, 10)}.txt`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
@@ -752,7 +821,7 @@ import { loadPreferences, savePreferences, loadSession, saveSession } from './lo
     applyPreferences();
   });
   ui.greetButton.addEventListener('click', () => {
-    if (renderer.greet() && !state.busy) ui.mascotNote.textContent = '반가워, 학우야!';
+    if (renderer.greet() && !state.busy) ui.mascotNote.textContent = studioProfile ? `${characterName}와 함께해요!` : '반가워, 학우야!';
   });
   ui.avatarRetry.addEventListener('click', () =>
     renderer.setMode(preferences.avatarRenderer, { force: true }),
@@ -916,5 +985,10 @@ import { loadPreferences, savePreferences, loadSession, saveSession } from './lo
     }
   });
   applyPreferences(false);
+  onStudioShutdown(() => {
+    state.closing = true;
+    clearTimeout(state.reconnectTimer); clearTimeout(state.connectTimer); clearTimeout(state.historyTimer);
+    clearTimers(); cancelMicrophone(); stopAudio(); renderer.dispose(); state.ws?.close();
+  });
   connect();
 })();
