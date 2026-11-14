@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "status": "native_export_passed_browser_check_separate",
+  "source_psd_sha256": "cdb5dab0a79906b643233bdaed1ee480879ea9eeaba246c50cd5de5a31fd8065",
+  "converter_commit": "4fcdf472d21488c8e8258fd05a601b2822855705",
+  "converter_source_sha256": "be2905c76e25b18eef771a5aa7cd201e32b32ce4621c4a5ef2ec73dd83a7be4a",
+  "patch_sha256": "529ced83403c757eede81c6bd28b45a072c4788af99419a59f93268266160880",
+  "moc_sha256": "41d01a6957121f4174d768414b39691db77356f40e7ca80b1e19a0543850f776",
+  "cmo_sha256": "123efd724283fd853ff0f49b149891949ac160c68ab5f0e78437e61853bc0167",
+  "texture_sha256": "999a6f0cc1c48db41ebc69876c21d640550decb8de5d52c2d94843e86879f0f0",
+  "texture_size": [
+    2048,
+    2048
+  ],
+  "drawables": 24,
+  "core_parameters": 27,
+  "wired_parameters": [
+    "ParamEyeLOpen",
+    "ParamEyeROpen",
+    "ParamMouthOpenY"
+  ],
+  "native_consistency": true,
+  "export_version": "VERSION_50",
+  "geometry": "PSD-import base ArtMeshes; facial opacity/affine keys"
+}

@@ -1,0 +1,1829 @@
+{
+  "profile": "infer-sample",
+  "parameters": [
+    {
+      "id": "ParamEyeLOpen",
+      "kind": "openness",
+      "defaultValue": 1,
+      "keys": [
+        {
+          "name": "closed",
+          "value": 0
+        },
+        {
+          "name": "open",
+          "value": 1
+        }
+      ],
+      "targets": [
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye L",
+            "EyeL_Open"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "closed",
+              "opacity": 0
+            },
+            {
+              "keyValue": 1,
+              "stateName": "open",
+              "opacity": 1
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye L",
+            "EyeL_Highlight"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "closed",
+              "opacity": 0
+            },
+            {
+              "keyValue": 1,
+              "stateName": "open",
+              "opacity": 1
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye L",
+            "EyeL_Closed"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "closed",
+              "opacity": 1
+            },
+            {
+              "keyValue": 1,
+              "stateName": "open",
+              "opacity": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ParamEyeROpen",
+      "kind": "openness",
+      "defaultValue": 1,
+      "keys": [
+        {
+          "name": "closed",
+          "value": 0
+        },
+        {
+          "name": "open",
+          "value": 1
+        }
+      ],
+      "targets": [
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye R",
+            "EyeR_Open"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "closed",
+              "opacity": 0
+            },
+            {
+              "keyValue": 1,
+              "stateName": "open",
+              "opacity": 1
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye R",
+            "EyeR_Highlight"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "closed",
+              "opacity": 0
+            },
+            {
+              "keyValue": 1,
+              "stateName": "open",
+              "opacity": 1
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye R",
+            "EyeR_Closed"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "closed",
+              "opacity": 1
+            },
+            {
+              "keyValue": 1,
+              "stateName": "open",
+              "opacity": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ParamMouthOpenY",
+      "kind": "openness",
+      "defaultValue": 0,
+      "keys": [
+        {
+          "name": "closed",
+          "value": 0
+        },
+        {
+          "name": "default",
+          "value": 0.25
+        },
+        {
+          "name": "open",
+          "value": 1
+        }
+      ],
+      "targets": [
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Mouth",
+            "Mouth_Closed"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "closed",
+              "opacity": 1
+            },
+            {
+              "keyValue": 0.25,
+              "stateName": "default",
+              "opacity": 0
+            },
+            {
+              "keyValue": 1,
+              "stateName": "open",
+              "opacity": 0
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Mouth",
+            "Mouth_Open"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "closed",
+              "opacity": 0,
+              "transform": {
+                "scaleX": 0.74,
+                "scaleY": 0.25
+              }
+            },
+            {
+              "keyValue": 0.25,
+              "stateName": "default",
+              "opacity": 1,
+              "transform": {
+                "scaleX": 0.8049999999999999,
+                "scaleY": 0.4375
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "open",
+              "opacity": 1,
+              "transform": {
+                "scaleX": 1,
+                "scaleY": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ParamArmRWave",
+      "kind": "angle",
+      "defaultValue": 0,
+      "keys": [
+        {
+          "name": "default",
+          "value": 0
+        },
+        {
+          "name": "motion",
+          "value": 0.25
+        },
+        {
+          "name": "motion",
+          "value": 0.5
+        },
+        {
+          "name": "motion",
+          "value": 0.75
+        },
+        {
+          "name": "motion",
+          "value": 1
+        }
+      ],
+      "targets": [
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Arm R",
+            "ArmR_Base"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1167.57,
+                "pivotY": 1287.22,
+                "rotationDeg": 0
+              }
+            },
+            {
+              "keyValue": 0.25,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1167.57,
+                "pivotY": 1287.22,
+                "rotationDeg": -8
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1167.57,
+                "pivotY": 1287.22,
+                "rotationDeg": -16
+              }
+            },
+            {
+              "keyValue": 0.75,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1167.57,
+                "pivotY": 1287.22,
+                "rotationDeg": -24
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1167.57,
+                "pivotY": 1287.22,
+                "rotationDeg": -32
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ParamAngleZ",
+      "kind": "angle",
+      "defaultValue": 0,
+      "keys": [
+        {
+          "name": "motion",
+          "value": -30
+        },
+        {
+          "name": "default",
+          "value": 0
+        },
+        {
+          "name": "motion",
+          "value": 30
+        }
+      ],
+      "targets": [
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Hood",
+            "Hood_WingL"
+          ],
+          "states": [
+            {
+              "keyValue": -30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": -3
+              }
+            },
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 0
+              }
+            },
+            {
+              "keyValue": 30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 3
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Hood",
+            "Hood_WingR"
+          ],
+          "states": [
+            {
+              "keyValue": -30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": -3
+              }
+            },
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 0
+              }
+            },
+            {
+              "keyValue": 30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 3
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Hood",
+            "Hood_Base"
+          ],
+          "states": [
+            {
+              "keyValue": -30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": -3
+              }
+            },
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 0
+              }
+            },
+            {
+              "keyValue": 30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 3
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Face",
+            "Face_Base"
+          ],
+          "states": [
+            {
+              "keyValue": -30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": -3
+              }
+            },
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 0
+              }
+            },
+            {
+              "keyValue": 30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 3
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye R",
+            "EyeR_Open"
+          ],
+          "states": [
+            {
+              "keyValue": -30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": -3
+              }
+            },
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 0
+              }
+            },
+            {
+              "keyValue": 30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 3
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye R",
+            "EyeR_Highlight"
+          ],
+          "states": [
+            {
+              "keyValue": -30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": -3
+              }
+            },
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 0
+              }
+            },
+            {
+              "keyValue": 30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 3
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye L",
+            "EyeL_Open"
+          ],
+          "states": [
+            {
+              "keyValue": -30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": -3
+              }
+            },
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 0
+              }
+            },
+            {
+              "keyValue": 30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 3
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye L",
+            "EyeL_Highlight"
+          ],
+          "states": [
+            {
+              "keyValue": -30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": -3
+              }
+            },
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 0
+              }
+            },
+            {
+              "keyValue": 30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 3
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Mouth",
+            "Mouth_Closed"
+          ],
+          "states": [
+            {
+              "keyValue": -30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": -3
+              }
+            },
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 0
+              }
+            },
+            {
+              "keyValue": 30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 3
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Hood",
+            "Hood_BirdEyeL"
+          ],
+          "states": [
+            {
+              "keyValue": -30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": -3
+              }
+            },
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 0
+              }
+            },
+            {
+              "keyValue": 30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 3
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Hood",
+            "Hood_BirdEyeR"
+          ],
+          "states": [
+            {
+              "keyValue": -30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": -3
+              }
+            },
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 0
+              }
+            },
+            {
+              "keyValue": 30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 3
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Hood",
+            "Hood_Beak"
+          ],
+          "states": [
+            {
+              "keyValue": -30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": -3
+              }
+            },
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 0
+              }
+            },
+            {
+              "keyValue": 30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 3
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Face",
+            "Face_CheekR"
+          ],
+          "states": [
+            {
+              "keyValue": -30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": -3
+              }
+            },
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 0
+              }
+            },
+            {
+              "keyValue": 30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 3
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Face",
+            "Face_CheekL"
+          ],
+          "states": [
+            {
+              "keyValue": -30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": -3
+              }
+            },
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 0
+              }
+            },
+            {
+              "keyValue": 30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 3
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye L",
+            "EyeL_Closed"
+          ],
+          "states": [
+            {
+              "keyValue": -30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": -3
+              }
+            },
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 0
+              }
+            },
+            {
+              "keyValue": 30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 3
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye R",
+            "EyeR_Closed"
+          ],
+          "states": [
+            {
+              "keyValue": -30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": -3
+              }
+            },
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 0
+              }
+            },
+            {
+              "keyValue": 30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 3
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Mouth",
+            "Mouth_Open"
+          ],
+          "states": [
+            {
+              "keyValue": -30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": -3
+              }
+            },
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 0
+              }
+            },
+            {
+              "keyValue": 30,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1202.14,
+                "rotationDeg": 3
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ParamBreath",
+      "kind": "openness",
+      "defaultValue": 0,
+      "keys": [
+        {
+          "name": "default",
+          "value": 0
+        },
+        {
+          "name": "motion",
+          "value": 0.5
+        },
+        {
+          "name": "motion",
+          "value": 1
+        }
+      ],
+      "targets": [
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Arm L",
+            "ArmL_Base"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Arm R",
+            "ArmR_Base"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Body",
+            "Body_Tunic"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Body",
+            "Body_Stripe"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Body",
+            "Body_Emblem"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Hood",
+            "Hood_WingL"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Hood",
+            "Hood_WingR"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Hood",
+            "Hood_Base"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Face",
+            "Face_Base"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye R",
+            "EyeR_Open"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye R",
+            "EyeR_Highlight"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye L",
+            "EyeL_Open"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye L",
+            "EyeL_Highlight"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Mouth",
+            "Mouth_Closed"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Hood",
+            "Hood_BirdEyeL"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Hood",
+            "Hood_BirdEyeR"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Hood",
+            "Hood_Beak"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Face",
+            "Face_CheekR"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Face",
+            "Face_CheekL"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye L",
+            "EyeL_Closed"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye R",
+            "EyeR_Closed"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Mouth",
+            "Mouth_Open"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "default",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1,
+                "translateY": 0
+              }
+            },
+            {
+              "keyValue": 0.5,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.002,
+                "translateY": -2
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "motion",
+              "transform": {
+                "pivotX": 1019.69,
+                "pivotY": 1786,
+                "scaleY": 1.004,
+                "translateY": -4
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

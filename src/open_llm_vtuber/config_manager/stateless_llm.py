@@ -151,6 +151,9 @@ class GeminiConfig(OpenAICompatibleConfig):
     interrupt_method: Literal["system", "user"] = Field(
         "user", alias="interrupt_method"
     )
+    request_timeout: float | None = Field(None, gt=0)
+    max_retries: int | None = Field(None, ge=0, le=3)
+    raise_on_error: bool = False
 
 
 class MistralConfig(OpenAICompatibleConfig):

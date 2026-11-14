@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>서강이 · 리깅 좌표도</title>
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./rigging-map.css" />
+    <script type="module" src="./rigging-map.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./"
+        ><span class="brand-mark" aria-hidden="true">S</span
+        ><span>서강이 <b>리깅 좌표도</b></span></a
+      ><a href="./live2d-plan.html">제작 설계로 돌아가기 ↗</a>
+    </header>
+    <main class="rigging-page">
+      <div class="rigging-intro">
+        <p class="eyebrow">FROM LAYERS TO DEFORMERS</p>
+        <h1>어디를 보완하고, 어떻게 움직일까.</h1>
+        <p>
+          실제 PSD 레이어의 경계와 제작자가 검토할 피벗·원화 보완 범위입니다.<br />피벗과 보완
+          영역은 설계 초안이며, 새 원화를 그리거나 Cubism 리깅한 결과가 아닙니다.
+        </p>
+      </div>
+      <div class="rigging-links">
+        <a href="./rigging-map.json" download>좌표·연결 명세 JSON 받기 ↗</a
+        ><a href="./assets/production/sogangi-art-handoff.zip" download>준비 PSD·PNG 받기 ↗</a
+        ><a href="./live2d-preview.html">실제 Cubism 모델 검수실 ↗</a>
+        <a href="./art-review.html">자세별 원화 비교 ↗</a>
+      </div>
+      <p id="riggingError" role="alert" hidden>
+        좌표도를 불러오지 못했어요. 파일과 서버를 확인해 주세요.
+      </p>
+      <div class="rigging-layout">
+        <section class="rigging-art" aria-label="PSD 좌표도">
+          <svg
+            id="riggingCanvas"
+            viewBox="0 0 2048 2048"
+            role="img"
+            aria-label="서강이 PSD 레이어와 리깅 피벗 위치"
+          >
+            <image href="./assets/production/neutral-preview.png" width="2048" height="2048" />
+            <rect
+              id="rigBounds"
+              fill="#b51f3810"
+              stroke="#b51f38"
+              stroke-width="2"
+              vector-effect="non-scaling-stroke"
+            />
+            <g id="rigPivot" stroke="#b51f38" stroke-width="2" vector-effect="non-scaling-stroke">
+              <circle r="20" fill="#fff9ed" />
+              <path d="M-45 0H45M0-45V45" />
+            </g>
+          </svg>
+          <p id="riggingCanvasNote">좌상단 (0, 0) · PSD 2048×2048 · L/R은 화면 기준</p>
+        </section>
+        <section class="rigging-details" aria-label="제작 항목">
+          <div class="rigging-tabs" aria-label="검토 종류">
+            <button type="button" data-rig-mode="deformers" aria-pressed="true">피벗·계층</button
+            ><button type="button" data-rig-mode="underpainting" aria-pressed="false">
+              원화 보완</button
+            ><button type="button" data-rig-mode="parts" aria-pressed="false">실제 레이어</button>
+          </div>
+          <div id="riggingItems" class="rigging-items"></div>
+          <div class="rigging-description">
+            <p id="riggingId" class="eyebrow"></p>
+            <h2 id="riggingLabel"></h2>
+            <p id="riggingNote"></p>
+            <dl id="riggingFacts"></dl>
+            <h3>연결 레이어</h3>
+            <ul id="riggingParts"></ul>
+            <h3>파라미터 초안</h3>
+            <ul id="riggingBindings"></ul>
+          </div>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>

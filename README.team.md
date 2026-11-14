@@ -1,6 +1,6 @@
 # AI-SOGANG-HGHG · 팀 개발 안내
 
-Open-LLM-VTuber를 기반으로 캐릭터 설정·Persona·대화·기억·세션을 갖춘 공통 AI 캐릭터 플랫폼을 설계한다.
+Open-LLM-VTuber를 기반으로 개인 페르소나 에이전트를 만들고, 버튜버·방송과 Minecraft에 연결한다. 공통 기반은 캐릭터 설정·대화·기억·세션이며, 페르소나에 따른 대화·행동 차이를 재현 가능하게 검증하는 것을 최우선으로 둔다.
 
 | 항목 | 내용 |
 |---|---|
@@ -14,13 +14,21 @@ Open-LLM-VTuber를 기반으로 캐릭터 설정·Persona·대화·기억·세�
 - 팀 저장소: [AI-SOGANG-HGHG/Open-LLM-VTuber](https://github.com/AI-SOGANG-HGHG/Open-LLM-VTuber)
 - 원본 코드와 Git 이력을 기반으로 팀 개발을 진행한다.
 - 로컬 `origin`은 팀 저장소, `upstream`은 Open-LLM-VTuber 원본이다.
-- 기존 앱의 의존성 설치와 모델·음성 실행은 아직 확인하지 않았다.
+- Windows 한 대에서 의존성 설치와 서버·텍스트·합성 음성 입력 경로를 확인했다. [첫 실행 기록](docs/local-first-run.md)의 결과와 미확인 항목을 구분해 참고한다.
+- 현재 기능을 직접 확인할 때는 [수동 검증 순서와 확인 수준](docs/manual-verification.md)을 따른다.
+- 서강이 로컬 화면·재시작·검사 방법은 [서강이 앱 안내](web_tool/sogangi/README.md), 원본 레이어와 동작 제작 범위는 [Live2D 제작 설계](docs/sogangi-live2d-plan.md)를 참고한다. 실제 Live2D 중립·기쁨·화남·놀람 표정, 눈·입·작은 고개 기울기·호흡·오른팔 인사를 기본 화면에서 지원한다. SVG 모션도 선택할 수 있다. 입체 회전·디포머 계층·나머지 감정 원화는 남아 있다.
+- 플랫폼 시연은 [Persona Studio 안내](web_tool/platform/README.md)를 따른다. 캐릭터 설정·메모를 스튜디오 내부 실제 음성·Live2D 대화에 전달하며 캐릭터별 기록을 이어간다. 실제 계정 인증·서버 DB 기반 캐릭터 관리·RAG·방송/게임 연동은 아직 없다.
+- 로컬 일상 사용 기능과 출시 조건은 [서강이 제품화 기록](docs/sogangi-release.md), 반복 가능한 말투·기억·행동 주장 검증은 [페르소나 평가](docs/sogangi-persona-evaluation.md)를 참고한다.
 
 ## 팀원이 읽을 순서
 
 1. [첫 1–2주 계획](docs/plan.md)
+   - 10월 29일 결정 사항과 통합·평가 제안: [시스템 방향](docs/system-direction.md)
+   - 실제 작업 순서와 완료 기준: [사전 작업 계획](docs/preparation-plan.md)
+   - 소스 조사·현재 레포 피드백·공개 재사용 후보: [AIRI 포팅 검토](docs/airi-porting-review.md)
 2. [다른 PC에서 첫 실행 체크리스트](docs/first-run-checklist.md)
    - Ollama 없이 시작할 때: [Windows · Gemini API 실행 안내](docs/local-gemini-setup.md)
+   - Linux 서버에서 키 파일과 상시 실행 서비스 사용: [Linux 서버 안내](docs/linux-server.md)
 3. [기존 한국어 실행 안내](README.KR.md)
 4. [AI 작업 지침](AGENTS.md)과 담당 영역의 기존 코드
 
@@ -35,7 +43,7 @@ persona-platform/              # 로컬 작업 폴더
    └─ 기존 코드·설정·실행 파일
 ```
 
-팀 설계 문서와 코드 변경은 이 저장소 안에서 관리한다. 게임·방송은 현재 범위에 포함하지 않는다. 세부 코드 폴더는 기존 구조를 조사한 뒤 필요한 범위에서 결정한다.
+팀 설계 문서와 코드 변경은 이 저장소 안에서 관리한다. Minecraft와 방송은 후속 통합 대상으로 포함하며, 산책 동반과 로컬 8개 에이전트 경기는 확장 목표다. AWS·Docker와 상용 API 사용은 팀 결정이며, 현재 AWS 배포가 완료됐다는 뜻은 아니다. 세부 코드 폴더는 기존 구조를 조사한 뒤 필요한 범위에서 결정한다.
 
 ## 공유 방식
 

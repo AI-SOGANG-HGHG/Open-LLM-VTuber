@@ -1,0 +1,422 @@
+{
+  "status": "placement_proposal_not_editor_export",
+  "width": 2048,
+  "height": 2048,
+  "uniform_scale": 1.0,
+  "padding": 4,
+  "placements": [
+    {
+      "name": "Hood_Base",
+      "allocation": [
+        0,
+        0,
+        1157,
+        1125
+      ],
+      "image_origin": [
+        4,
+        4
+      ],
+      "source_size": [
+        1149,
+        1117
+      ]
+    },
+    {
+      "name": "Face_Base",
+      "allocation": [
+        0,
+        1125,
+        914,
+        857
+      ],
+      "image_origin": [
+        4,
+        1129
+      ],
+      "source_size": [
+        906,
+        849
+      ]
+    },
+    {
+      "name": "Body_Tunic",
+      "allocation": [
+        1157,
+        0,
+        701,
+        596
+      ],
+      "image_origin": [
+        1161,
+        4
+      ],
+      "source_size": [
+        693,
+        588
+      ]
+    },
+    {
+      "name": "Body_Stripe",
+      "allocation": [
+        1157,
+        596,
+        665,
+        275
+      ],
+      "image_origin": [
+        1161,
+        600
+      ],
+      "source_size": [
+        657,
+        267
+      ]
+    },
+    {
+      "name": "Hood_WingL",
+      "allocation": [
+        1157,
+        871,
+        492,
+        426
+      ],
+      "image_origin": [
+        1161,
+        875
+      ],
+      "source_size": [
+        484,
+        418
+      ]
+    },
+    {
+      "name": "Hood_WingR",
+      "allocation": [
+        914,
+        1297,
+        492,
+        426
+      ],
+      "image_origin": [
+        918,
+        1301
+      ],
+      "source_size": [
+        484,
+        418
+      ]
+    },
+    {
+      "name": "ArmL_Base",
+      "allocation": [
+        1649,
+        871,
+        322,
+        340
+      ],
+      "image_origin": [
+        1653,
+        875
+      ],
+      "source_size": [
+        314,
+        332
+      ]
+    },
+    {
+      "name": "ArmR_Base",
+      "allocation": [
+        1649,
+        1211,
+        322,
+        340
+      ],
+      "image_origin": [
+        1653,
+        1215
+      ],
+      "source_size": [
+        314,
+        332
+      ]
+    },
+    {
+      "name": "LegL_Base",
+      "allocation": [
+        1406,
+        1297,
+        224,
+        306
+      ],
+      "image_origin": [
+        1410,
+        1301
+      ],
+      "source_size": [
+        216,
+        298
+      ]
+    },
+    {
+      "name": "LegR_Base",
+      "allocation": [
+        914,
+        1723,
+        225,
+        306
+      ],
+      "image_origin": [
+        918,
+        1727
+      ],
+      "source_size": [
+        217,
+        298
+      ]
+    },
+    {
+      "name": "Body_Emblem",
+      "allocation": [
+        1630,
+        1551,
+        275,
+        122
+      ],
+      "image_origin": [
+        1634,
+        1555
+      ],
+      "source_size": [
+        267,
+        114
+      ]
+    },
+    {
+      "name": "Mouth_Open",
+      "allocation": [
+        1139,
+        1723,
+        272,
+        167
+      ],
+      "image_origin": [
+        1143,
+        1727
+      ],
+      "source_size": [
+        264,
+        159
+      ]
+    },
+    {
+      "name": "Hood_Beak",
+      "allocation": [
+        914,
+        1125,
+        233,
+        167
+      ],
+      "image_origin": [
+        918,
+        1129
+      ],
+      "source_size": [
+        225,
+        159
+      ]
+    },
+    {
+      "name": "EyeL_Closed",
+      "allocation": [
+        0,
+        1982,
+        221,
+        65
+      ],
+      "image_origin": [
+        4,
+        1986
+      ],
+      "source_size": [
+        213,
+        57
+      ]
+    },
+    {
+      "name": "EyeR_Closed",
+      "allocation": [
+        221,
+        1982,
+        221,
+        65
+      ],
+      "image_origin": [
+        225,
+        1986
+      ],
+      "source_size": [
+        213,
+        57
+      ]
+    },
+    {
+      "name": "Mouth_Closed",
+      "allocation": [
+        442,
+        1982,
+        221,
+        65
+      ],
+      "image_origin": [
+        446,
+        1986
+      ],
+      "source_size": [
+        213,
+        57
+      ]
+    },
+    {
+      "name": "EyeL_Open",
+      "allocation": [
+        1411,
+        1603,
+        198,
+        199
+      ],
+      "image_origin": [
+        1415,
+        1607
+      ],
+      "source_size": [
+        190,
+        191
+      ]
+    },
+    {
+      "name": "EyeR_Open",
+      "allocation": [
+        1822,
+        596,
+        199,
+        199
+      ],
+      "image_origin": [
+        1826,
+        600
+      ],
+      "source_size": [
+        191,
+        191
+      ]
+    },
+    {
+      "name": "Face_CheekL",
+      "allocation": [
+        663,
+        1982,
+        122,
+        57
+      ],
+      "image_origin": [
+        667,
+        1986
+      ],
+      "source_size": [
+        114,
+        49
+      ]
+    },
+    {
+      "name": "Face_CheekR",
+      "allocation": [
+        785,
+        1982,
+        122,
+        57
+      ],
+      "image_origin": [
+        789,
+        1986
+      ],
+      "source_size": [
+        114,
+        49
+      ]
+    },
+    {
+      "name": "Hood_BirdEyeL",
+      "allocation": [
+        1822,
+        795,
+        54,
+        54
+      ],
+      "image_origin": [
+        1826,
+        799
+      ],
+      "source_size": [
+        46,
+        46
+      ]
+    },
+    {
+      "name": "Hood_BirdEyeR",
+      "allocation": [
+        1876,
+        795,
+        54,
+        54
+      ],
+      "image_origin": [
+        1880,
+        799
+      ],
+      "source_size": [
+        46,
+        46
+      ]
+    },
+    {
+      "name": "EyeL_Highlight",
+      "allocation": [
+        1930,
+        795,
+        53,
+        53
+      ],
+      "image_origin": [
+        1934,
+        799
+      ],
+      "source_size": [
+        45,
+        45
+      ]
+    },
+    {
+      "name": "EyeR_Highlight",
+      "allocation": [
+        1983,
+        795,
+        53,
+        53
+      ],
+      "image_origin": [
+        1987,
+        799
+      ],
+      "source_size": [
+        45,
+        45
+      ]
+    }
+  ],
+  "notes": [
+    "One atlas proposal only; not a generated runtime texture or MOC UV map.",
+    "Use the official Editor to arrange/export its own atlas and matching MOC.",
+    "Free-edition limits and actual save/export must be checked in Editor 5.1."
+  ]
+}

@@ -1,6 +1,6 @@
 # Windows에서 Gemini API로 첫 실행
 
-Ollama 설치 없이 Gemini API로 대화를 생성한다. 음성 인식은 기본 SenseVoice를 CPU에서 실행하고, 음성 출력은 한국어 Edge TTS를 사용한다. 설정 예시를 추가한 상태이며 실제 서버·모델·음성 동작은 아직 검증하지 않았다.
+Ollama 설치 없이 Gemini API로 대화를 생성한다. 음성 인식은 기본 SenseVoice를 CPU에서 실행하고, 음성 출력은 한국어 Edge TTS를 사용한다. 이 PC의 실제 준비 상태와 관찰한 결과는 [첫 실행 기록](local-first-run.md)을 참고한다. 다른 PC의 설치·실행 성공까지 보장하는 기록은 아니다.
 
 ## 1. 실행 도구와 의존성
 
@@ -24,7 +24,7 @@ uv sync --locked
 
 ## 2. 로컬 설정과 API 키
 
-[Google AI Studio](https://aistudio.google.com/apikey)에서 API 키를 발급한다. 무료 등급을 사용하려면 프로젝트의 등급과 모델별 할당량을 확인한다. 예시 모델은 `gemini-2.5-flash-lite`이며, 가용성과 무료 제공 조건은 [공식 요금표](https://ai.google.dev/gemini-api/docs/pricing)와 [사용량 제한](https://ai.google.dev/gemini-api/docs/rate-limits)을 확인한다.
+[Google AI Studio](https://aistudio.google.com/apikey)에서 API 키를 발급한다. 무료 등급을 사용하려면 프로젝트의 등급과 모델별 할당량을 확인한다. 예시 모델은 `gemini-3.5-flash-lite`이며, 가용성과 무료 제공 조건은 [공식 요금표](https://ai.google.dev/gemini-api/docs/pricing)와 [사용량 제한](https://ai.google.dev/gemini-api/docs/rate-limits)을 확인한다.
 
 처음 설정할 때 공유용 예시를 복사한다. 아래 명령은 기존 `conf.yaml`을 덮어쓰지 않는다. 이미 설정이 있으면 필요한 항목만 비교해 수정한다.
 
@@ -41,7 +41,7 @@ if (-not (Test-Path -LiteralPath conf.yaml)) {
 | `character_config.agent_config.agent_settings.basic_memory_agent.llm_provider` | `gemini_llm` |
 | 같은 블록의 `use_mcpp` | `false` |
 | `character_config.agent_config.llm_configs.gemini_llm.llm_api_key` | `${GEMINI_API_KEY}` |
-| 같은 블록의 `model` | `gemini-2.5-flash-lite` |
+| 같은 블록의 `model` | `gemini-3.5-flash-lite` |
 | 같은 블록의 `temperature` | `0.7` |
 | `character_config.asr_config.asr_model` | `sherpa_onnx_asr` |
 | `character_config.asr_config.sherpa_onnx_asr.provider` | `cpu` |
@@ -65,6 +65,14 @@ Remove-Variable geminiKey
 ```powershell
 uv run --locked run_server.py
 ```
+
+이 PC에는 Python과 FFmpeg를 프로젝트 안에 준비했다. 여기서는 `start-local.ps1`이 `.venv`의 Python과 `tmp/tools/ffmpeg/bin`을 사용한다. 전역 PATH 변경이나 가상환경 활성화 없이 다음 명령으로 실행할 수 있다.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\start-local.ps1
+```
+
+이 명령으로 실행한 서버는 해당 터미널에서 `Ctrl+C`로 종료한다. 최초 점검을 위해 백그라운드에서 켠 서버는 `stop-local.ps1`로 종료한 후 위 명령을 사용한다.
 
 처음에는 음성 인식 모델을 자동 다운로드하므로 초기화가 오래 걸릴 수 있다. 서버 초기화가 끝나면 브라우저에서 <http://localhost:12393>에 접속한다. 종료는 `Ctrl+C`다. Edge TTS와 Gemini API를 사용하므로 실행 중 인터넷 연결이 필요하다.
 

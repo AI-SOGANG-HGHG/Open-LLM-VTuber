@@ -1,4 +1,5 @@
 import base64
+from pathlib import Path
 from pydub import AudioSegment
 from pydub.utils import make_chunks
 from ..agent.output_types import Actions
@@ -60,8 +61,13 @@ def prepare_audio_payload(
         }
 
     try:
-        audio = AudioSegment.from_file(audio_path)
-        audio_bytes = audio.export(format="wav").read()
+        # Edge TTS returns MP3. Explicit decoding avoids a separate ffprobe dependency.
+        if Path(audio_path).suffix.lower() == ".mp3":
+            audio = AudioSegment.from_file(audio_path, format="mp3", codec="mp3")
+        else:
+            audio = AudioSegment.from_file(audio_path)
+        with audio.export(format="wav") as exported:
+            audio_bytes = exported.read()
     except Exception as e:
         raise ValueError(
             f"Error loading or converting generated audio file to wav file '{audio_path}': {e}"

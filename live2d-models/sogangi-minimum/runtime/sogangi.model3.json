@@ -1,0 +1,42 @@
+{
+  "Version": 3,
+  "FileReferences": {
+    "Moc": "sogangi.moc3",
+    "Textures": [
+      "textures/texture_00.png"
+    ]
+  },
+  "Groups": [
+    {
+      "Target": "Parameter",
+      "Name": "EyeBlink",
+      "Ids": [
+        "ParamEyeLOpen",
+        "ParamEyeROpen"
+      ]
+    },
+    {
+      "Target": "Parameter",
+      "Name": "LipSync",
+      "Ids": [
+        "ParamMouthOpenY"
+      ]
+    }
+  ],
+  "SogangiMinimum": {
+    "Stage": "minimum_facial_rig",
+    "WiredParameters": [
+      "ParamEyeLOpen",
+      "ParamEyeROpen",
+      "ParamMouthOpenY"
+    ],
+    "Pending": [
+      "head angles",
+      "breathing",
+      "arm greeting",
+      "expressions",
+      "physics"
+    ],
+    "Geometry": "PSD-import base ArtMeshes; facial opacity/affine keys"
+  }
+}

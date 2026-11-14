@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "status": "native_export_passed_browser_check_separate",
+  "source_psd_sha256": "2b55044100f94369b109b8685a34101350e06970eabd45224aa59ca22a8a2d37",
+  "converter_commit": "4fcdf472d21488c8e8258fd05a601b2822855705",
+  "converter_source_sha256": "be2905c76e25b18eef771a5aa7cd201e32b32ce4621c4a5ef2ec73dd83a7be4a",
+  "expression_adapter_sha256": "af82fb73401ca4a022a04eb2d5a0f0fb4c2b2d145ede916052a785bfd154202d",
+  "expression_bindings_sha256": "a0264d09f6f260cd512e1b0e28a2a381ab1ef5414c999a583d82dc5775ce1d93",
+  "expression_files": {
+    "expressions/neutral.exp3.json": "7f2d10e3b30f20232d6b8e718b4b54a7fa93773c0ebed37706ea4a33d05a3ed2",
+    "expressions/joy.exp3.json": "74368f0316b0cad18cdbb70aefe383cb5050508847a0b363da57411c12a67d72",
+    "expressions/anger.exp3.json": "30416675cd2a274e94394e1ae27124e9594746aaff1407245f1a1e474c10a401",
+    "expressions/surprise.exp3.json": "c87711193ff2b3eb480a21fe1d3bd03b32b328c96e4d1320afd56ded20769411"
+  },
+  "greeting_adapter_sha256": "bd277c48bedfc478593cfe76b2d6ea1c51969c67a1926560422b33b21415a408",
+  "motion_adapter_sha256": "261145a43a5dc93ca0423c21ecaab02d208700a2bf55acc4472ddf66668c59ec",
+  "patch_sha256": "529ced83403c757eede81c6bd28b45a072c4788af99419a59f93268266160880",
+  "moc_sha256": "e5ddffe745660de6589e7f9f380d2ecc3508ab39d52bda0314e0542873eb4064",
+  "cmo_sha256": "170677eb4a857ef8372d65807efa66ef60890edbf2a448e0a819568526a5649e",
+  "texture_sha256": "355cc04cef99b0bef9b38ff6863613672c411a37c0d615ea6bc36b5aca274d26",
+  "texture_size": [
+    2048,
+    2048
+  ],
+  "drawables": 29,
+  "core_parameters": 29,
+  "wired_parameters": [
+    "ParamEyeLOpen",
+    "ParamEyeROpen",
+    "ParamMouthOpenY",
+    "ParamArmRWave",
+    "ParamFaceMood",
+    "ParamAngleZ",
+    "ParamBreath"
+  ],
+  "native_consistency": true,
+  "export_version": "VERSION_50",
+  "geometry": "Official face variants with project affine adaptations; composed mood/blink/lip/head/breath/arm keys; no deformers"
+}

@@ -1,0 +1,44 @@
+{
+  "Version": 3,
+  "FileReferences": {
+    "Moc": "sogangi.moc3",
+    "Textures": [
+      "textures/texture_00.png"
+    ]
+  },
+  "Groups": [
+    {
+      "Target": "Parameter",
+      "Name": "EyeBlink",
+      "Ids": [
+        "ParamEyeLOpen",
+        "ParamEyeROpen"
+      ]
+    },
+    {
+      "Target": "Parameter",
+      "Name": "LipSync",
+      "Ids": [
+        "ParamMouthOpenY"
+      ]
+    }
+  ],
+  "SogangiMinimum": {
+    "Stage": "small_head_tilt_and_breathing_rig",
+    "WiredParameters": [
+      "ParamEyeLOpen",
+      "ParamEyeROpen",
+      "ParamMouthOpenY",
+      "ParamAngleZ",
+      "ParamBreath"
+    ],
+    "Pending": [
+      "3D head turns",
+      "arm greeting",
+      "expanded expressions",
+      "physics",
+      "deformer hierarchy"
+    ],
+    "Geometry": "PSD-import base ArtMeshes; composed eye/mouth, small 2D head tilt and upper-body breathing keys; no deformers"
+  }
+}

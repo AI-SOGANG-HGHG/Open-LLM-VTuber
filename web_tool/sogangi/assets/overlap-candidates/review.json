@@ -1,0 +1,321 @@
+{
+  "schema_version": 1,
+  "status": "shoulder_underlap_candidate_not_approved",
+  "recommendation": "keep_baseline_for_initial_rigid_motion",
+  "official_artwork": false,
+  "cubism_import_verified": false,
+  "rig_ready": false,
+  "baseline_psd_sha256": "f627dbeb000b191fd9434e3187cec69e4eecfea44aaa653bce8fec041934a5c1",
+  "candidate_psd_sha256": "5b190b8908e7cca175057faffc381b76a74e2bead86425169bffb315b28bdd3a",
+  "canvas": {
+    "width": 2048,
+    "height": 2048
+  },
+  "pose_preview_canvas": 1024,
+  "coordinate_convention": "SVG source viewBox 175 315 270 337; L/R are screen coordinates",
+  "candidate_joints": [
+    {
+      "name": "ArmL_JointUnderlap",
+      "parent": "ArmL_Base",
+      "pivot": [
+        282,
+        533
+      ]
+    },
+    {
+      "name": "ArmR_JointUnderlap",
+      "parent": "ArmR_Base",
+      "pivot": [
+        337,
+        533
+      ]
+    }
+  ],
+  "layer_count": 26,
+  "parts": [
+    {
+      "name": "ArmL_JointUnderlap",
+      "visible": true,
+      "authored_candidate": true,
+      "file": "layers/ArmL_JointUnderlap.png",
+      "rgba_sha256": "c89dcc31db91589af2c5f856c77fdd1581545e42765265f970670fcc994f0054"
+    },
+    {
+      "name": "ArmL_Base",
+      "visible": true,
+      "authored_candidate": false,
+      "file": "layers/ArmL_Base.png",
+      "rgba_sha256": "a85ecc7ae65420f553325e7c004b4691e2ed8cac82e12df6a198ecaca6498e6c"
+    },
+    {
+      "name": "ArmR_JointUnderlap",
+      "visible": true,
+      "authored_candidate": true,
+      "file": "layers/ArmR_JointUnderlap.png",
+      "rgba_sha256": "1bde1f1cb4d8dbccd2ce06099a9b39030cb7d8839557d376437f75fd74ca9643"
+    },
+    {
+      "name": "ArmR_Base",
+      "visible": true,
+      "authored_candidate": false,
+      "file": "layers/ArmR_Base.png",
+      "rgba_sha256": "2845b505508d348653bb6e34bdb149a356a5defdc5a8124e0ac04b265becb352"
+    },
+    {
+      "name": "LegL_Base",
+      "visible": true,
+      "authored_candidate": false,
+      "file": "layers/LegL_Base.png",
+      "rgba_sha256": "6a9958c0f5db7d3bacb8c1480c236f2d6e32653910f0274c26b79d788d757dce"
+    },
+    {
+      "name": "LegR_Base",
+      "visible": true,
+      "authored_candidate": false,
+      "file": "layers/LegR_Base.png",
+      "rgba_sha256": "7a4b3a8b47bc1661b6fa8c5f72b04ebe372402d0e5d2ec1ff387ce4804c8b07c"
+    },
+    {
+      "name": "Body_Tunic",
+      "visible": true,
+      "authored_candidate": false,
+      "file": "layers/Body_Tunic.png",
+      "rgba_sha256": "090d231f1ff8bb09a6af452afbf72cb2fe8073ad5551d82fdf19b12130b63e12"
+    },
+    {
+      "name": "Body_Stripe",
+      "visible": true,
+      "authored_candidate": false,
+      "file": "layers/Body_Stripe.png",
+      "rgba_sha256": "e45c28c5e367a30c711f4dc93afc8d52cc182b38434b0008dfc29b361655b3cb"
+    },
+    {
+      "name": "Body_Emblem",
+      "visible": true,
+      "authored_candidate": false,
+      "file": "layers/Body_Emblem.png",
+      "rgba_sha256": "dac79c6b46a41ec405c68ff2c91a8f1b699dd8d96d493097274e794d5041cbc6"
+    },
+    {
+      "name": "Hood_WingL",
+      "visible": true,
+      "authored_candidate": false,
+      "file": "layers/Hood_WingL.png",
+      "rgba_sha256": "1bd0f0f4bf229813cc5a0d4ef46bc6f184b85f218fae6159fc1c042ec471a6be"
+    },
+    {
+      "name": "Hood_WingR",
+      "visible": true,
+      "authored_candidate": false,
+      "file": "layers/Hood_WingR.png",
+      "rgba_sha256": "527cb9bbaee8456427cb11423ae1a1b719cdd96ca93dbf2549a80df5dd06d5b7"
+    },
+    {
+      "name": "Hood_Base",
+      "visible": true,
+      "authored_candidate": false,
+      "file": "layers/Hood_Base.png",
+      "rgba_sha256": "a85d5dfd7d8b4888c9de779116c18e1d82bdbb0a5c01e8249720f6704612c9d3"
+    },
+    {
+      "name": "Face_Base",
+      "visible": true,
+      "authored_candidate": false,
+      "file": "layers/Face_Base.png",
+      "rgba_sha256": "33998955bca4d6625a999a67c8d931e8147a30e6416518912349665730a0555e"
+    },
+    {
+      "name": "EyeR_Open",
+      "visible": true,
+      "authored_candidate": false,
+      "file": "layers/EyeR_Open.png",
+      "rgba_sha256": "32f8e6d52d368837986901f2f2afaa0dd9b5fada6aee43f15396c27e3a9affe9"
+    },
+    {
+      "name": "EyeR_Highlight",
+      "visible": true,
+      "authored_candidate": false,
+      "file": "layers/EyeR_Highlight.png",
+      "rgba_sha256": "a4568bea0690216a661b89966482090f964ed6974abb9519c00ab4c4a1957348"
+    },
+    {
+      "name": "EyeL_Open",
+      "visible": true,
+      "authored_candidate": false,
+      "file": "layers/EyeL_Open.png",
+      "rgba_sha256": "956b212b88d770e253f71768ca76e94f0016385a31de7be40d247e240e758f6a"
+    },
+    {
+      "name": "EyeL_Highlight",
+      "visible": true,
+      "authored_candidate": false,
+      "file": "layers/EyeL_Highlight.png",
+      "rgba_sha256": "849e88a91de84c9ba2bdb08e2b909dbad3c22a6b188e56a6f931ae31456c2cef"
+    },
+    {
+      "name": "Mouth_Closed",
+      "visible": true,
+      "authored_candidate": false,
+      "file": "layers/Mouth_Closed.png",
+      "rgba_sha256": "071c9913d256359d58ff2fa6b539ef2afa14fe70c335b1c178214b8d01d90b91"
+    },
+    {
+      "name": "Hood_BirdEyeL",
+      "visible": true,
+      "authored_candidate": false,
+      "file": "layers/Hood_BirdEyeL.png",
+      "rgba_sha256": "5bca18a1c4a4863d448b360783f0ee3649d204c1f8969cc445e5f7a687a6b8a4"
+    },
+    {
+      "name": "Hood_BirdEyeR",
+      "visible": true,
+      "authored_candidate": false,
+      "file": "layers/Hood_BirdEyeR.png",
+      "rgba_sha256": "2ac37cef60de9132356a06a596edc263fad836aae6c91f551dd63a47f115eae0"
+    },
+    {
+      "name": "Hood_Beak",
+      "visible": true,
+      "authored_candidate": false,
+      "file": "layers/Hood_Beak.png",
+      "rgba_sha256": "476fd2558d634c19bdeebc0f5b2dfb659822b1899ae322d8f471c1b3702afdea"
+    },
+    {
+      "name": "Face_CheekR",
+      "visible": true,
+      "authored_candidate": false,
+      "file": "layers/Face_CheekR.png",
+      "rgba_sha256": "355aa38c1aef1949fc869f282e593e4ae084ab0b0a2cd5a4457071b69c17c6cf"
+    },
+    {
+      "name": "Face_CheekL",
+      "visible": true,
+      "authored_candidate": false,
+      "file": "layers/Face_CheekL.png",
+      "rgba_sha256": "891aa113ad5dcd02ab60a120d03c01787535e552956e6b21f25bebc283187569"
+    },
+    {
+      "name": "EyeL_Closed",
+      "visible": false,
+      "authored_candidate": false,
+      "file": "layers/EyeL_Closed.png",
+      "rgba_sha256": "0d3846a19bcfe56b61dbcadeb2e6110382c340829e3b519837c1a09f535cbdfc"
+    },
+    {
+      "name": "EyeR_Closed",
+      "visible": false,
+      "authored_candidate": false,
+      "file": "layers/EyeR_Closed.png",
+      "rgba_sha256": "09ee25d68884ca1c69b6e5253bd355c8dca91f46f44b7acb8be9cf00a490cefc"
+    },
+    {
+      "name": "Mouth_Open",
+      "visible": false,
+      "authored_candidate": false,
+      "file": "layers/Mouth_Open.png",
+      "rgba_sha256": "2ba4be5a86181bed514947a64a95e5feb2930d6b4ad3996f2081359b03c9fdfe"
+    }
+  ],
+  "verification": {
+    "neutral_browser_rgba_exact_2048": true,
+    "neutral_psd_rgba_exact_2048": false,
+    "neutral_psd_max_channel_error_255": 1,
+    "neutral_psd_changed_pixels_2048": 151,
+    "layer_roundtrip_exact": true,
+    "baseline_layers_unchanged": true
+  },
+  "existing_hidden_art": [
+    {
+      "part": "ArmL_Base",
+      "opaque_pixels_2048": 49570,
+      "fully_covered_pixels_2048": 29760
+    },
+    {
+      "part": "ArmR_Base",
+      "opaque_pixels_2048": 49571,
+      "fully_covered_pixels_2048": 29702
+    },
+    {
+      "part": "Hood_Base",
+      "opaque_pixels_2048": 1045247,
+      "fully_covered_pixels_2048": 656254
+    },
+    {
+      "part": "Face_Base",
+      "opaque_pixels_2048": 625495,
+      "fully_covered_pixels_2048": 68911
+    }
+  ],
+  "poses": [
+    {
+      "id": "neutral",
+      "label": "정면 기준",
+      "head": 0,
+      "arm": 0,
+      "changed_pixels_1024": 0,
+      "added_alpha_pixels_1024": 0,
+      "judgment": "no_visible_change"
+    },
+    {
+      "id": "head-left",
+      "label": "고개 왼쪽 3°",
+      "head": -3,
+      "arm": 0,
+      "changed_pixels_1024": 0,
+      "added_alpha_pixels_1024": 0,
+      "judgment": "no_visible_change"
+    },
+    {
+      "id": "head-right",
+      "label": "고개 오른쪽 3°",
+      "head": 3,
+      "arm": 0,
+      "changed_pixels_1024": 0,
+      "added_alpha_pixels_1024": 0,
+      "judgment": "no_visible_change"
+    },
+    {
+      "id": "greet-middle",
+      "label": "인사 중간 18°",
+      "head": 1.2,
+      "arm": -18,
+      "changed_pixels_1024": 0,
+      "added_alpha_pixels_1024": 0,
+      "judgment": "no_visible_change"
+    },
+    {
+      "id": "greet-peak",
+      "label": "인사 최대 36°",
+      "head": 1.6,
+      "arm": -36,
+      "changed_pixels_1024": 0,
+      "added_alpha_pixels_1024": 0,
+      "judgment": "no_visible_change"
+    },
+    {
+      "id": "combined",
+      "label": "고개·팔 동시 극값",
+      "head": -3,
+      "arm": -36,
+      "changed_pixels_1024": 0,
+      "added_alpha_pixels_1024": 0,
+      "judgment": "no_visible_change"
+    },
+    {
+      "id": "stress",
+      "label": "범위 밖 점검 60°",
+      "head": 8,
+      "arm": -60,
+      "outside_initial_scope": true,
+      "changed_pixels_1024": 0,
+      "added_alpha_pixels_1024": 0,
+      "judgment": "no_visible_change"
+    }
+  ],
+  "limitations": [
+    "SVG rigid transforms, not Cubism mesh deformation",
+    "Candidate shoulder caps are not automatically used in the conversation app",
+    "No inferred repair success from added-alpha counts; inspect contours manually",
+    "Face yaw, back-of-head artwork and mouth topology remain unverified"
+  ]
+}

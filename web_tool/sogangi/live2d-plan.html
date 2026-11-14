@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>서강이 Live2D 제작 설계</title>
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./live2d-plan.css" />
+    <script src="./live2d-plan.js" type="module"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./"
+        ><span class="brand-mark" aria-hidden="true">S</span
+        ><span>서강이 <b>Live2D 제작 설계</b></span></a
+      ><span class="prototype-tag">첫 실제 모델 · 눈·입 최소 리깅</span>
+    </header>
+    <main class="design-page">
+      <div class="design-intro">
+        <p class="eyebrow">FROM CHARACTER ART TO A TALKING COMPANION</p>
+        <h1>첫 모델과, 다음에 더할 움직임.</h1>
+        <p>
+          공식 기본형을 기준으로 원화 파츠와 움직임의 경계를 검토합니다.<br />아래 박스는 위치
+          안내이며 실제로 분리된 레이어가 아닙니다.
+        </p>
+        <a class="design-download" href="./live2d-preview.html?model=sogangi-minimum"
+          >실제 서강이 모델의 눈·입 확인하기 ↗</a
+        >
+        <br /><a
+          class="design-download"
+          href="/live2d-models/sogangi-minimum/source/sogangi-minimum.cmo3"
+          download
+          >최소 리깅 편집 원본 cmo3 받기 ↗</a
+        >
+      </div>
+      <div class="design-grid">
+        <section class="design-figure">
+          <svg
+            id="layerFigure"
+            viewBox="55 35 300 360"
+            role="img"
+            aria-label="공식 서강이 기본형 위에 선택한 원화 레이어의 위치 표시"
+          >
+            <image href="./assets/sogangi-official-sheet.jpg" width="800" height="899" />
+            <rect id="layerBounds" x="72" y="53" width="261" height="208" rx="5" />
+          </svg>
+          <p id="layerCaption">레이어를 선택하면 위치를 확인할 수 있어요.</p>
+          <p class="source-note">캐릭터 원본: 서강대학교 / 서강가젯</p>
+        </section>
+        <section class="layer-panel">
+          <h2>원화 레이어</h2>
+          <div id="layerButtons" class="layer-buttons" aria-label="레이어 선택"></div>
+          <div class="layer-detail">
+            <p id="layerId" class="eyebrow"></p>
+            <h3 id="layerLabel"></h3>
+            <p id="layerNote"></p>
+            <ul id="layerParts"></ul>
+          </div>
+        </section>
+      </div>
+      <section class="design-section">
+        <h2>눈과 입의 움직임 검토</h2>
+        <p class="design-help">
+          공식 벡터 파츠로 만든 동작 검토 화면입니다. Cubism 리깅이나 Live2D 모델이 아닙니다. 감은
+          눈과 열린 입은 공식 기쁨형에서 가져온 후보이며 원화 검토가 필요합니다.
+        </p>
+        <div class="motion-preview-layout">
+          <svg
+            id="motionPreview"
+            viewBox="0 0 270 337"
+            role="img"
+            aria-label="서강이 눈과 입 움직임 검토"
+          >
+            <image href="./assets/sogangi-neutral.svg" width="270" height="337" />
+          </svg>
+          <div class="pose-controls">
+            <div class="expression-preview">
+              <button type="button" data-preview-expression="neutral" class="pose-auto" disabled>
+                중립 표정 보기</button
+              ><button type="button" data-preview-expression="joy" class="pose-auto" disabled>
+                기쁨 표정 보기
+              </button>
+            </div>
+            <label for="poseLeft">왼쪽 눈 열림 <output id="poseLeftValue">1.00</output></label
+            ><input id="poseLeft" type="range" min="0" max="1" step="0.01" value="1" disabled />
+            <label for="poseRight">오른쪽 눈 열림 <output id="poseRightValue">1.00</output></label
+            ><input id="poseRight" type="range" min="0" max="1" step="0.01" value="1" disabled />
+            <label for="poseMouth">입 벌림 <output id="poseMouthValue">0.00</output></label
+            ><input id="poseMouth" type="range" min="0" max="1" step="0.01" value="0" disabled />
+            <label for="poseTilt">작은 고개 기울기 <output id="poseTiltValue">0.00</output></label
+            ><input id="poseTilt" type="range" min="-3" max="3" step="0.1" value="0" disabled />
+            <button id="poseAuto" type="button" class="pose-auto" aria-pressed="false" disabled>
+              자동 움직임 보기
+            </button>
+            <p>
+              시제품의 작은 회전과 파츠 전환입니다. 실제 Live2D 메시 변형은 모델 제작 후 확인합니다.
+            </p>
+          </div>
+        </div>
+      </section>
+      <section class="design-section">
+        <h2>필수 움직임과 연결 규격</h2>
+        <p class="design-help">아래는 제안 값입니다. 실제 모델이 구현됐다는 표시가 아닙니다.</p>
+        <div id="motionCards" class="motion-grid"></div>
+      </section>
+      <section class="design-section">
+        <h2>파라미터 전달표</h2>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>이름</th>
+                <th>ID</th>
+                <th>최소</th>
+                <th>기본</th>
+                <th>최대</th>
+                <th>범위</th>
+              </tr>
+            </thead>
+            <tbody id="parameterRows"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="design-section deliverables">
+        <h2>현재 원본 확보 상태</h2>
+        <ul>
+          <li>공식 이미지 시트 · UI 가이드북 벡터 · 표정 SVG 8개 확보</li>
+          <li>
+            기본 파츠 21개와 공식 기쁨형에서 가져온 감은 눈·열린 입 후보 3개를 준비했습니다. 가려진
+            부분 보완, 표정 후보 검토와 cmo3·moc3 제작은 남아 있습니다.
+          </li>
+          <li>
+            2048×2048 제작 준비용 PSD와 PNG 레이어 24개를 변환·검증했습니다. 공식 레이어 PSD
+            원본이나 리깅 완성 원화는 아닙니다.
+          </li>
+          <li>다음 단계: 원본과 사용 범위 확인 → 레이어 원화 제작 → 최소 리깅 → 실제 앱 검증</li>
+        </ul>
+        <a class="design-download" href="./live2d-spec.json" download
+          >레이어·움직임 명세 JSON 받기 ↗</a
+        >
+        <br />
+        <a class="design-download" href="./assets/sogangi-visible-parts.zip" download
+          >벡터 파츠 24개와 합성 원본 받기 ↗</a
+        >
+        <br />
+        <a
+          id="downloadArt"
+          class="design-download"
+          href="./assets/production/sogangi-art-handoff.zip"
+          download
+          >제작 준비 PSD·PNG 레이어·검증 자료 받기 ↗</a
+        >
+        <br />
+        <a
+          id="downloadImportArt"
+          class="design-download"
+          href="./assets/cubism-import/sogangi-cubism-import.zip"
+          download
+          >Cubism 가져오기용 PSD · 그룹·여백 정리본 받기 ↗</a
+        >
+        <br />
+        <a class="design-download" href="./assets/cubism-import/keyform-plan.json" download
+          >첫 눈·입 파라미터 연결표 받기 ↗</a
+        >
+        <br />
+        <a
+          class="design-download"
+          href="./assets/cubism-import/independent-reader-report.json"
+          download
+          >다른 PSD 판독기로 확인한 픽셀·좌표 검사 결과 ↗</a
+        >
+        <br />
+        <a class="design-download" href="./assets/production/sogangi-visible-parts.psd" download
+          >레이어 PSD만 받기 ↗</a
+        >
+        <br /><a class="design-download" href="./rigging-map.html"
+          >실제 레이어 경계·피벗·원화 보완 좌표도 ↗</a
+        >
+        <br /><a class="design-download" href="./live2d-preview.html">실제 Cubism 모델 검수실 ↗</a>
+        <br /><a class="design-download" href="./art-review.html"
+          >자세별 원본·어깨 보완 후보 비교 ↗</a
+        >
+      </section>
+      <p id="designError" role="alert" hidden>
+        설계 명세를 불러오지 못했습니다. 새로고침하거나 JSON 파일 경로를 확인해 주세요.
+      </p>
+    </main>
+    <footer class="page-footer">
+      <a href="./">← 서강이와 대화하기</a
+      ><a
+        href="https://pr.sogang.ac.kr/front/boardview.do?bbsConfigFK=264&amp;pkid=901406"
+        target="_blank"
+        rel="noopener noreferrer"
+        >공식 캐릭터 자료 ↗</a
+      >
+    </footer>
+  </body>
+</html>

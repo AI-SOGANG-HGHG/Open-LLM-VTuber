@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>서강이 · 실제 Live2D 모델 검수</title>
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./live2d-preview.css" />
+    <script defer src="/libs/live2dcubismcore.min.js"></script>
+    <script defer src="./vendor/pixi.min.js"></script>
+    <script defer src="./vendor/cubism4.min.js"></script>
+    <script defer src="./live2d-preview.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./"
+        ><span class="brand-mark" aria-hidden="true">S</span
+        ><span>서강이 <b>모델 검수실</b></span></a
+      ><a href="./live2d-plan.html">제작 설계로 돌아가기 ↗</a>
+    </header>
+    <main class="preview-page">
+      <div class="preview-intro">
+        <p class="eyebrow">CUBISM RUNTIME CHECK</p>
+        <h1>눈과 입의 움직임, 직접 확인하기.</h1>
+        <p>
+          현재 표정 모델의 중립·기쁨·화남·놀람과 이전 기준 모델들을 검사해요. 눈·입·작은 정면
+          기울기·호흡과 화면 오른팔을 함께 확인할 수 있어요. 입체 회전은 제작 중이에요.
+          대화·음성 API는 호출하지 않아요.
+        </p>
+      </div>
+      <form id="modelForm" class="model-form">
+        <label for="modelUrl">로컬 model3.json 경로</label>
+        <div>
+          <input
+            id="modelUrl"
+            type="text"
+            value="/live2d-models/mao_pro/runtime/mao_pro.model3.json"
+            spellcheck="false"
+          /><button id="loadModel" type="submit">모델 불러오기</button>
+        </div>
+      </form>
+      <div class="model-presets" aria-label="검사할 모델 선택">
+        <button id="loadSogangiExpressions" type="button">서강이 표정 모델</button>
+        <button id="loadSogangiGreeting" type="button">서강이 팔 인사 모델</button>
+        <button id="loadSogangiMotion" type="button">서강이 고개·호흡 모델</button>
+        <button id="loadSogangi" type="button">서강이 최소 모델</button>
+        <button id="loadMao" type="button">Mao 기준 모델</button>
+      </div>
+      <p id="previewStatus" class="preview-status" role="status">
+        불러오기를 누르면 기준 모델을 확인할 수 있어요.
+      </p>
+      <div class="preview-layout">
+        <section id="modelStage" class="model-stage" aria-label="실제 Live2D 모델">
+          <canvas id="modelCanvas" aria-label="Live2D 렌더링 화면"></canvas>
+        </section>
+        <section class="model-controls" aria-label="모델 검사 도구">
+          <h2>눈·입·기울기</h2>
+          <label class="preview-check"
+            ><input id="manualMode" type="checkbox" checked />수동 값을 표정·모션보다 우선
+            적용</label
+          >
+          <div id="parameterControls"><p>모델을 불러오면 지원하는 파라미터를 표시해요.</p></div>
+          <div class="preview-actions">
+            <button id="mouthSweep" type="button" disabled>입 움직임 왕복 시험</button
+            ><button id="resetPose" type="button" disabled>수동값 초기화</button>
+          </div>
+          <h2>표정·모션</h2>
+          <label for="modelExpression">내보낸 표정</label
+          ><select id="modelExpression" disabled>
+            <option>모델을 먼저 불러와 주세요</option>
+          </select>
+          <label for="modelMotion">내보낸 모션 그룹</label>
+          <div class="motion-row">
+            <select id="modelMotion" disabled></select
+            ><button id="playMotion" type="button" disabled>모션 재생</button>
+          </div>
+          <label for="modelMotionEntry">모션 파일</label
+          ><select id="modelMotionEntry" disabled></select>
+          <p class="preview-help">
+            표정·모션 자체의 눈과 입을 보려면 수동 우선 적용을 꺼 주세요. 반복 여부는 파일 설정을
+            따르며 연결된 소리는 재생하지 않아요.
+          </p>
+          <h2>검사 정보</h2>
+          <dl id="modelFacts"></dl>
+          <p class="preview-help">
+            확장 모델은 기본 ArtMesh에 눈·입·작은 고개 기울기·호흡 키폼을 조합한 개발용 모델이에요.
+            <a href="./?avatar=live2d">Live2D 대화 화면</a>에서도 사용할 수 있어요. 디포머 계층·입체
+            회전과 손가락 동작은 아직 남아 있어요.
+          </p>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>

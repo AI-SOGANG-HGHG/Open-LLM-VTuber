@@ -1,0 +1,234 @@
+{
+  "profile": "infer-sample",
+  "parameters": [
+    {
+      "id": "ParamEyeLOpen",
+      "kind": "openness",
+      "defaultValue": 1,
+      "keys": [
+        {
+          "name": "closed",
+          "value": 0
+        },
+        {
+          "name": "open",
+          "value": 1
+        }
+      ],
+      "targets": [
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye L",
+            "EyeL_Open"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "closed",
+              "opacity": 0
+            },
+            {
+              "keyValue": 1,
+              "stateName": "open",
+              "opacity": 1
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye L",
+            "EyeL_Highlight"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "closed",
+              "opacity": 0
+            },
+            {
+              "keyValue": 1,
+              "stateName": "open",
+              "opacity": 1
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye L",
+            "EyeL_Closed"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "closed",
+              "opacity": 1
+            },
+            {
+              "keyValue": 1,
+              "stateName": "open",
+              "opacity": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ParamEyeROpen",
+      "kind": "openness",
+      "defaultValue": 1,
+      "keys": [
+        {
+          "name": "closed",
+          "value": 0
+        },
+        {
+          "name": "open",
+          "value": 1
+        }
+      ],
+      "targets": [
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye R",
+            "EyeR_Open"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "closed",
+              "opacity": 0
+            },
+            {
+              "keyValue": 1,
+              "stateName": "open",
+              "opacity": 1
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye R",
+            "EyeR_Highlight"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "closed",
+              "opacity": 0
+            },
+            {
+              "keyValue": 1,
+              "stateName": "open",
+              "opacity": 1
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Eye R",
+            "EyeR_Closed"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "closed",
+              "opacity": 1
+            },
+            {
+              "keyValue": 1,
+              "stateName": "open",
+              "opacity": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ParamMouthOpenY",
+      "kind": "openness",
+      "defaultValue": 0,
+      "keys": [
+        {
+          "name": "closed",
+          "value": 0
+        },
+        {
+          "name": "default",
+          "value": 0.25
+        },
+        {
+          "name": "open",
+          "value": 1
+        }
+      ],
+      "targets": [
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Mouth",
+            "Mouth_Closed"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "closed",
+              "opacity": 1
+            },
+            {
+              "keyValue": 0.25,
+              "stateName": "default",
+              "opacity": 0
+            },
+            {
+              "keyValue": 1,
+              "stateName": "open",
+              "opacity": 0
+            }
+          ]
+        },
+        {
+          "mode": "affine-transform",
+          "relativeDrawablePath": [
+            "Mouth",
+            "Mouth_Open"
+          ],
+          "states": [
+            {
+              "keyValue": 0,
+              "stateName": "closed",
+              "opacity": 0,
+              "transform": {
+                "scaleX": 0.74,
+                "scaleY": 0.25
+              }
+            },
+            {
+              "keyValue": 0.25,
+              "stateName": "default",
+              "opacity": 1,
+              "transform": {
+                "scaleX": 0.8049999999999999,
+                "scaleY": 0.4375
+              }
+            },
+            {
+              "keyValue": 1,
+              "stateName": "open",
+              "opacity": 1,
+              "transform": {
+                "scaleX": 1,
+                "scaleY": 1
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

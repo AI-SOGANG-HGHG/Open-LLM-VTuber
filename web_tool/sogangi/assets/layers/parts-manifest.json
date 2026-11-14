@@ -1,0 +1,351 @@
+{
+  "status": "visible_vector_parts_only",
+  "source_sha256": "aa1fed216c2106c3f4699e259b80cb58df22f411954b12ffb96688c66cac48e0",
+  "source_page": 19,
+  "canvas_viewbox": [
+    175,
+    315,
+    270,
+    337
+  ],
+  "coordinate_convention": "L/R use screen coordinates in this preparation export; confirm before PSD/Cubism naming",
+  "psd_available": false,
+  "rig_available": false,
+  "parts": [
+    {
+      "name": "ArmL_Base",
+      "file": "ArmL_Base.svg",
+      "drawing_indices": [
+        1
+      ],
+      "bounds": [
+        227.084,
+        507.61,
+        300.586,
+        579.477
+      ]
+    },
+    {
+      "name": "ArmR_Base",
+      "file": "ArmR_Base.svg",
+      "drawing_indices": [
+        2
+      ],
+      "bounds": [
+        317.802,
+        507.623,
+        391.304,
+        579.49
+      ]
+    },
+    {
+      "name": "LegL_Base",
+      "file": "LegL_Base.svg",
+      "drawing_indices": [
+        3
+      ],
+      "bounds": [
+        256.888,
+        593.034,
+        295.633,
+        645.411
+      ]
+    },
+    {
+      "name": "LegR_Base",
+      "file": "LegR_Base.svg",
+      "drawing_indices": [
+        4
+      ],
+      "bounds": [
+        322.755,
+        593.034,
+        361.5,
+        645.411
+      ]
+    },
+    {
+      "name": "Body_Tunic",
+      "file": "Body_Tunic.svg",
+      "drawing_indices": [
+        5,
+        6
+      ],
+      "bounds": [
+        241.054,
+        516.371,
+        377.338,
+        626.817
+      ]
+    },
+    {
+      "name": "Body_Stripe",
+      "file": "Body_Stripe.svg",
+      "drawing_indices": [
+        7
+      ],
+      "bounds": [
+        220.399,
+        504.416,
+        397.987,
+        642.115
+      ]
+    },
+    {
+      "name": "Body_Emblem",
+      "file": "Body_Emblem.svg",
+      "drawing_indices": [
+        8
+      ],
+      "bounds": [
+        284.159,
+        589.845,
+        334.228,
+        611.13
+      ]
+    },
+    {
+      "name": "Hood_WingL",
+      "file": "Hood_WingL.svg",
+      "drawing_indices": [
+        9,
+        10
+      ],
+      "bounds": [
+        180.123,
+        323.716,
+        267.739,
+        401.035
+      ]
+    },
+    {
+      "name": "Hood_WingR",
+      "file": "Hood_WingR.svg",
+      "drawing_indices": [
+        11,
+        12
+      ],
+      "bounds": [
+        350.649,
+        323.716,
+        438.264,
+        401.035
+      ]
+    },
+    {
+      "name": "Hood_Base",
+      "file": "Hood_Base.svg",
+      "drawing_indices": [
+        13
+      ],
+      "bounds": [
+        189.994,
+        322.036,
+        428.395,
+        528.498
+      ]
+    },
+    {
+      "name": "Face_Base",
+      "file": "Face_Base.svg",
+      "drawing_indices": [
+        14
+      ],
+      "bounds": [
+        225.778,
+        372.421,
+        392.61,
+        528.497
+      ]
+    },
+    {
+      "name": "EyeR_Open",
+      "file": "EyeR_Open.svg",
+      "drawing_indices": [
+        15
+      ],
+      "bounds": [
+        332.137,
+        428.761,
+        367.762,
+        464.387
+      ]
+    },
+    {
+      "name": "EyeR_Highlight",
+      "file": "EyeR_Highlight.svg",
+      "drawing_indices": [
+        16
+      ],
+      "bounds": [
+        338.167,
+        434.915,
+        346.476,
+        443.224
+      ]
+    },
+    {
+      "name": "EyeL_Open",
+      "file": "EyeL_Open.svg",
+      "drawing_indices": [
+        17
+      ],
+      "bounds": [
+        250.626,
+        428.761,
+        286.252,
+        464.387
+      ]
+    },
+    {
+      "name": "EyeL_Highlight",
+      "file": "EyeL_Highlight.svg",
+      "drawing_indices": [
+        18
+      ],
+      "bounds": [
+        256.657,
+        434.915,
+        264.966,
+        443.224
+      ]
+    },
+    {
+      "name": "Mouth_Closed",
+      "file": "Mouth_Closed.svg",
+      "drawing_indices": [
+        19
+      ],
+      "bounds": [
+        291.382,
+        488.997,
+        327.007,
+        496.8
+      ]
+    },
+    {
+      "name": "Hood_BirdEyeL",
+      "file": "Hood_BirdEyeL.svg",
+      "drawing_indices": [
+        20
+      ],
+      "bounds": [
+        274.166,
+        341.785,
+        282.727,
+        350.347
+      ]
+    },
+    {
+      "name": "Hood_BirdEyeR",
+      "file": "Hood_BirdEyeR.svg",
+      "drawing_indices": [
+        21
+      ],
+      "bounds": [
+        335.661,
+        341.785,
+        344.222,
+        350.347
+      ]
+    },
+    {
+      "name": "Hood_Beak",
+      "file": "Hood_Beak.svg",
+      "drawing_indices": [
+        22,
+        23
+      ],
+      "bounds": [
+        289.833,
+        341.785,
+        328.555,
+        368.183
+      ]
+    },
+    {
+      "name": "Face_CheekR",
+      "file": "Face_CheekR.svg",
+      "drawing_indices": [
+        24
+      ],
+      "bounds": [
+        355.26,
+        468.056,
+        376.548,
+        477.07
+      ]
+    },
+    {
+      "name": "Face_CheekL",
+      "file": "Face_CheekL.svg",
+      "drawing_indices": [
+        25
+      ],
+      "bounds": [
+        241.84,
+        468.056,
+        263.128,
+        477.07
+      ]
+    },
+    {
+      "name": "EyeL_Closed",
+      "file": "EyeL_Closed.svg",
+      "source_page": 20,
+      "drawing_indices": [
+        142
+      ],
+      "alignment": "matrix(2.010920232 0 0 2.010920232 -318.447278071 -154.109858486)",
+      "bounds": [
+        247.938,
+        442.823,
+        283.563,
+        450.626
+      ],
+      "default_visible": false,
+      "note": "Official joy-expression source, aligned to the neutral face; artwork review still required"
+    },
+    {
+      "name": "EyeR_Closed",
+      "file": "EyeR_Closed.svg",
+      "source_page": 20,
+      "drawing_indices": [
+        143
+      ],
+      "alignment": "matrix(2.010920232 0 0 2.010920232 -318.447278071 -154.109858486)",
+      "bounds": [
+        334.825,
+        442.823,
+        370.45,
+        450.626
+      ],
+      "default_visible": false,
+      "note": "Official joy-expression source, aligned to the neutral face; artwork review still required"
+    },
+    {
+      "name": "Mouth_Open",
+      "file": "Mouth_Open.svg",
+      "source_page": 20,
+      "drawing_indices": [
+        144
+      ],
+      "alignment": "matrix(2.010920232 0 0 2.010920232 -318.447278071 -154.109858486)",
+      "bounds": [
+        285.172,
+        480.829,
+        333.217,
+        507.14
+      ],
+      "default_visible": false,
+      "note": "Official joy-expression source, aligned to the neutral face; artwork review still required"
+    }
+  ],
+  "missing": [
+    "hidden overlaps and underpainting",
+    "artist review of closed eyes and open-mouth candidates",
+    "smooth deformation topology and any extra mouth shapes",
+    "Cubism mesh/deformers/parameters",
+    "runtime model export"
+  ]
+}

@@ -171,8 +171,32 @@ class TTSTaskManager:
             file_name_no_ext=f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{str(uuid.uuid4())[:8]}",
         )
 
+    @property
+    def has_output(self) -> bool:
+        return self._sequence_counter > 0
+
+    async def wait_for_completion(self) -> None:
+        """Wait for synthesis and delivery before announcing playback completion."""
+        if self.task_list:
+            await asyncio.gather(*self.task_list)
+        if not self._sender_task:
+            return
+        delivered = asyncio.create_task(self._payload_queue.join())
+        try:
+            await asyncio.wait(
+                (delivered, self._sender_task), return_when=asyncio.FIRST_COMPLETED
+            )
+            if self._sender_task.done():
+                self._sender_task.result()
+            await delivered
+        finally:
+            if not delivered.done():
+                delivered.cancel()
+
     def clear(self) -> None:
         """Clear all pending tasks and reset state"""
+        for task in self.task_list:
+            task.cancel()
         self.task_list.clear()
         if self._sender_task:
             self._sender_task.cancel()

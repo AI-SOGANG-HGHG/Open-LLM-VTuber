@@ -17,6 +17,25 @@ from ..utils.stream_audio import prepare_audio_payload
 
 
 # Convert class methods to standalone functions
+
+
+def append_streamed_response(current: str, part: str) -> str:
+    """Persist the same sentence spacing/tag removal used by the streaming client."""
+    part = re.sub(
+        r"\[(neutral|anger|disgust|fear|joy|smirk|sadness|surprise)\]",
+        "",
+        part,
+        flags=re.I,
+    )
+    part = re.sub(
+        r"\[(neutral|anger|disgust|fear|joy|smirk|sadness|surprise)$",
+        "",
+        part,
+        flags=re.I,
+    ).strip()
+    return current + (" " if current and part else "") + part
+
+
 def create_batch_input(
     input_text: str,
     images: Optional[List[Dict[str, Any]]],
@@ -166,13 +185,21 @@ async def finalize_conversation_turn(
     broadcast_ctx: Optional[BroadcastContext] = None,
 ) -> None:
     """Finalize a conversation turn"""
-    if tts_manager.task_list:
-        await asyncio.gather(*tts_manager.task_list)
-        await websocket_send(json.dumps({"type": "backend-synth-complete"}))
-
-        response = await message_handler.wait_for_response(
-            client_uid, "frontend-playback-complete"
+    await tts_manager.wait_for_completion()
+    if tts_manager.has_output:
+        playback = asyncio.create_task(
+            message_handler.wait_for_response(
+                client_uid, "frontend-playback-complete", timeout=120
+            )
         )
+        # Register the waiter before an immediate/muted client can acknowledge.
+        await asyncio.sleep(0)
+        try:
+            await websocket_send(json.dumps({"type": "backend-synth-complete"}))
+            response = await playback
+        finally:
+            if not playback.done():
+                playback.cancel()
 
         if not response:
             logger.warning(f"No playback completion response from {client_uid}")

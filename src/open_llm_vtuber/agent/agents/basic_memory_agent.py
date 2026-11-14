@@ -9,6 +9,8 @@ from typing import (
     Optional,
 )
 from loguru import logger
+import re
+import inspect
 from .agent_interface import AgentInterface
 from ..output_types import SentenceOutput, DisplayText
 from ..stateless_llm.stateless_llm_interface import StatelessLLMInterface
@@ -110,6 +112,15 @@ class BasicMemoryAgent(AgentInterface):
             )
 
         logger.info("BasicMemoryAgent initialized.")
+
+    async def close(self) -> None:
+        closer = getattr(self._llm, "close", None)
+        if closer is None:
+            closer = getattr(getattr(self._llm, "client", None), "close", None)
+        if closer:
+            result = closer()
+            if inspect.isawaitable(result):
+                await result
 
     def _set_llm(self, llm: StatelessLLMInterface):
         """Set the LLM for chat completion."""
@@ -656,8 +667,26 @@ class BasicMemoryAgent(AgentInterface):
                     if text_chunk:
                         yield text_chunk
                         complete_response += text_chunk
-                if complete_response:
-                    self._add_message(complete_response, "assistant")
+                emotion_names = getattr(self._live2d_model, "emo_map", {})
+                spoken_text = complete_response
+                has_emotion_action = False
+                if emotion_names:
+                    names = "|".join(re.escape(name) for name in emotion_names)
+                    spoken_text = re.sub(
+                        rf"\[(?:{names})(?:\]|$)", "", spoken_text, flags=re.IGNORECASE
+                    )
+                    has_emotion_action = bool(
+                        re.search(rf"\[(?:{names})\]", complete_response, re.IGNORECASE)
+                    )
+                require_speech = bool(
+                    input_data.metadata
+                    and input_data.metadata.get("require_spoken_response")
+                )
+                if not spoken_text.strip() and (
+                    require_speech or not has_emotion_action
+                ):
+                    raise ValueError("The model returned no spoken text")
+                self._add_message(complete_response, "assistant")
 
         return chat_with_memory
 
