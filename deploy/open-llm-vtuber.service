@@ -1,0 +1,18 @@
+[Unit]
+Description=Open-LLM-VTuber Persona Studio
+StartLimitIntervalSec=120
+StartLimitBurst=3
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Open-LLM-VTuber
+ExecStart=%h/Open-LLM-VTuber/.venv/bin/python %h/Open-LLM-VTuber/tools/start_server.py
+Environment=PYTHONUNBUFFERED=1
+UMask=0077
+Restart=on-failure
+RestartSec=5
+RestartPreventExitStatus=2
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target

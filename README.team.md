@@ -28,6 +28,7 @@ Open-LLM-VTuber를 기반으로 개인 페르소나 에이전트를 만들고, �
    - 소스 조사·현재 레포 피드백·공개 재사용 후보: [AIRI 포팅 검토](docs/airi-porting-review.md)
 2. [다른 PC에서 첫 실행 체크리스트](docs/first-run-checklist.md)
    - Ollama 없이 시작할 때: [Windows · Gemini API 실행 안내](docs/local-gemini-setup.md)
+   - Linux 서버에서 키 파일과 상시 실행 서비스 사용: [Linux 서버 안내](docs/linux-server.md)
 3. [기존 한국어 실행 안내](README.KR.md)
 4. [AI 작업 지침](AGENTS.md)과 담당 영역의 기존 코드
 
