@@ -5,6 +5,7 @@
 | 워크플로 | 실행 조건과 설정 |
 |---|---|
 | Ruff | Python 코드·검사 설정 변경 시 실행한다. CI, `uv.lock`, pre-commit은 Ruff `0.14.14`를 사용한다. 검사 규칙을 추가하거나 오류를 무시하지 않고 기존 잠금 버전으로 검사한다. |
+| Sync Requirements | 의존성·잠금 파일·해당 워크플로 변경 시 실행한다. `uv.lock`을 버전 제약으로 내보내고 `--python-version 3.10 --universal`로 최소 지원 Python을 명시한다. 실행기 기본 버전이 지원 범위를 벗어나도 잠금 버전에서 requirements를 생성한다. |
 | CodeQL Advanced | 비공개 저장소에서는 먼저 code scanning API 접근을 확인한다. GitHub Code Security 미활성화 오류일 때만 안내와 함께 분석을 건너뛴다. 기능을 활성화하면 자동으로 분석한다. 다른 API 오류나 실제 분석 오류는 실패로 처리한다. |
 | Fossa Scan | `fossaApiKey` Actions secret이 있으면 실행한다. 키가 없으면 안내를 기록하고 건너뛴다. Gemini API 키와는 별개다. |
 | Docker Build & Push (Blacksmith) | 원본 저장소에서는 기존대로 실행한다. 팀 저장소에서는 전용 Blacksmith 실행기와 레지스트리 인증을 준비하고 Actions variable `ENABLE_BLACKSMITH_BUILDS=true`를 설정해야 실행한다. |
