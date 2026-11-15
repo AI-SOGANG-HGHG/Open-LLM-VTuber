@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#151519" />
     <title>Persona Studio · 상상에 성격을 더하다</title>
     <link rel="icon" href="./assets/mark.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./style.css?v=5" />
-    <script src="./app.js?v=5" type="module"></script>
+    <link rel="stylesheet" href="./style.css?v=6" />
+    <script src="./app.js?v=6" type="module"></script>
   </head>
   <body>
     <div id="loginView" class="login-layout">
@@ -26,13 +26,20 @@
         <div class="story-footer"><span>BUILT FOR CHARACTERS. MADE FOR YOU.</span><span>AI-SOGANG ↗</span></div>
       </section>
       <main class="login-panel">
-        <span class="demo-pill">INTERACTIVE PREVIEW</span>
+        <a class="brand mobile-login-brand" href="./"><img src="./assets/mark.svg" alt="" />persona<span>studio</span><span class="brand-period">.</span></a>
+        <span class="demo-pill">TEAM ACCESS</span>
         <div class="login-content">
           <span class="mini-spark" aria-hidden="true">✳</span><p class="eyebrow">WELCOME TO YOUR STUDIO</p>
           <h2>당신의 이야기는<br />여기서 시작돼요.</h2>
           <p class="muted">취향을 담은 캐릭터를 만들고,<br />함께할 첫 번째 대화를 시작해 보세요.</p>
-          <form id="loginForm"><label for="displayName">어떻게 불러드릴까요?</label><input id="displayName" name="displayName" placeholder="이름 또는 닉네임" maxlength="24" autocomplete="nickname" required /><button class="button primary login-submit" type="submit">내 스튜디오 시작하기 <span aria-hidden="true">↗</span></button></form>
-          <p class="login-note">계정 인증 없이 둘러보는 데모예요.<br />캐릭터 설정은 이 브라우저에만 저장됩니다.</p>
+          <form id="loginForm">
+            <label id="loginUsernameLabel" for="loginUsername">아이디</label>
+            <input id="loginUsername" name="username" placeholder="팀 계정 아이디" maxlength="64" autocomplete="username" required />
+            <div id="loginPasswordField" class="login-password-field"><label for="loginPassword">비밀번호</label><input id="loginPassword" name="password" type="password" placeholder="비밀번호를 입력하세요" maxlength="72" autocomplete="current-password" required /></div>
+            <p id="loginError" class="login-error" role="alert" hidden></p>
+            <button id="loginSubmit" class="button primary login-submit" type="submit" disabled>연결 확인 중…</button>
+          </form>
+          <p id="loginHint" class="login-note">팀 계정으로 로그인해 주세요.<br />캐릭터 설정은 이 브라우저에 저장됩니다.</p>
         </div>
         <p class="login-footer">PERSONALITY <span>·</span> MEMORY <span>·</span> CONNECTION</p>
       </main>
@@ -50,10 +57,10 @@
           <a href="#records" data-nav="records"><span class="nav-icon" aria-hidden="true">◷</span><span>활동 기록</span></a>
         </nav>
         <div class="sidebar-shortcuts"><p class="nav-label">QUICK CONNECT</p><div id="quickChats"></div></div>
-        <div class="sidebar-bottom"><div class="profile-avatar" id="profileAvatar">S</div><div class="profile-copy"><strong id="profileName"></strong><span>Personal workspace</span></div><button id="logoutButton" class="icon-button" aria-label="데모 작업실 나가기" title="스튜디오 나가기">↗</button></div>
+        <div class="sidebar-bottom"><div class="profile-avatar" id="profileAvatar">S</div><div class="profile-copy"><strong id="profileName"></strong><span>Team workspace</span></div><button id="logoutButton" class="icon-button" aria-label="로그아웃" title="로그아웃">↗</button></div>
       </aside>
       <div class="workspace-body">
-        <header class="topbar"><span id="breadcrumb">스튜디오 / 내 캐릭터</span><div><span class="demo-pill"><span class="status-dot"></span> 로컬 데모</span><button class="icon-button" id="aboutButton" aria-label="데모 안내">ⓘ</button></div></header>
+        <header class="topbar"><span id="breadcrumb">스튜디오 / 내 캐릭터</span><div><span class="demo-pill"><span class="status-dot"></span> 팀 작업실</span><button class="icon-button" id="aboutButton" aria-label="데모 안내">ⓘ</button></div></header>
         <main id="mainContent" tabindex="-1"></main>
         <footer class="workspace-footer"><span>persona studio<span class="brand-period">.</span><span class="footer-dot">/</span> AI-SOGANG PROJECT</span><span>설정은 이 브라우저에 저장됩니다.</span></footer>
       </div>
@@ -74,7 +81,7 @@
       </form>
     </dialog>
     <dialog id="deleteDialog" class="form-dialog compact-dialog" aria-labelledby="deleteTitle"><form id="deleteForm"><p class="eyebrow">DELETE CHARACTER</p><h2 id="deleteTitle">캐릭터를 삭제할까요?</h2><p class="muted">이 브라우저의 캐릭터 설정과 샘플 대화, 등록한 기억이 함께 삭제돼요.</p><div class="dialog-actions"><button type="button" class="button secondary" data-close-dialog>취소</button><button type="submit" class="button danger">삭제하기</button></div></form></dialog>
-    <dialog id="aboutDialog" class="form-dialog compact-dialog" aria-labelledby="aboutTitle"><div class="dialog-heading"><h2 id="aboutTitle">우리의 다음 스튜디오</h2><button class="icon-button" data-close-dialog aria-label="닫기">×</button></div><p class="muted">캐릭터를 만들고, 기억을 관리하고, 방송과 게임까지 연결하는 플랫폼을 함께 그려보는 데모예요.</p><p class="muted">캐릭터 설정은 브라우저에 저장하고, 스튜디오의 대화실에서 실제 모델·음성·Live2D를 사용해요. 등록한 메모는 참고 문맥으로 전달해요. 실제 로그인·권한 관리·자동 기억/RAG·방송·게임 연결은 아직 없어요. 입력한 이름은 표시용이며 이름을 바꿔도 같은 브라우저의 데이터를 사용해요.</p><p class="asset-credit">Mao: © Live2D Inc. This content uses sample data owned and copyrighted by Live2D Inc. The sample data are utilized in accordance with terms and conditions set by Live2D Inc. This content itself is created at the author’s sole discretion.</p></dialog>
+    <dialog id="aboutDialog" class="form-dialog compact-dialog" aria-labelledby="aboutTitle"><div class="dialog-heading"><h2 id="aboutTitle">우리의 다음 스튜디오</h2><button class="icon-button" data-close-dialog aria-label="닫기">×</button></div><p class="muted">캐릭터를 만들고, 기억을 관리하고, 방송과 게임까지 연결하는 플랫폼을 함께 그려보는 데모예요.</p><p class="muted">캐릭터 설정은 브라우저에 저장하고, 스튜디오의 대화실에서 실제 모델·음성·Live2D를 사용해요. 등록한 메모는 참고 문맥으로 전달해요. 팀 계정으로 이용하는 작업실이에요. 캐릭터 설정은 이 브라우저에 보관됩니다. 개인별 계정·자동 기억/RAG·방송·게임 연결은 아직 준비 중이에요.</p><p class="asset-credit">Mao: © Live2D Inc. This content uses sample data owned and copyrighted by Live2D Inc. The sample data are utilized in accordance with terms and conditions set by Live2D Inc. This content itself is created at the author’s sole discretion.</p></dialog>
     <dialog id="avatarDialog" class="avatar-dialog" aria-labelledby="avatarTitle"><div class="dialog-heading"><div><p class="eyebrow">CHARACTER PREVIEW</p><h2 id="avatarTitle">캐릭터 미리보기</h2></div><button class="icon-button" data-close-dialog aria-label="닫기">×</button></div><div id="liveAvatarStage" class="live-avatar-stage"><canvas id="liveAvatarCanvas" aria-label="Live2D 캐릭터 미리보기"></canvas><div id="avatarFallback"></div></div><p id="avatarStatus" class="field-help" role="status"></p><p class="asset-credit" id="avatarCredit"></p></dialog>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   </body>

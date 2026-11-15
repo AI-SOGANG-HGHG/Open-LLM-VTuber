@@ -73,7 +73,77 @@ let searchQuery = '';
 let avatarPreview;
 let previewEpoch = 0;
 let activeRuntime;
-try { profile = sessionStorage.getItem(SESSION_KEY) || ''; } catch { /* Page-local demo remains usable. */ }
+let authMode = 'checking';
+let authBusy = false;
+let authChannel;
+try { authChannel = new BroadcastChannel('persona-studio-auth'); } catch { /* Focus checks still synchronize tabs. */ }
+
+function loginError(message = '') {
+  $('#loginError').textContent = message;
+  $('#loginError').hidden = !message;
+}
+function configureLogin() {
+  const demo = authMode === 'demo';
+  $('#loginUsernameLabel').textContent = demo ? '어떻게 불러드릴까요?' : '아이디';
+  $('#loginUsername').placeholder = demo ? '이름 또는 닉네임' : '팀 계정 아이디';
+  $('#loginUsername').autocomplete = demo ? 'nickname' : 'username';
+  $('#loginPasswordField').hidden = demo;
+  $('#loginPassword').required = !demo;
+  $('#loginSubmit').disabled = authBusy;
+  $('#loginSubmit').formNoValidate = authMode === 'error';
+  $('#loginSubmit').textContent = authBusy ? (authMode === 'team' ? '로그인 중…' : '연결 확인 중…') : demo ? '스튜디오 둘러보기 ↗' : authMode === 'error' ? '다시 연결' : '로그인 ↗';
+  $('#loginHint').textContent = demo ? '화면 미리보기예요. 캐릭터 설정은 이 브라우저에 저장됩니다.' : '팀 계정으로 로그인해 주세요. 캐릭터 설정은 이 브라우저에 저장됩니다.';
+  $('#loginView .demo-pill').textContent = demo ? 'LOCAL PREVIEW' : 'TEAM ACCESS';
+}
+function clearProfile() {
+  profile = '';
+  closePreview();
+  document.querySelectorAll('dialog[open]').forEach((dialog) => dialog.close());
+  $('#loginPassword').value = '';
+  history.replaceState(null, '', location.pathname + location.search);
+  render();
+  document.title = 'Persona Studio · 상상에 성격을 더하다';
+}
+function enterProfile(username) {
+  profile = username;
+  $('#loginPassword').value = '';
+  if (!location.hash) history.replaceState(null, '', location.pathname + location.search + '#characters');
+  render();
+  if (needsMigration || storageWarning) persist();
+}
+async function restoreSession() {
+  if (authBusy) return;
+  authBusy = true;
+  try {
+    let status;
+    if (!location.pathname.startsWith('/web-tool/')) status = { enabled: false };
+    else {
+      const response = await fetch('/auth/session', { credentials: 'same-origin', cache: 'no-store' });
+      if (!response.ok) throw Error('Unavailable');
+      status = await response.json();
+    }
+    authMode = status.enabled ? 'team' : 'demo';
+    loginError();
+    if (authMode === 'demo') {
+      try { profile = sessionStorage.getItem(SESSION_KEY) || ''; } catch { profile = ''; }
+      render();
+    } else if (status.authenticated && typeof status.username === 'string') {
+      if (profile !== status.username) enterProfile(status.username);
+    } else if (profile) clearProfile();
+  } catch {
+    authMode = 'error';
+    clearProfile();
+    loginError('서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.');
+  } finally {
+    authBusy = false;
+    configureLogin();
+  }
+}
+if (authChannel) authChannel.onmessage = () => { if (authMode !== 'demo') restoreSession(); };
+window.addEventListener('focus', () => { if (authMode !== 'demo') restoreSession(); });
+window.addEventListener('pageshow', (event) => { if (event.persisted && authMode !== 'demo') restoreSession(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && authMode !== 'demo') restoreSession(); });
+setInterval(() => { if (authMode !== 'demo' && document.visibilityState === 'visible') restoreSession(); }, 60000);
 function toast(message, error = false) {
   const element = $('#toast');
   element.textContent = message;
@@ -341,21 +411,45 @@ $('#avatarDialog').addEventListener('cancel', closePreview);
 $('#avatarDialog').addEventListener('close', () => { if (!$('#avatarDialog').open) closePreview(); });
 $('#aboutButton').addEventListener('click', () => $('#aboutDialog').showModal());
 $('#sidebarCreate').addEventListener('click', () => openCreate());
-$('#loginForm').addEventListener('submit', (event) => {
+$('#loginForm').addEventListener('submit', async (event) => {
   event.preventDefault();
-  const name = $('#displayName').value.trim();
-  if (!name) return;
-  profile = name;
-  try { sessionStorage.setItem(SESSION_KEY, profile); } catch { toast('현재 페이지에서만 데모 입장을 유지해요.'); }
-  location.hash = 'characters'; render(); main.focus({ preventScroll: true });
-  if (storageWarning) persist();
+  if (authBusy) return;
+  if (authMode === 'checking' || authMode === 'error') { await restoreSession(); return; }
+  const username = $('#loginUsername').value.trim();
+  if (!username) return;
+  if (authMode === 'demo') {
+    try { sessionStorage.setItem(SESSION_KEY, username); } catch { /* This preview stays page-local. */ }
+    enterProfile(username); return;
+  }
+  authBusy = true; configureLogin(); loginError();
+  $('#loginForm').setAttribute('aria-busy', 'true');
+  try {
+    const response = await fetch('/auth/login', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password: $('#loginPassword').value }),
+    });
+    if (!response.ok) {
+      loginError(response.status === 429 ? '로그인 시도가 많아요. 1분 후 다시 시도해 주세요.' : response.status === 401 ? '아이디 또는 비밀번호를 확인해 주세요.' : '로그인하지 못했어요. 잠시 후 다시 시도해 주세요.');
+      return;
+    }
+    const session = await response.json();
+    enterProfile(session.username);
+    authChannel?.postMessage('refresh');
+  } catch { loginError('서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.'); }
+  finally { authBusy = false; configureLogin(); $('#loginForm').setAttribute('aria-busy', 'false'); }
 });
-$('#logoutButton').addEventListener('click', () => {
-  profile = '';
-  try { sessionStorage.removeItem(SESSION_KEY); } catch { /* No credentials exist. */ }
-  document.querySelectorAll('dialog[open]').forEach((dialog) => dialog.close());
-  $('#displayName').value = '';
-  render(); document.title = 'Persona Studio · 상상에 성격을 더하다'; $('#displayName').focus();
+$('#logoutButton').addEventListener('click', async () => {
+  if (authBusy) return;
+  authBusy = true;
+  try {
+    if (authMode === 'team') {
+      const response = await fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' });
+      if (!response.ok) throw Error('Unavailable');
+      authChannel?.postMessage('logout');
+    } else { try { sessionStorage.removeItem(SESSION_KEY); } catch { /* Page-local preview. */ } }
+    clearProfile(); loginError(); $('#loginUsername').focus();
+  } catch { toast('로그아웃하지 못했어요. 다시 시도해 주세요.', true); }
+  finally { authBusy = false; configureLogin(); }
 });
 document.querySelectorAll('[data-close-dialog]').forEach((button) => button.addEventListener('click', () => {
   const dialog = button.closest('dialog');
@@ -453,4 +547,4 @@ main.addEventListener('submit', (event) => {
 });
 window.addEventListener('hashchange', () => { render(); if (profile) { main.focus({ preventScroll: true }); window.scrollTo(0, 0); } });
 render();
-if (needsMigration || (storageWarning && profile)) persist();
+restoreSession();

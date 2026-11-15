@@ -1,104 +1,115 @@
-# Team-only HTTPS access
+# Team login over HTTPS
 
-Use a single public web-service port, TCP 443, for both the Studio and its
-WebSocket conversation connection. The existing application stays on
-`127.0.0.1:12393`. Caddy authenticates every request before forwarding it,
-including the WebSocket upgrade. It removes the login Authorization header
-before forwarding to the application. The backend keeps using its private
-Gemini configuration.
+Studio is available at the public HTTPS address through TCP 443. Visitors see
+its existing landing page and enter the team's username and password in the
+page itself. Caddy handles TLS and forwards to the loopback application;
+Python verifies login and protects HTTP APIs, history, models and WebSockets.
+There is no HTTP Basic Authentication prompt.
 
 | Endpoint | Access |
 |---|---|
-| TCP 443 | Public HTTPS, protected by a team username and password |
-| TCP 12393 | Loopback application, accessed through Caddy |
+| TCP 443 | Public HTTPS; login page/assets public, application session required for private routes |
+| TCP 12393 | Loopback application; server-side authentication still enforced |
 | TCP 80 / UDP 443 | Not used by this gateway configuration |
 
 SSH administration is separate from these web-service ports.
 
-## Hostname and login
+## Account and sessions
 
-An owned domain is optional for the initial team deployment. An IP-based DNS
-hostname from [sslip.io](https://sslip.io/) resolves to the IP embedded in its
-name. This server's initial hostname is `vtuber-3-35-188-221.sslip.io`. This is
-a third-party development hostname, not a domain owned by the team. If the
-server's public IP changes, the address and certificate configuration need
-updating. A team-owned domain can replace it later.
+This development deployment uses one shared team account. Individual accounts,
+signup, a character database and per-user data permissions are separate work.
+Existing character settings remain in each browser. The team login details
+are in `private/web-access.env` (mode 600 in a mode-700 ignored directory).
+The Gemini `.env` remains separate. Do not put either password or key in Git.
 
-The browser prompts for the team username and password. This is a shared
-gateway login, not an implementation of individual application accounts or
-per-user data permissions. On this server, the generated login information
-is in `private/web-access.env`, mode 600, inside a mode-700 directory. This
-directory is ignored by Git and Docker. It is separate from the Gemini `.env`.
-Share the login only with the intended team members.
+Successful login sets an opaque `__Host-studio_session` cookie with Secure,
+HttpOnly, SameSite=Strict, path `/`, and an eight-hour lifetime. Sessions are
+owned by the running server; refreshing restores login, while a server restart
+requires signing in again. Passwords and session tokens are not put in browser
+storage. Logout revokes the session, closes its active WebSockets, and updates
+other open Studio tabs. There is a maximum of 128 sessions. Login attempts are
+limited per client and globally, and expensive password checks are bounded.
 
-The root-only `/etc/open-llm-vtuber-gateway/access.env` contains:
+## Private server configuration
+
+Copy `config_templates/studio-auth.example.env` to `private/studio-auth.env`,
+mode 600, and configure:
 
 ```dotenv
-VTUBER_HOSTNAME=vtuber-3-35-188-221.sslip.io
-VTUBER_USERNAME=team
-VTUBER_PASSWORD_HASH=replace_with_a_caddy_bcrypt_hash
+STUDIO_AUTH_ENABLED=true
+STUDIO_AUTH_USERNAME=team
+STUDIO_AUTH_PASSWORD_HASH=replace_with_a_bcrypt_hash
+STUDIO_PUBLIC_ORIGIN=https://vtuber-3-35-188-221.sslip.io
 ```
 
-Generate a hash interactively with `caddy hash-password --algorithm bcrypt`.
-Do not put a plaintext password in the Caddyfile or in shell command arguments.
-The service reads this root-owned file; the Caddyfile contains only variable
-placeholders. Restart the gateway after changing its environment file.
+Use `caddy hash-password --algorithm bcrypt` interactively to produce the hash.
+The launcher reads the file as data, not shell code. Use the exact public HTTPS
+origin, without a path. The production user service sets
+`STUDIO_AUTH_REQUIRED=true` and fails closed if authentication is missing.
+Standalone local runs without auth configuration retain the explicitly labeled
+loopback-only preview flow. The private login file is ignored by Git and Docker.
 
-## Service
+The login page and its exact required assets are public. `/auth/session`
+reports login state; `/auth/login` and `/auth/logout` use same-origin POSTs.
+All other HTTP and WebSocket access requires a valid server session. Origin
+checks also protect credentialed GET requests, mutations, and WebSocket
+handshakes from other origins. The server does not accept browser storage or
+cached Basic credentials as proof of login.
 
-Install the Caddy binary separately; this server uses official release 2.11.9,
-verified against its SHA-512 checksum manifest and GitHub SHA-256 digest.
-Use the dedicated unprivileged `vtuber-gateway` system user, with home
-`/var/lib/open-llm-vtuber-gateway` and login shell `/usr/sbin/nologin`.
+Restart the backend after changing its private auth settings:
 
-Install `deploy/Caddyfile` as `/etc/open-llm-vtuber-gateway/Caddyfile` and
-`deploy/open-llm-vtuber-gateway.service` in `/etc/systemd/system/`.
-The unit grants only the capability needed to bind port 443, cannot access
-home directories, and stores its certificates under its own state directory.
+```bash
+systemctl --user restart open-llm-vtuber.service
+```
+
+## HTTPS gateway
+
+This server uses Caddy 2.11.9, installed from its official release with checksum
+verification. A dedicated `vtuber-gateway` system account runs the restricted
+`deploy/open-llm-vtuber-gateway.service`. It cannot read home directories; TLS
+state is stored under `/var/lib/open-llm-vtuber-gateway`.
+
+Install `deploy/Caddyfile` as `/etc/open-llm-vtuber-gateway/Caddyfile`. The
+root-only `/etc/open-llm-vtuber-gateway/access.env` supplies
+`VTUBER_HOSTNAME=vtuber-3-35-188-221.sslip.io`. The proxy no longer uses a
+username/password hash. Its service definition belongs in `/etc/systemd/system/`.
 
 ```bash
 sudo systemd-analyze verify /etc/systemd/system/open-llm-vtuber-gateway.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now open-llm-vtuber-gateway.service
-sudo systemctl status open-llm-vtuber-gateway.service
+sudo systemctl reload open-llm-vtuber-gateway.service
 ```
 
-Caddy uses Let's Encrypt's TLS-ALPN challenge on 443. HTTP certificate
-challenges, HTTP redirects, and HTTP/3 are disabled, so neither TCP 80 nor
-UDP 443 is required. Certificate issuance and renewal require public TCP 443
-to reach this server. See [Caddy's certificate validation documentation](https://caddyserver.com/docs/automatic-https#acme-challenges).
+Caddy uses the TLS-ALPN challenge on 443 for public certificate issuance and
+renewal. HTTP challenges, HTTP redirects and HTTP/3 are disabled. See
+[Caddy's certificate documentation](https://caddyserver.com/docs/automatic-https#acme-challenges).
 
-## AWS firewall and verification
+The temporary hostname uses [sslip.io](https://sslip.io/), which resolves the IP
+embedded in the name. If the public IP changes, update the address, gateway
+hostname, backend public origin, and private login URL. A team-owned domain can
+replace this development hostname later.
 
-Allow inbound HTTPS/TCP 443 to the instance in its AWS firewall, in addition
-to the server's listener. For public certificate validation, IPv4 source
-`0.0.0.0/0` is supported; team access is checked by the gateway login.
-Do not expose the backend port for this configuration.
+## AWS and checks
 
-For EC2, edit the instance's security-group inbound rules. For Lightsail,
-use the instance's Networking / IPv4 firewall settings. The current server's
-role was denied `DescribeInstances` and an `AuthorizeSecurityGroupIngress`
-permission check with `DryRun`, so firewall changes cannot be performed with
-that role. A local listening port alone does not prove external access.
-
-Once the public certificate is issued, run:
+AWS must allow inbound HTTPS/TCP 443, for example IPv4 source `0.0.0.0/0`.
+Team access is verified by the application. Keep port 12393 on loopback. The
+instance role was denied both instance inspection and the DryRun permission
+check for adding a security-group rule, so AWS console access was needed.
 
 ```bash
 .venv/bin/python tools/check_gateway.py
+.venv/bin/python -m unittest discover -s tests
+# Optional Playwright environment, with Chromium and python-dotenv:
+python tests/browser/studio_login.py
 ```
 
-This verifies trusted HTTPS; rejection of missing/wrong credentials; the
-authenticated Studio, runtime and model resources; and anonymous rejection
-plus authenticated initialization of the real WebSocket. It makes no model
-API calls. The same checks also passed against an isolated loopback HTTPS
-instance with a dedicated test CA during setup.
-
-On 2026-11-15, after the user added the AWS HTTPS rule, all 12 checks passed
-through the public hostname with normal certificate verification. The gateway
-had obtained its public certificate through the production ACME endpoint.
-A separate Chromium check used the public URL with certificate verification
-enabled: TLS 1.3, secure browser context, successful team authentication,
-the Studio's embedded live WebSocket connection, and Mao's loaded Live2D canvas
-with rendered frames and no JavaScript errors. It made zero model calls.
-The listener check confirmed public TCP 443 and loopback-only TCP 12393,
-with no port-80 listener. Physical microphone/speaker output remains unverified.
+The gateway check uses normal certificate verification and checks the public
+login page, wrong credentials, secure cookie sessions, private resources,
+anonymous/cross-origin WebSocket rejection, authenticated initialization, and
+logout revocation of both a copied cookie and an active socket. It makes no
+model calls. The browser check covers form login, forged sessionStorage,
+refresh, mobile layout, Mao Live2D/WebSocket, and cross-tab logout, also with
+zero model calls. Screenshots and reports are saved under `tmp/` without
+passwords or cookie values. Physical microphone/speaker output is a separate
+user-device check.

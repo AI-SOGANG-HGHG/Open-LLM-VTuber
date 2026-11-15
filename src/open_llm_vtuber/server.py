@@ -17,6 +17,7 @@ from starlette.staticfiles import StaticFiles as StarletteStaticFiles
 from .routes import init_client_ws_route, init_webtool_routes, init_proxy_route
 from .service_context import ServiceContext
 from .config_manager.utils import Config
+from .studio_auth import install_studio_auth
 
 
 # Create a custom StaticFiles class that adds CORS headers
@@ -87,6 +88,7 @@ class WebSocketServer:
             allow_methods=["*"],
             allow_headers=["*"],
         )
+        install_studio_auth(self.app)
 
         # Include routes, passing the context instance
         # The context will be populated during the initialize step

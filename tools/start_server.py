@@ -21,25 +21,47 @@ def main():
     args = parser.parse_args()
     os.chdir(ROOT)
     sys.path.insert(0, str(ROOT))
-    os.environ["PATH"] = str(Path(sys.executable).parent) + os.pathsep + os.environ.get(
-        "PATH", ""
+    os.environ["PATH"] = (
+        str(Path(sys.executable).parent) + os.pathsep + os.environ.get("PATH", "")
     )
 
     credentials = dotenv_values(ROOT / ".env", interpolate=False)
-    key = (credentials.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY", "")).strip()
+    key = (
+        credentials.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY", "")
+    ).strip()
     if not key or key in {"YOUR_API_KEY", "YOUR_GEMINI_API_KEY"}:
-        print(f"Set GEMINI_API_KEY in {ROOT / '.env'} and save the file.", file=sys.stderr)
+        print(
+            f"Set GEMINI_API_KEY in {ROOT / '.env'} and save the file.", file=sys.stderr
+        )
         return 2
     os.environ["GEMINI_API_KEY"] = key
 
+    auth_file = ROOT / "private/studio-auth.env"
+    if auth_file.is_file():
+        settings = dotenv_values(auth_file, interpolate=False)
+        for name in (
+            "STUDIO_AUTH_ENABLED",
+            "STUDIO_AUTH_USERNAME",
+            "STUDIO_AUTH_PASSWORD_HASH",
+            "STUDIO_PUBLIC_ORIGIN",
+        ):
+            if settings.get(name):
+                os.environ[name] = settings[name]
+
     if not (ROOT / "conf.yaml").is_file():
-        print("Copy config_templates/conf.gemini.example.yaml to conf.yaml.", file=sys.stderr)
+        print(
+            "Copy config_templates/conf.gemini.example.yaml to conf.yaml.",
+            file=sys.stderr,
+        )
         return 2
     if not (ROOT / "frontend/index.html").is_file():
         print("Run git submodule update --init --recursive first.", file=sys.stderr)
         return 2
     if not shutil.which("ffmpeg"):
-        print("Install FFmpeg and add it to PATH before starting the server.", file=sys.stderr)
+        print(
+            "Install FFmpeg and add it to PATH before starting the server.",
+            file=sys.stderr,
+        )
         return 2
 
     if args.check:
@@ -54,9 +76,12 @@ def main():
         secret_redactor.add_config(raw_config)
         config = validate_config(raw_config)
         from src.open_llm_vtuber.server import WebSocketServer  # noqa: F401
+        from src.open_llm_vtuber.studio_auth import StudioAuth
         import edge_tts  # noqa: F401
         import sherpa_onnx  # noqa: F401
         import onnxruntime  # noqa: F401
+
+        StudioAuth.from_environment()
 
         print("Local setup checks passed. API access and live audio are not tested.")
         print(f"Server: {config.system_config.host}:{config.system_config.port}")

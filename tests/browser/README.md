@@ -1,5 +1,14 @@
 # Sogangi browser checks
 
+The production Studio form login has a separate no-model-call check:
+`python tests/browser/studio_login.py`. Run it from the repository root in the
+optional Playwright environment with `python-dotenv` installed and an installed
+Chromium. It reads the private `private/web-access.env` file without printing
+credentials. It covers public login without Basic Auth, wrong-password errors,
+forged sessionStorage, secure cookies, refresh, mobile overflow, authenticated
+Mao rendering/WebSocket, and logout across two tabs. It writes screenshots and
+a credential-free report under `tmp/studio-login-browser/`.
+
 The normal Python checks run with:
 
 ```powershell

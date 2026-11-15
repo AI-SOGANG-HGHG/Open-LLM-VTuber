@@ -1,99 +1,109 @@
-"""Check HTTPS, team authentication, and WebSocket routing without model calls."""
+"""Verify page login, private APIs, cookie sessions and live socket revocation."""
 
 import argparse
 import asyncio
-import base64
-from http.client import HTTPSConnection
 import json
 from pathlib import Path
-import socket
-import ssl
-from urllib.parse import urlsplit
 
 from dotenv import dotenv_values
+import httpx
 from websockets.asyncio.client import connect
-from websockets.exceptions import InvalidStatus
+from websockets.exceptions import ConnectionClosed, InvalidStatus
 
 
-class GatewayConnection(HTTPSConnection):
-    def __init__(self, hostname, port, context, connect_host):
-        super().__init__(hostname, port, context=context, timeout=15)
-        self.connect_host = connect_host or hostname
-
-    def connect(self):
-        connection = socket.create_connection(
-            (self.connect_host, self.port), self.timeout
-        )
-        self.sock = self._context.wrap_socket(connection, server_hostname=self.host)
-
-
-async def check(args):
-    settings = dotenv_values(args.credentials, interpolate=False)
-    address = urlsplit(settings["PUBLIC_URL"])
-    if address.scheme != "https" or not address.hostname:
-        raise ValueError("PUBLIC_URL must be an HTTPS URL")
-    hostname = address.hostname
-    port = args.port or address.port or 443
-    context = ssl.create_default_context(cafile=args.ca_file)
-    credentials = f"{settings['TEAM_USERNAME']}:{settings['TEAM_PASSWORD']}".encode()
-    authorization = "Basic " + base64.b64encode(credentials).decode()
-
-    def request(path, authentication=None):
-        headers = {"Host": f"{hostname}:{port}"}
-        if authentication:
-            headers["Authorization"] = authentication
-        connection = GatewayConnection(hostname, port, context, args.connect_host)
-        try:
-            connection.request("GET", path, headers=headers)
-            response = connection.getresponse()
-            response.read()
-            return response.status, response.getheader("Location")
-        finally:
-            connection.close()
-
+async def check(credentials_path):
+    settings = dotenv_values(credentials_path, interpolate=False)
+    origin = settings["PUBLIC_URL"].rstrip("/")
+    if not origin.startswith("https://"):
+        raise ValueError("PUBLIC_URL must use HTTPS")
     checks = []
-    for path in ("/", "/web-tool/platform/", "/docs", "/client-ws"):
-        status, _ = request(path)
-        assert status == 401, f"Unauthenticated {path}: expected 401, got {status}"
-        checks.append(f"Unauthenticated {path}: 401")
-    status, _ = request(
-        "/web-tool/platform/",
-        "Basic " + base64.b64encode(b"team:wrong-password").decode(),
-    )
-    assert status == 401, "Wrong password was accepted"
-    checks.append("Wrong password: 401")
-    status, location = request("/", authorization)
-    assert status == 302 and location == "/web-tool/platform/"
-    checks.append("Authenticated entry: redirects to Studio")
-    for path in (
-        "/web-tool/platform/",
-        "/web-tool/platform/runtime/",
-        "/web-tool/platform/app.js",
-        "/live2d-models/mao_pro/runtime/mao_pro.model3.json",
-    ):
-        status, _ = request(path, authorization)
-        assert status == 200, f"Authenticated {path}: expected 200, got {status}"
-        checks.append(f"Authenticated {path}: 200")
-
-    uri = f"wss://{hostname}:{port}/client-ws"
-    options = {"ssl": context, "open_timeout": 15}
-    if args.connect_host:
-        options.update(host=args.connect_host, port=port, server_hostname=hostname)
-    try:
-        async with connect(uri, **options):
-            raise AssertionError("Anonymous WebSocket was accepted")
-    except InvalidStatus as error:
-        assert error.response.status_code == 401
-    checks.append("Unauthenticated WebSocket: 401")
-    async with connect(
-        uri, additional_headers={"Authorization": authorization}, **options
-    ) as websocket:
-        async with asyncio.timeout(20):
-            while True:
-                item = json.loads(await websocket.recv())
-                if item.get("type") == "control" and item.get("text") == "start-mic":
-                    break
-    checks.append("Authenticated WebSocket: connected and initialized")
+    with httpx.Client(base_url=origin, timeout=15) as client:
+        response = client.get("/web-tool/platform/")
+        assert (
+            response.status_code == 200 and "www-authenticate" not in response.headers
+        )
+        checks.append("Public login page: 200, no browser authentication challenge")
+        assert client.get("/auth/session").json() == {
+            "enabled": True,
+            "authenticated": False,
+            "username": None,
+        }
+        for path in (
+            "/docs",
+            "/web-tool/platform/runtime/",
+            "/live2d-models/mao_pro/runtime/mao_pro.model3.json",
+        ):
+            assert client.get(path).status_code == 401, path
+            checks.append(f"Unauthenticated {path}: 401")
+        invalid = client.post(
+            "/auth/login",
+            headers={"Origin": origin},
+            json={"username": settings["TEAM_USERNAME"], "password": "wrong-password"},
+        )
+        assert invalid.status_code == 401
+        checks.append("Wrong password rejected")
+        response = client.post(
+            "/auth/login",
+            headers={"Origin": origin},
+            json={
+                "username": settings["TEAM_USERNAME"],
+                "password": settings["TEAM_PASSWORD"],
+            },
+        )
+        assert response.status_code == 200
+        for flag in ("Secure", "HttpOnly", "SameSite=strict", "Path=/"):
+            assert flag in response.headers["set-cookie"]
+        cookie = "; ".join(f"{key}={value}" for key, value in client.cookies.items())
+        assert client.get("/auth/session").json()["authenticated"]
+        checks.append("Page login and cookie session restored")
+        for path in (
+            "/web-tool/platform/runtime/",
+            "/web-tool/platform/app.js",
+            "/live2d-models/mao_pro/runtime/mao_pro.model3.json",
+        ):
+            assert client.get(path).status_code == 200, path
+            checks.append(f"Authenticated {path}: 200")
+        uri = origin.replace("https://", "wss://", 1) + "/client-ws"
+        for headers, allowed_origin in (
+            ({}, origin),
+            ({"Cookie": cookie}, "https://other.invalid"),
+        ):
+            try:
+                async with connect(
+                    uri,
+                    origin=allowed_origin,
+                    additional_headers=headers,
+                    open_timeout=15,
+                ):
+                    raise AssertionError("Unauthorized socket accepted")
+            except InvalidStatus as error:
+                assert error.response.status_code == 403
+        checks.append("Anonymous and cross-origin WebSockets rejected")
+        async with connect(
+            uri, origin=origin, additional_headers={"Cookie": cookie}, open_timeout=15
+        ) as websocket:
+            async with asyncio.timeout(20):
+                while True:
+                    item = json.loads(await websocket.recv())
+                    if (
+                        item.get("type") == "control"
+                        and item.get("text") == "start-mic"
+                    ):
+                        break
+            checks.append("Authenticated WebSocket initialized")
+            assert (
+                client.post("/auth/logout", headers={"Origin": origin}).status_code
+                == 204
+            )
+            try:
+                await asyncio.wait_for(websocket.recv(), timeout=5)
+            except ConnectionClosed as error:
+                assert error.code == 4401
+            else:
+                raise AssertionError("Logout did not close the socket")
+        assert not client.get("/auth/session").json()["authenticated"]
+        assert client.get("/docs", headers={"Cookie": cookie}).status_code == 401
+        checks.append("Logout revoked the copied cookie and closed the active socket")
     print(
         json.dumps(
             {"checks": checks, "model_api_calls": 0}, ensure_ascii=False, indent=2
@@ -106,12 +116,7 @@ def main():
     parser.add_argument(
         "--credentials", type=Path, default=Path("private/web-access.env")
     )
-    parser.add_argument(
-        "--connect-host", help="Override TCP destination for local checks"
-    )
-    parser.add_argument("--port", type=int, help="Override HTTPS port for local checks")
-    parser.add_argument("--ca-file", help="Trust a specific CA file for local checks")
-    asyncio.run(check(parser.parse_args()))
+    asyncio.run(check(parser.parse_args().credentials))
 
 
 if __name__ == "__main__":
