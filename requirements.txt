@@ -1,5 +1,6 @@
 anthropic==0.76.0
 azure-cognitiveservices-speech==1.47.0
+bcrypt==5.0.0
 cartesia==2.0.17
 chardet==5.2.0
 duckduckgo-mcp-server==0.1.1

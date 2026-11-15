@@ -39,7 +39,7 @@ uv export --frozen --no-hashes --no-emit-project --format requirements-txt \
 uv pip install --python .venv/bin/python -c tmp/locked-requirements.txt \
   loguru numpy scipy pydub openai anthropic fastapi mcp letta-client \
   langdetect pysbd pyyaml ruamel-yaml chardet tomli ruff websockets \
-  requests soundfile jinja2 python-dotenv edge-tts sherpa-onnx onnxruntime
+  requests soundfile jinja2 python-dotenv bcrypt edge-tts sherpa-onnx onnxruntime
 ```
 
 Install FFmpeg separately. This server uses the FFmpeg executable packaged by
@@ -68,18 +68,19 @@ SenseVoice model if it is missing. The configured application is served at
 Ctrl+C. `python tools/platform_preview.py` separately serves only the static
 preview on `http://127.0.0.1:12401/platform/`.
 
-The current platform does not implement account authentication. Keep the
-backend on loopback while validating it; use an SSH tunnel or authenticated
-HTTPS gateway for remote access. HTTPS is needed for browser microphone use
-outside localhost. A shell launch alone does not configure automatic restart
-or startup after a reboot.
+The production service requires Studio authentication. Configure the private
+`private/studio-auth.env` before enabling it; see [team HTTPS access](team-https.md).
+The launcher loads those settings without executing shell code. Local runs
+without this configuration remain a loopback development preview. Keep the
+backend on loopback and use HTTPS for remote browser microphone access.
+A shell launch alone does not configure automatic restart or startup after a reboot.
 
 For the single-port gateway and team login, see [team HTTPS access](team-https.md).
 
 ## User service
 
 For a checkout at `~/Open-LLM-VTuber`, install the provided user service after
-configuration and live checks pass:
+configuration, team authentication, and live checks pass:
 
 ```bash
 mkdir -p ~/.config/systemd/user

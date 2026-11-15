@@ -8,6 +8,7 @@ Type=simple
 WorkingDirectory=%h/Open-LLM-VTuber
 ExecStart=%h/Open-LLM-VTuber/.venv/bin/python %h/Open-LLM-VTuber/tools/start_server.py
 Environment=PYTHONUNBUFFERED=1
+Environment=STUDIO_AUTH_REQUIRED=true
 UMask=0077
 Restart=on-failure
 RestartSec=5

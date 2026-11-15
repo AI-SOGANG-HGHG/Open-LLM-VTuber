@@ -86,6 +86,10 @@ input[type=range] { padding: 0; accent-color: var(--accent); border: 0; }
 .login-content form { margin-top: 34px; }
 .login-submit { width: 100%; justify-content: space-between; margin-top: 20px; min-height: 47px; }
 .login-note { font-size: 11px; line-height: 1.9; color: #8d8796; margin: 18px 0 0; }
+.login-password-field { margin-top: 18px; }
+.login-error { color: #ffb39c; font-size: 12px; line-height: 1.7; margin: 12px 0 0; }
+.login-submit:disabled { opacity: .65; cursor: wait; }
+.mobile-login-brand { display: none; }
 .login-footer { font-size: 8px; color: #88818f; letter-spacing: 1.8px; margin: 0 auto; }
 .login-footer span { margin: 0 12px; color: #5a525f; }
 
@@ -554,4 +558,13 @@ dialog::backdrop { background: #0c0712b8; backdrop-filter: blur(7px); }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; }
+}
+
+/* Put the sign-in action in the first mobile viewport. */
+@media (max-width: 700px) {
+  .login-layout { display: flex; flex-direction: column; }
+  .login-panel { order: -1; min-height: 100svh; padding: 24px; }
+  .login-panel > .demo-pill { display: none; }
+  .mobile-login-brand { display: inline-flex; }
+  .login-panel .login-content { margin: auto 0; padding: 24px 0; }
 }

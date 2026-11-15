@@ -1,0 +1,38 @@
+name: Studio Authentication
+
+on:
+  push:
+    paths:
+      - src/open_llm_vtuber/studio_auth.py
+      - src/open_llm_vtuber/server.py
+      - tests/test_studio_auth.py
+      - pyproject.toml
+      - uv.lock
+      - .github/workflows/studio-auth.yml
+  pull_request:
+    paths:
+      - src/open_llm_vtuber/studio_auth.py
+      - src/open_llm_vtuber/server.py
+      - tests/test_studio_auth.py
+      - pyproject.toml
+      - uv.lock
+      - .github/workflows/studio-auth.yml
+
+permissions:
+  contents: read
+
+jobs:
+  sessions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - name: Install locked authentication test dependencies
+        run: |
+          uv venv .venv --python 3.12
+          mkdir -p tmp
+          uv export --locked --no-hashes --no-emit-project --python 3.12 --output-file tmp/auth-constraints.txt --quiet
+          uv pip install --python .venv/bin/python -c tmp/auth-constraints.txt fastapi httpx bcrypt
+      - name: Check server-owned sessions and WebSocket protection
+        run: .venv/bin/python -m unittest discover -s tests -p test_studio_auth.py -v
