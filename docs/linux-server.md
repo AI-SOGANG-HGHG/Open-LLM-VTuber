@@ -74,6 +74,8 @@ HTTPS gateway for remote access. HTTPS is needed for browser microphone use
 outside localhost. A shell launch alone does not configure automatic restart
 or startup after a reboot.
 
+For the single-port gateway and team login, see [team HTTPS access](team-https.md).
+
 ## User service
 
 For a checkout at `~/Open-LLM-VTuber`, install the provided user service after

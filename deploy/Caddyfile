@@ -1,0 +1,25 @@
+{
+	admin 127.0.0.1:2019
+	auto_https disable_redirects
+	servers {
+		protocols h1 h2
+	}
+}
+
+{$VTUBER_HOSTNAME} {
+	tls {
+		issuer acme {
+			dir https://acme-v02.api.letsencrypt.org/directory
+			disable_http_challenge
+		}
+	}
+	route {
+		basic_auth bcrypt {
+			{$VTUBER_USERNAME} {$VTUBER_PASSWORD_HASH}
+		}
+		redir / /web-tool/platform/ 302
+		reverse_proxy 127.0.0.1:12393 {
+			header_up -Authorization
+		}
+	}
+}

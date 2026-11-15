@@ -1,0 +1,29 @@
+[Unit]
+Description=Team HTTPS gateway for Persona Studio
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=notify
+User=vtuber-gateway
+Group=vtuber-gateway
+EnvironmentFile=/etc/open-llm-vtuber-gateway/access.env
+Environment=XDG_DATA_HOME=/var/lib/open-llm-vtuber-gateway/data
+Environment=XDG_CONFIG_HOME=/var/lib/open-llm-vtuber-gateway/config
+ExecStart=/usr/local/bin/caddy run --config /etc/open-llm-vtuber-gateway/Caddyfile --adapter caddyfile
+ExecReload=/usr/local/bin/caddy reload --config /etc/open-llm-vtuber-gateway/Caddyfile --adapter caddyfile
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+StateDirectory=open-llm-vtuber-gateway
+StateDirectoryMode=0700
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
