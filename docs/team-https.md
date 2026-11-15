@@ -90,10 +90,15 @@ Once the public certificate is issued, run:
 This verifies trusted HTTPS; rejection of missing/wrong credentials; the
 authenticated Studio, runtime and model resources; and anonymous rejection
 plus authenticated initialization of the real WebSocket. It makes no model
-API calls. The same checks passed against an isolated loopback HTTPS instance
-with a dedicated test CA. That local result does not verify the AWS firewall
-or a public certificate. A separate Chromium check passed team authentication,
+API calls. The same checks also passed against an isolated loopback HTTPS
+instance with a dedicated test CA during setup.
+
+On 2026-11-15, after the user added the AWS HTTPS rule, all 12 checks passed
+through the public hostname with normal certificate verification. The gateway
+had obtained its public certificate through the production ACME endpoint.
+A separate Chromium check used the public URL with certificate verification
+enabled: TLS 1.3, secure browser context, successful team authentication,
 the Studio's embedded live WebSocket connection, and Mao's loaded Live2D canvas
-with rendered frames and no JavaScript errors, using that local TLS instance
-and zero model calls. Physical microphone/speaker output and public-network
-browser access remain unverified.
+with rendered frames and no JavaScript errors. It made zero model calls.
+The listener check confirmed public TCP 443 and loopback-only TCP 12393,
+with no port-80 listener. Physical microphone/speaker output remains unverified.
