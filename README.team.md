@@ -24,7 +24,7 @@ Open-LLM-VTuber를 기반으로 개인 페르소나 에이전트를 만들고, �
 ## 팀원이 읽을 순서
 
 1. [첫 1–2주 계획](docs/plan.md)
-   - 11월 18일 논의용: [페르소나 시스템 설계](docs/persona-management-design.md) — 논문·상용 시스템의 메모리 계층, RAG, 관계 그래프, 상태 관리 비교
+   - 11월 18일 논의용: [페르소나 시스템 설계](docs/persona-management-design.md) — 네 영역의 역할과 성향·목표를 반영한 기억 저장·검색·갱신 구조
    - 관련 배경: [논문·플랫폼 조사](docs/persona-agent-research-2026-11-15.md), [구현 상세 후보](docs/persona-runtime-design.md)
    - 10월 29일 결정 사항과 통합·평가 제안: [시스템 방향](docs/system-direction.md)
    - 실제 작업 순서와 완료 기준: [사전 작업 계획](docs/preparation-plan.md)
