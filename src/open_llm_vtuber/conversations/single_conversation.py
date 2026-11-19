@@ -171,7 +171,7 @@ async def process_single_conversation(
             # full_response will contain partial response before error
         # --- End processing agent response ---
 
-        save_memory = None
+        complete_studio_turn = None
         if (
             studio_turn is not None
             and not generation_failed
@@ -179,12 +179,12 @@ async def process_single_conversation(
             and context.character_config.conf_uid == studio_turn.history_scope
             and context.history_uid == studio_turn.history_uid
         ):
-            save_memory = partial(studio_runtime.remember, studio_turn)
+            complete_studio_turn = partial(studio_runtime.complete, studio_turn)
         await finalize_conversation_turn(
             tts_manager=tts_manager,
             websocket_send=websocket_send,
             client_uid=client_uid,
-            on_complete=save_memory,
+            on_complete=complete_studio_turn,
         )
 
         if context.history_uid and full_response:  # Check full_response before storing

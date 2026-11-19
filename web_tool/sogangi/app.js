@@ -284,7 +284,7 @@ const studioProfile = await getStudioProfile();
     state.assistant.body.textContent += (state.assistant.body.textContent ? ' ' : '') + text;
     ui.messages.scrollTop = ui.messages.scrollHeight;
   }
-  function studioTurnDetails({ preset, affect, previous_affect, appraisal, retrieval, rules, memories }) {
+  function studioTurnDetails({ preset, affect, previous_affect, appraisal, retrieval, rules, memories, task_states = [] }) {
     const details = document.createElement('details');
     details.className = 'studio-turn-context';
     const summary = document.createElement('summary');
@@ -297,6 +297,12 @@ const studioProfile = await getStudioProfile();
     const moodLabel = appraisal === 'ok' && affectChanged ? '캐릭터 감정 변화' : '이전 감정 유지';
     mood.textContent = `${moodLabel} · 쾌·불쾌 ${transition('valence')} · 각성 ${transition('arousal')} · 통제감 ${transition('dominance')}`;
     details.append(summary, mood);
+    const taskStatuses = { not_started: '시작 전', in_progress: '진행 중', completed: '완료' };
+    for (const task of task_states) {
+      const item = document.createElement('p');
+      item.textContent = `현재 과제 · ${task.title} · ${taskStatuses[task.status]}`;
+      details.append(item);
+    }
     const evidence = document.createElement('p');
     evidence.textContent = retrieval === 'ok' ? '답변에 전달된 기억' : '기억 검색을 사용할 수 없었어요.';
     details.append(evidence);

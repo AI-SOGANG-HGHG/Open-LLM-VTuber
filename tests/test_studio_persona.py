@@ -26,6 +26,7 @@ from src.open_llm_vtuber.conversations.single_conversation import (
 from src.open_llm_vtuber.message_handler import message_handler
 from src.open_llm_vtuber.service_context import ServiceContext
 from src.open_llm_vtuber.studio_persona import StudioPersona, apply_studio_persona
+from src.open_llm_vtuber.studio_tasks import TASK_METADATA
 from src.open_llm_vtuber.studio_turn import RECALL_METADATA, studio_presets
 from src.open_llm_vtuber.websocket_handler import WebSocketHandler
 
@@ -221,6 +222,7 @@ class RecordedStudioLLM:
         self.embedding_calls = []
         self.fail_embedding = False
         self.invalid_appraisal = False
+        self.task_update = None
 
     async def embed_texts(self, model, texts):
         self.embedding_calls.append((model, texts))
@@ -261,6 +263,12 @@ class RecordedStudioLLM:
                     "remember": deadline_disclosure
                     or neutral_preference
                     or "기억해 줘" in text,
+                    "relevant_task_ids": [
+                        task["id"]
+                        for task in self.appraisal_request["stored_tasks"]
+                        if "발표" in text
+                    ],
+                    "task_update": self.task_update,
                 }
             )
             return
@@ -460,6 +468,83 @@ class StudioTurnTests(unittest.IsolatedAsyncioTestCase):
         trace = next(e for e in events if e["type"] == "studio-turn-context")
         self.assertEqual(trace["memories"], [])
         self.assertEqual(trace["previous_affect"]["valence"], 0.2)
+
+    async def test_latest_task_state_survives_reconnection_after_memory_search_fails(
+        self,
+    ):
+        history_uid = self.context.history_uid
+        first = "내일이 발표인데 아직 초안도 작성하지 못했어."
+        self.llm.task_update = {
+            "task_id": None,
+            "title": "발표 준비",
+            "status": "in_progress",
+            "evidence": first,
+        }
+        await self.turn(first)
+        metadata = get_metadata(self.scope, history_uid)
+        (original,) = metadata[TASK_METADATA]
+        self.assertEqual(original["status"], "in_progress")
+        self.assertEqual(
+            original["source_event_id"], metadata[RECALL_METADATA][0]["id"]
+        )
+
+        finished = "발표 준비를 모두 끝냈어."
+        self.llm.fail_embedding = True
+        self.llm.task_update = {
+            "task_id": original["id"],
+            "title": "발표 준비",
+            "status": "completed",
+            "evidence": finished,
+        }
+        await self.turn(finished)
+        (completed,) = get_metadata(self.scope, history_uid)[TASK_METADATA]
+        self.assertEqual(completed["id"], original["id"])
+        self.assertEqual(completed["status"], "completed")
+        self.assertNotEqual(completed["source_event_id"], original["source_event_id"])
+        self.assertIn(
+            first, [row["content"] for row in get_history(self.scope, history_uid)]
+        )
+
+        self.connect_agent()
+        self.agent.set_memory_from_history(self.scope, history_uid)
+        for index in range(14):
+            self.agent._add_message(f"다른 대화 {index}", "user")
+        events = await self.turn("발표 준비 상태가 어떻게 돼?")
+        trace = next(
+            event for event in events if event["type"] == "studio-turn-context"
+        )
+        self.assertEqual(trace["task_states"], [completed])
+        context = self.llm.request[-1]["content"][0]["text"].split("\n", 1)[1]
+        self.assertEqual(json.loads(context)["task_states"], [completed])
+        self.assertNotIn(finished, str(self.llm.request[:-1]))
+
+        self.context.history_uid = create_new_history(self.scope)
+        other = await self.turn("발표 준비 상태가 어떻게 돼?")
+        trace = next(event for event in other if event["type"] == "studio-turn-context")
+        self.assertEqual(trace["task_states"], [])
+
+    async def test_task_update_needs_verbatim_evidence_and_a_completed_turn(self):
+        history_uid = self.context.history_uid
+        progress = "발표 준비를 시작했어."
+        self.llm.task_update = {
+            "task_id": None,
+            "title": "발표 준비",
+            "status": "completed",
+            "evidence": "발표 준비가 끝났어.",
+        }
+        await self.turn(progress)
+        self.assertNotIn(TASK_METADATA, get_metadata(self.scope, history_uid))
+
+        self.llm.task_update.update(status="in_progress", evidence=progress)
+        with (
+            patch(
+                "src.open_llm_vtuber.conversations.single_conversation.finalize_conversation_turn",
+                side_effect=asyncio.CancelledError,
+            ),
+            self.assertRaises(asyncio.CancelledError),
+        ):
+            await self.turn(progress)
+        self.assertNotIn(TASK_METADATA, get_metadata(self.scope, history_uid))
 
 
 if __name__ == "__main__":
