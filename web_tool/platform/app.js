@@ -1,6 +1,8 @@
 // Local Studio settings; live conversations use the existing backend inside an embedded runtime.
 const DATA_KEY = 'persona-studio.demo.v1';
 const SESSION_KEY = 'persona-studio.demo-session.v1';
+const CATALOG_VERSION = 3;
+const DEMO_MEMORY = '프로젝트 발표는 오전 10시에 시작하고 발표 시간은 5분이다.';
 const $ = (selector) => document.querySelector(selector);
 const main = $('#mainContent');
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -8,6 +10,12 @@ const presets = {
   warm: { label: '다정한 동료', tone: '친근한 반말', persona: '따뜻하고 호기심 많은 동료. 상대의 이야기에 공감하고, 함께할 수 있는 작은 다음 행동을 제안한다.', tags: ['다정한', '공감하는', '함께하는'], exploration: 40 },
   curious: { label: '호기심 많은 탐험가', tone: '활기찬 반말', persona: '새로운 장소와 아이디어에 호기심이 많다. 다양한 가능성을 이야기하고 새로운 시도를 제안한다.', tags: ['호기심', '탐험', '새로운 시도'], exploration: 85 },
   calm: { label: '차분한 전략가', tone: '차분한 존댓말', persona: '차분하고 계획적인 동료. 목표를 확인하고, 일을 작은 단계로 나누어 설명한다.', tags: ['차분한', '계획적인', '신중한'], exploration: 25 },
+};
+const studioPresets = {
+  'direct-reviewer': '직설적인 검토자',
+  'supportive-coach': '다정한 코치',
+  calm: '차분한 전략가',
+  warm: '다정한 동료',
 };
 const avatarAssets = {
   mao: { name: 'Mao', label: 'Open-LLM-VTuber 기본', image: './assets/mao.png', model: '/live2d-models/mao_pro/runtime/mao_pro.model3.json', credit: '© Live2D Inc.' },
@@ -29,7 +37,27 @@ function catalogCharacters() {
   const moa = createCharacter('moa', '모아', '작은 호기심에서 시작하는, 우리만의 새로운 모험.', 'curious');
   return [mao, sogangi, moa];
 }
-function initialData() { return { version: 1, catalogVersion: 2, workspaceId: crypto.randomUUID(), characters: catalogCharacters(), activities: [] }; }
+function demoCharacters() {
+  const demos = [
+    ['direct-reviewer', '마감 위험을 짚고 지금 할 일을 분명하게 제안해요.'],
+    ['supportive-coach', '부담을 함께 살피고 시작하기 쉬운 단계를 제안해요.'],
+  ];
+  return demos.map(([id, description]) => {
+    const char = createCharacter(id, studioPresets[id], description, 'calm', 'mao');
+    char.studioPreset = id;
+    char.memories.push({ id: crypto.randomUUID(), text: DEMO_MEMORY, at: now() });
+    return char;
+  });
+}
+function initialData() {
+  return {
+    version: 1,
+    catalogVersion: CATALOG_VERSION,
+    workspaceId: crypto.randomUUID(),
+    characters: [...demoCharacters(), ...catalogCharacters()],
+    activities: [],
+  };
+}
 let storageWarning = false;
 let needsMigration = false;
 function loadData() {
@@ -50,15 +78,18 @@ function loadData() {
       ids.add(char.id);
       char.greeting = typeof char.greeting === 'string' ? char.greeting : defaultGreeting(char);
       char.favorite = char.favorite === true;
+      char.studioPreset = Object.hasOwn(studioPresets, char.studioPreset) ? char.studioPreset : '';
     }
     if (!data.activities.every((entry) => entry && ['id', 'characterId', 'name', 'title', 'at'].every((key) => typeof entry[key] === 'string'))) throw Error('Invalid activity');
     if (typeof data.workspaceId !== 'string' || !/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(data.workspaceId)) {
       data.workspaceId = crypto.randomUUID(); needsMigration = true;
     }
-    // Add the newly offered default once, preserving all previous user edits and deletions afterward.
-    if (data.catalogVersion !== 2) {
-      if (!ids.has('mao')) data.characters.unshift(catalogCharacters()[0]);
-      data.catalogVersion = 2;
+    const catalogVersion = Number.isSafeInteger(data.catalogVersion) ? data.catalogVersion : 0;
+    // Add defaults once per catalog release so edits and deletions survive reloads.
+    if (catalogVersion < CATALOG_VERSION) {
+      if (catalogVersion < 2 && !ids.has('mao')) data.characters.unshift(catalogCharacters()[0]);
+      data.characters.unshift(...demoCharacters().filter((char) => !ids.has(char.id)));
+      data.catalogVersion = CATALOG_VERSION;
       needsMigration = true;
     }
     return data;
@@ -127,6 +158,7 @@ async function restoreSession() {
     if (authMode === 'demo') {
       try { profile = sessionStorage.getItem(SESSION_KEY) || ''; } catch { profile = ''; }
       render();
+      if (profile && needsMigration) persist();
     } else if (status.authenticated && typeof status.username === 'string') {
       if (profile !== status.username) enterProfile(status.username);
     } else if (profile) clearProfile();
@@ -218,18 +250,26 @@ function avatarPicker(char) {
   return `<fieldset class="avatar-picker"><legend>캐릭터 외형</legend>${Object.entries(avatarAssets).map(([id, asset]) => `<label class="avatar-option"><input type="radio" name="avatar" value="${id}" ${char.avatar === id ? 'checked' : ''} /><span class="avatar-option-art ${id}">${asset.image ? `<img src="${asset.image}" alt="" />` : '<span aria-hidden="true">✳</span>'}</span><strong>${asset.name}</strong><small>${id === 'mao' ? '기본 Live2D' : id === 'sogangi' ? '캠퍼스 동료' : '나만의 심볼'}</small></label>`).join('')}</fieldset>`;
 }
 function profilePreview(char, chat = false) {
-  return `<aside class="preview-card ${chat ? 'chat-character' : 'settings-preview'}"><div class="preview-art ${char.avatar}" id="settingsAvatar">${avatar(char)}</div><div class="preview-profile"><p class="eyebrow">${chat ? 'YOUR CONVERSATION PARTNER' : 'CHARACTER PREVIEW'}</p><h2 id="previewName">${escapeHtml(char.name)}</h2><p>${escapeHtml(char.description)}</p><div class="tags">${tags(char)}</div>${chat ? `<p class="field-help" style="margin:17px 0">${escapeHtml(char.tone)} · ${presets[char.template].label}</p><button class="button secondary" data-action="preview" data-id="${escapeHtml(char.id)}">외형만 미리보기 ◉</button>` : `<div class="greeting-quote" id="previewGreeting">“${escapeHtml(char.greeting)}”</div><dl class="definition-list"><dt>말투</dt><dd>${escapeHtml(char.tone)}</dd><dt>기억</dt><dd>${char.memories.length}개 · 직접 등록</dd><dt>연결</dt><dd>방송·게임 준비 중</dd></dl>`}${char.avatar === 'mao' ? '<p class="asset-credit">Mao · © Live2D Inc.</p>' : ''}</div></aside>`;
+  const liveProfile = char.studioPreset
+    ? `<dt>대화 페르소나</dt><dd>${escapeHtml(studioPresets[char.studioPreset])}</dd>`
+    : `<dt>말투</dt><dd>${escapeHtml(char.tone)}</dd>`;
+  return `<aside class="preview-card ${chat ? 'chat-character' : 'settings-preview'}"><div class="preview-art ${char.avatar}" id="settingsAvatar">${avatar(char)}</div><div class="preview-profile"><p class="eyebrow">${chat ? 'YOUR CONVERSATION PARTNER' : 'CHARACTER PREVIEW'}</p><h2 id="previewName">${escapeHtml(char.name)}</h2><p>${escapeHtml(char.description)}</p><div class="tags">${tags(char)}</div>${chat ? `<p class="field-help" style="margin:17px 0">${escapeHtml(char.tone)} · ${presets[char.template].label}</p><button class="button secondary" data-action="preview" data-id="${escapeHtml(char.id)}">외형만 미리보기 ◉</button>` : `<div class="greeting-quote" id="previewGreeting">“${escapeHtml(char.greeting)}”</div><dl class="definition-list">${liveProfile}<dt>기억</dt><dd>${char.memories.length}개 · 직접 등록</dd><dt>연결</dt><dd>방송·게임 준비 중</dd></dl>`}${char.avatar === 'mao' ? '<p class="asset-credit">Mao · © Live2D Inc.</p>' : ''}</div></aside>`;
 }
 function settingsPanel(char) {
   return `<div class="detail-grid"><form class="panel" id="settingsForm" data-id="${escapeHtml(char.id)}"><p class="eyebrow">MAKE IT YOURS</p><h2>이 캐릭터만의 매력을 담아주세요.</h2><p class="muted">외형부터 첫 인사까지, 원하는 모습으로 다듬어보세요.</p>${avatarPicker(char)}
     <div class="form-columns"><div><label for="editName">이름</label><input id="editName" name="name" value="${escapeHtml(char.name)}" maxlength="30" required /></div><div><label for="editTone">말투</label><select id="editTone" name="tone">${['친근한 반말', '활기찬 반말', '차분한 존댓말'].map((tone) => `<option${char.tone === tone ? ' selected' : ''}>${tone}</option>`).join('')}</select></div></div>
     <label for="editDescription">한 줄 소개</label><input id="editDescription" name="description" value="${escapeHtml(char.description)}" maxlength="100" required />
     <label for="editGreeting">첫 인사</label><textarea id="editGreeting" name="greeting" maxlength="300" style="min-height:85px" required>${escapeHtml(char.greeting)}</textarea><p class="field-help">대화 실험실을 처음 열었을 때 표시할 한마디예요.</p>
+    <label for="editStudioPreset">실제 대화 페르소나</label><select id="editStudioPreset" name="studioPreset"><option value="">직접 작성한 성격과 말투</option>${Object.entries(studioPresets).map(([id, label]) => `<option value="${id}"${char.studioPreset === id ? ' selected' : ''}>${label}</option>`).join('')}</select><p class="field-help">팀 프리셋을 고르면 서버의 성향·가치·말투와 함께 기억 검색과 감정 상태가 적용돼요.</p>
     <label for="editPersona">성격과 대화 지침</label><textarea id="editPersona" name="persona" maxlength="2000" required>${escapeHtml(char.persona)}</textarea>
-    <label for="editExploration">탐색 성향 <span id="explorationValue">${char.exploration}</span></label><input id="editExploration" name="exploration" type="range" min="0" max="100" value="${char.exploration}" /><div class="range-label"><span>익숙함을 선호</span><span>새로운 시도를 선호</span></div><p class="field-help">행동 성향 설정 예시예요. 게임 행동에는 아직 연결되지 않아요.</p><div class="panel-actions"><button type="submit" class="button primary">변경사항 저장 ↗</button></div><p class="field-help">저장한 설정은 다음 대화실 연결에 적용돼요. 기존 서강이 앱의 기본 설정은 변경하지 않아요.</p></form>${profilePreview(char)}</div>`;
+    <label for="editExploration">탐색 성향 <span id="explorationValue">${char.exploration}</span></label>
+    <input id="editExploration" name="exploration" type="range" min="0" max="100" value="${char.exploration}" aria-describedby="explorationHelp"${char.studioPreset ? ' disabled' : ''} />
+    <div class="range-label"><span>익숙함을 선호</span><span>새로운 시도를 선호</span></div>
+    <p id="explorationHelp" class="field-help">직접 작성한 성격과 말투에 적용돼요. 팀 프리셋은 서버에 설정된 호기심 값을 사용해요.</p>
+    <div class="panel-actions"><button type="submit" class="button primary">변경사항 저장 ↗</button></div><p class="field-help">저장한 설정은 다음 대화실 연결에 적용돼요. 기존 서강이 앱의 기본 설정은 변경하지 않아요.</p></form>${profilePreview(char)}</div>`;
 }
 function chatPanel(char) {
-  return `<section class="runtime-toolbar"><div><a class="runtime-back" href="#characters">← 스튜디오</a><span class="status-dot"></span><strong id="runtimeStatus" role="status">${escapeHtml(char.name)} 연결 준비 중…</strong></div><div><a class="button secondary" href="${charLink(char)}">캐릭터 설정</a><button class="button secondary" data-action="runtime-layout">스튜디오 보기</button><button class="button secondary" data-action="runtime-connect" data-id="${escapeHtml(char.id)}">다시 연결</button><button class="button secondary" data-action="runtime-disconnect">연결 해제</button></div></section><div class="studio-runtime" id="studioRuntime"><iframe id="studioFrame" title="${escapeHtml(char.name)} 실제 음성·Live2D 대화실" allow="microphone; autoplay" referrerpolicy="no-referrer"></iframe></div><p class="field-help">현재 설정과 직접 등록한 기억 메모를 적용한 실제 대화예요. 메시지를 보내면 서버에 설정된 모델·음성 API를 사용해요. 자동 기억 추출과 RAG 검색은 아직 연결되지 않았어요.</p>`;
+  return `<section class="runtime-toolbar"><div><a class="runtime-back" href="#characters">← 스튜디오</a><span class="status-dot"></span><strong id="runtimeStatus" role="status">${escapeHtml(char.name)} 연결 준비 중…</strong></div><div><a class="button secondary" href="${charLink(char)}">캐릭터 설정</a><button class="button secondary" data-action="runtime-layout">스튜디오 보기</button><button class="button secondary" data-action="runtime-connect" data-id="${escapeHtml(char.id)}">다시 연결</button><button class="button secondary" data-action="runtime-disconnect">연결 해제</button></div></section><div class="studio-runtime" id="studioRuntime"><iframe id="studioFrame" title="${escapeHtml(char.name)} 실제 음성·Live2D 대화실" allow="microphone; autoplay" referrerpolicy="no-referrer"></iframe></div><p class="field-help">${char.studioPreset ? '답변 아래에서 적용된 페르소나, 감정과 답변에 전달된 기억을 확인할 수 있어요.' : '직접 작성한 성격과 등록 메모로 대화해요. 기억 검색을 사용하려면 실제 대화 페르소나에서 팀 프리셋을 선택해 주세요.'}</p>`;
 }
 function sampleChatPanel(char) {
   return `<div class="chat-layout">${profilePreview(char, true)}<section class="panel chat-panel"><div class="chat-top"><div><h2>${escapeHtml(char.name)}</h2><p>${escapeHtml(char.tone)} · ${presets[char.template].label}</p></div><span class="demo-pill">샘플 대화</span></div><div id="chatMessages" class="chat-messages" role="log" aria-label="샘플 대화 기록"></div><form id="chatForm" class="chat-compose" data-id="${escapeHtml(char.id)}"><input name="message" id="chatInput" placeholder="${escapeHtml(char.name)}에게 메시지 보내기…" aria-label="샘플 메시지" maxlength="500" autocomplete="off" required /><button class="button primary" type="submit" aria-label="메시지 보내기">↑</button></form><p class="chat-footnote">시나리오 기반 샘플 응답이에요. 실제 AI 모델은 연결되지 않았어요.</p></section></div>`;
@@ -241,7 +281,7 @@ function renderMessages(char) {
 }
 function memoryPanel(char) {
   return `<section class="panel"><p class="eyebrow">THINGS TO REMEMBER</p><h2>작은 기억이, 특별한 캐릭터를 만들어요.</h2><p class="muted">취향, 약속, 함께한 일. 캐릭터가 기억했으면 하는 내용을 모아두세요.</p><form id="memoryForm" class="memory-form" data-id="${escapeHtml(char.id)}"><input name="memory" placeholder="예: 매주 수요일에 프로젝트 회의를 한다." aria-label="새 기억" maxlength="300" required /><button type="submit" class="button primary">＋ 기억 추가</button></form>
-    ${char.memories.length ? char.memories.map((memory) => `<div class="memory-item"><span>${escapeHtml(memory.text)}<small>직접 등록 · ${shortDate(memory.at)}</small></span><button class="icon-button" data-action="remove-memory" data-id="${escapeHtml(char.id)}" data-memory="${escapeHtml(memory.id)}" aria-label="기억 삭제">×</button></div>`).join('') : '<div class="empty-state">아직 비어 있는 기억 노트.<br />위 입력란에서 첫 번째 기억을 남겨보세요.</div>'}<p class="field-help" style="margin-top:22px">대화실을 연결할 때 최근 메모 최대 50개를 참고 문맥으로 전달해요. 자동 추출·RAG 검색은 아직 없어요.</p></section>`;
+    ${char.memories.length ? char.memories.map((memory) => `<div class="memory-item"><span>${escapeHtml(memory.text)}<small>직접 등록 · ${shortDate(memory.at)}</small></span><button class="icon-button" data-action="remove-memory" data-id="${escapeHtml(char.id)}" data-memory="${escapeHtml(memory.id)}" aria-label="기억 삭제">×</button></div>`).join('') : '<div class="empty-state">아직 비어 있는 기억 노트.<br />위 입력란에서 첫 번째 기억을 남겨보세요.</div>'}<p class="field-help" style="margin-top:22px">${char.studioPreset ? '대화실에서 직접 등록한 최근 메모 최대 50개 중 질문과 관련된 항목을 검색해요.' : '직접 작성한 페르소나는 대화실에 최근 메모 최대 50개를 전달해요.'}</p></section>`;
 }
 function renderConnections(char) {
   const selected = char || data.characters.find((item) => item.id === 'sogangi') || data.characters[0];
@@ -284,9 +324,12 @@ function connectRuntime(char) {
   const origin = runtimeOrigin();
   const payload = {
     workspace_id: data.workspaceId, character_id: char.id, name: char.name,
-    description: char.description, persona: char.persona, tone: char.tone,
-    avatar: char.avatar, exploration: char.exploration, greeting: char.greeting,
+    description: char.description,
+    avatar: char.avatar, greeting: char.greeting,
     memories: char.memories.slice(-50).map((memory) => memory.text.trim()).filter(Boolean),
+    ...(char.studioPreset
+      ? { preset_id: char.studioPreset }
+      : { persona: char.persona, tone: char.tone, exploration: char.exploration }),
   };
   activeRuntime = { frame, instanceId, origin, charId: char.id, payload, turns: new Set() };
   $('#runtimeStatus').textContent = `${char.name}의 설정으로 대화 서버에 연결 중…`;
@@ -459,6 +502,7 @@ document.querySelectorAll('[data-close-dialog]').forEach((button) => button.addE
 main.addEventListener('input', (event) => {
   if (event.target.id === 'characterSearch') { searchQuery = event.target.value; renderCards(); }
   if (event.target.id === 'editExploration') $('#explorationValue').textContent = event.target.value;
+  if (event.target.id === 'editStudioPreset') $('#editExploration').disabled = Object.hasOwn(studioPresets, event.target.value);
   if (event.target.id === 'editName' && $('#previewName')) $('#previewName').textContent = event.target.value;
   if (event.target.id === 'editGreeting' && $('#previewGreeting')) $('#previewGreeting').textContent = `“${event.target.value}”`;
   if (event.target.name === 'avatar' && $('#settingsAvatar')) {
@@ -534,7 +578,9 @@ main.addEventListener('submit', (event) => {
   if (form.id === 'settingsForm') {
     const name = values.get('name').trim(), description = values.get('description').trim(), persona = values.get('persona').trim(), greeting = values.get('greeting').trim();
     if (!name || !description || !persona || !greeting) { toast('이름, 소개, 첫 인사, 성격 지침을 입력해 주세요.', true); return; }
-    Object.assign(char, { name, description, persona, greeting, avatar: values.get('avatar'), tone: values.get('tone'), exploration: Number(values.get('exploration')), updatedAt: now() });
+    const studioPreset = values.get('studioPreset');
+    const exploration = Number(form.elements.namedItem('exploration').value);
+    Object.assign(char, { name, description, persona, greeting, avatar: values.get('avatar'), tone: values.get('tone'), exploration, studioPreset: Object.hasOwn(studioPresets, studioPreset) ? studioPreset : '', updatedAt: now() });
     logActivity(char, '캐릭터 설정 저장'); persist('캐릭터 설정을 저장했어요.'); render(); $('#editName').focus({ preventScroll: true });
   } else if (form.id === 'memoryForm') {
     const text = values.get('memory').trim(); if (!text) return;

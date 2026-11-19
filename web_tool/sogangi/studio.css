@@ -22,6 +22,10 @@ html[data-studio] .message.assistant { background: #36213f; color: #ecdcf3; bord
 html[data-studio] .message.assistant .message-body { background: #26374ad9; border-color: #9fbed044; color: #f0e9f3; }
 html[data-studio] .message.user .message-body { background: #644638df; border-color: #cda18b55; color: #ffeddf; }
 html[data-studio] .message-label { color: #c8a7d6; }
+html[data-studio] .studio-turn-context { margin-top: 8px; color: #ead3f2; font-size: 13px; overflow-wrap: anywhere; }
+html[data-studio] .studio-turn-context summary { cursor: pointer; min-height: 24px; }
+html[data-studio] .studio-turn-context p, html[data-studio] .studio-turn-context ul { margin: 6px 0; }
+html[data-studio] .studio-turn-context ul { padding-inline-start: 20px; }
 html[data-studio] .welcome h3 { color: #f2e5f7; }
 html[data-studio] .welcome p { color: #c7adD4; white-space: pre-wrap; }
 html[data-studio] .welcome-spark { color: #ff9873; }

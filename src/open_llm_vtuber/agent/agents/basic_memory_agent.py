@@ -55,6 +55,7 @@ class BasicMemoryAgent(AgentInterface):
         """Initialize agent with LLM and configuration."""
         super().__init__()
         self._memory = []
+        self.studio_runtime = None
         self._live2d_model = live2d_model
         self._tts_preprocessor_config = tts_preprocessor_config
         self._faster_first_response = faster_first_response
@@ -126,6 +127,13 @@ class BasicMemoryAgent(AgentInterface):
         """Set the LLM for chat completion."""
         self._llm = llm
         self.chat = self._chat_function_factory()
+
+    def enable_studio_runtime(self, preset_id, preset, notes, embedding_model) -> None:
+        from ...studio_turn import StudioTurnRuntime
+
+        self.studio_runtime = StudioTurnRuntime(
+            preset_id, preset, notes, self._llm, embedding_model
+        )
 
     def set_system(self, system: str):
         """Set the system prompt."""
@@ -252,9 +260,21 @@ class BasicMemoryAgent(AgentInterface):
 
     def _to_messages(self, input_data: BatchInput) -> List[Dict[str, Any]]:
         """Prepare messages for LLM API call."""
-        messages = self._memory.copy()
+        if input_data.studio_context is not None:
+            messages = self._memory[-12:]
+            if messages and messages[0]["role"] == "assistant":
+                messages = messages[1:]
+        else:
+            messages = self._memory.copy()
         user_content = []
         text_prompt = self._to_text_prompt(input_data)
+        if input_data.studio_context is not None:
+            user_content.append(
+                {
+                    "type": "text",
+                    "text": f"서버가 선택한 대화 문맥:\n{input_data.studio_context}",
+                }
+            )
         if text_prompt:
             user_content.append({"type": "text", "text": text_prompt})
 
