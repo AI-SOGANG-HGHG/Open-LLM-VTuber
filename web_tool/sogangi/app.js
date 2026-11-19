@@ -105,6 +105,7 @@ const studioProfile = await getStudioProfile();
     acked: false,
     discard: false,
     assistant: null,
+    studioTurn: null,
     started: 0,
     firstAudio: null,
     firstText: null,
@@ -276,9 +277,46 @@ const studioProfile = await getStudioProfile();
   function appendAssistant(text) {
     text = clean(text);
     if (!text) return;
-    if (!state.assistant) state.assistant = message('assistant');
+    if (!state.assistant) {
+      state.assistant = message('assistant');
+      if (state.studioTurn) state.assistant.node.append(studioTurnDetails(state.studioTurn));
+    }
     state.assistant.body.textContent += (state.assistant.body.textContent ? ' ' : '') + text;
     ui.messages.scrollTop = ui.messages.scrollHeight;
+  }
+  function studioTurnDetails({ preset, affect, previous_affect, appraisal, retrieval, rules, memories }) {
+    const details = document.createElement('details');
+    details.className = 'studio-turn-context';
+    const summary = document.createElement('summary');
+    summary.textContent = `${preset.label} · 불러온 기억 ${memories.length}개`;
+    const mood = document.createElement('p');
+    const transition = (axis) => previous_affect
+      ? `${previous_affect[axis].toFixed(2)} → ${affect[axis].toFixed(2)}`
+      : affect[axis].toFixed(2);
+    const affectChanged = !previous_affect || Object.keys(affect).some(axis => affect[axis] !== previous_affect[axis]);
+    const moodLabel = appraisal === 'ok' && affectChanged ? '캐릭터 감정 변화' : '이전 감정 유지';
+    mood.textContent = `${moodLabel} · 쾌·불쾌 ${transition('valence')} · 각성 ${transition('arousal')} · 통제감 ${transition('dominance')}`;
+    details.append(summary, mood);
+    const evidence = document.createElement('p');
+    evidence.textContent = retrieval === 'ok' ? '답변에 전달된 기억' : '기억 검색을 사용할 수 없었어요.';
+    details.append(evidence);
+    const list = document.createElement('ul');
+    for (const memory of memories) {
+      const item = document.createElement('li');
+      const source = memory.source === 'manual_note' ? '기억 노트' : '이 대화의 사용자 발화';
+      item.textContent = `${source} · ${memory.text}`;
+      list.append(item);
+    }
+    if (memories.length) details.append(list);
+    else if (retrieval === 'ok') evidence.textContent += ' 없음';
+    const appliedRules = rules.map(rule => rule.behavior);
+    if (!appliedRules.length && appraisal === 'ok' && retrieval === 'ok') appliedRules.push('적용된 규칙 없음');
+    for (const behavior of appliedRules) {
+      const item = document.createElement('p');
+      item.textContent = `행동 규칙 · ${behavior}`;
+      details.append(item);
+    }
+    return details;
   }
   function clearTimers() {
     clearTimeout(state.timeout);
@@ -419,6 +457,7 @@ const studioProfile = await getStudioProfile();
     state.synthDone = false;
     state.acked = false;
     state.assistant = null;
+    state.studioTurn = null;
     state.firstAudio = null;
     state.firstText = null;
     state.textStreaming = false;
@@ -489,6 +528,7 @@ const studioProfile = await getStudioProfile();
     for (const node of ui.messages.querySelectorAll('.message')) node.remove();
     ui.welcome.hidden = false;
     state.assistant = null;
+    state.studioTurn = null;
     state.lastQuestion = null;
     state.lastExpression = 'neutral';
     state.recoverable = false;
@@ -648,6 +688,8 @@ const studioProfile = await getStudioProfile();
         } else {
           state.ws?.close(4000, 'History unavailable');
         }
+      } else if (data.type === 'studio-turn-context' && studioProfile && state.busy && !state.discard) {
+        state.studioTurn = data;
       } else if (data.type === 'text-response' && state.busy && !state.discard) {
         state.textStreaming = true;
         if (state.firstText === null) state.firstText = performance.now() - state.started;

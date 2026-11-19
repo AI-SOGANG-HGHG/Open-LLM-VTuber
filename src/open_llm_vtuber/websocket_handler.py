@@ -424,6 +424,20 @@ class WebSocketHandler:
             json.dumps({"type": "history-list", "histories": histories})
         )
 
+    async def _cancel_studio_turn(self, client_uid: str) -> None:
+        context = self.client_contexts[client_uid]
+        task = self.current_conversation_tasks.get(client_uid)
+        if (
+            getattr(context.agent_engine, "studio_runtime", None) is not None
+            and task
+            and not task.done()
+        ):
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+
     async def _handle_fetch_history(
         self, websocket: WebSocket, client_uid: str, data: dict
     ):
@@ -447,6 +461,7 @@ class WebSocketHandler:
             messages = get_history(
                 context.character_config.conf_uid, history_uid, strict=True
             )
+            await self._cancel_studio_turn(client_uid)
             context.agent_engine.set_memory_from_history(
                 conf_uid=context.character_config.conf_uid,
                 history_uid=history_uid,
@@ -482,6 +497,7 @@ class WebSocketHandler:
     ) -> None:
         """Handle creation of new chat history"""
         context = self.client_contexts[client_uid]
+        await self._cancel_studio_turn(client_uid)
         try:
             history_uid = create_new_history(context.character_config.conf_uid)
         except (OSError, ValueError, TypeError):
@@ -516,10 +532,15 @@ class WebSocketHandler:
             return
 
         context = self.client_contexts[client_uid]
+        if history_uid == context.history_uid:
+            await self._cancel_studio_turn(client_uid)
         success = delete_history(
             context.character_config.conf_uid,
             history_uid,
         )
+        studio_runtime = getattr(context.agent_engine, "studio_runtime", None)
+        if success and studio_runtime is not None:
+            studio_runtime.forget(history_uid)
         await websocket.send_text(
             json.dumps(
                 {
@@ -602,6 +623,7 @@ class WebSocketHandler:
         config_file_name = data.get("file")
         if config_file_name:
             context = self.client_contexts[client_uid]
+            await self._cancel_studio_turn(client_uid)
             await context.handle_config_switch(websocket, config_file_name)
 
     async def _handle_studio_persona(

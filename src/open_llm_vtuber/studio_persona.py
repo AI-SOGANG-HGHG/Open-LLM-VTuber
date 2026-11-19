@@ -1,13 +1,15 @@
 """Apply the Studio's public character fields to a single connection, never global config."""
 
 from hashlib import sha256
+from os import getenv
 from typing import Annotated, Literal
 from uuid import UUID
 
 from loguru import logger
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from .agent.agent_factory import AgentFactory
+from .studio_turn import studio_presets
 
 MemoryText = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=300)
@@ -21,11 +23,21 @@ class StudioPersona(BaseModel):
     character_id: str = Field(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")
     name: str = Field(min_length=1, max_length=30)
     description: str = Field(default="", max_length=100)
-    persona: str = Field(min_length=1, max_length=2000)
-    tone: Literal["친근한 반말", "활기찬 반말", "차분한 존댓말"]
+    persona: str | None = Field(default=None, min_length=1, max_length=2000)
+    tone: Literal["친근한 반말", "활기찬 반말", "차분한 존댓말"] | None = None
     avatar: Literal["mao", "sogangi", "symbol"]
     exploration: int = Field(default=40, ge=0, le=100)
     memories: list[MemoryText] = Field(default_factory=list, max_length=50)
+    preset_id: str | None = Field(default=None, pattern=r"^[a-z0-9_-]{1,40}$")
+
+    @model_validator(mode="after")
+    def validate_persona(self):
+        if self.preset_id:
+            if self.preset_id not in studio_presets():
+                raise ValueError("Unknown Studio preset")
+        elif self.persona is None or self.tone is None:
+            raise ValueError("A custom Studio persona requires instructions and tone")
+        return self
 
     @property
     def history_scope(self) -> str:
@@ -51,11 +63,14 @@ class StudioPersona(BaseModel):
 
 async def apply_studio_persona(context, profile: StudioPersona) -> None:
     """Build first, commit only on success; all server credentials stay on the server."""
+    preset = studio_presets()[profile.preset_id] if profile.preset_id else None
     character = context.character_config.model_copy(deep=True)
     character.conf_uid = profile.history_scope
     character.conf_name = profile.name
     character.character_name = profile.name
-    character.persona_prompt = profile.prompt()
+    character.persona_prompt = (
+        preset.system_prompt(profile.name) if preset else profile.prompt()
+    )
     agent_config = character.agent_config
     agent_config.conversation_agent_choice = "basic_memory_agent"
     agent_config.agent_settings.basic_memory_agent.use_mcpp = False
@@ -78,6 +93,17 @@ async def apply_studio_persona(context, profile: StudioPersona) -> None:
         character_avatar=character.avatar or "",
         system_config=context.system_config.model_dump(),
     )
+    if preset:
+        default_model = {
+            "gemini_llm": "gemini-embedding-001",
+            "openai_llm": "text-embedding-3-small",
+        }.get(provider)
+        agent.enable_studio_runtime(
+            profile.preset_id,
+            preset,
+            profile.memories,
+            getenv("STUDIO_EMBEDDING_MODEL", default_model),
+        )
     old_agent = context.agent_engine
     context.character_config = character
     context.config = context.config.model_copy(update={"character_config": character})

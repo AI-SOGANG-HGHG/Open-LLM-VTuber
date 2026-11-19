@@ -1,4 +1,5 @@
 import asyncio
+from collections.abc import Callable
 import re
 from typing import Optional, Union, Any, List, Dict
 import numpy as np
@@ -183,6 +184,8 @@ async def finalize_conversation_turn(
     websocket_send: WebSocketSend,
     client_uid: str,
     broadcast_ctx: Optional[BroadcastContext] = None,
+    *,
+    on_complete: Callable[[], None] | None = None,
 ) -> None:
     """Finalize a conversation turn"""
     await tts_manager.wait_for_completion()
@@ -205,6 +208,8 @@ async def finalize_conversation_turn(
             logger.warning(f"No playback completion response from {client_uid}")
             return
 
+    if on_complete is not None:
+        on_complete()
     await websocket_send(json.dumps({"type": "force-new-message"}))
 
     if broadcast_ctx and broadcast_ctx.broadcast_func:

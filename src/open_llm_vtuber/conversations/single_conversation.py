@@ -1,4 +1,5 @@
 from typing import Union, List, Dict, Any, Optional
+from functools import partial
 import asyncio
 import json
 from loguru import logger
@@ -49,6 +50,7 @@ async def process_single_conversation(
     # Create TTSTaskManager for this conversation
     tts_manager = TTSTaskManager()
     full_response = ""  # Initialize full_response here
+    studio_turn = None
 
     try:
         # Send initial signals
@@ -86,6 +88,23 @@ async def process_single_conversation(
         if images:
             logger.info(f"With {len(images)} images")
 
+        studio_runtime = getattr(context.agent_engine, "studio_runtime", None)
+        if (
+            studio_runtime is not None
+            and context.history_uid
+            and input_text.strip()
+            and not any(
+                (metadata or {}).get(flag)
+                for flag in ("skip_memory", "skip_history", "proactive_speak")
+            )
+        ):
+            studio_turn = await studio_runtime.prepare(
+                context.character_config.conf_uid, context.history_uid, input_text
+            )
+            batch_input.studio_context = studio_turn.context
+            await websocket_send(json.dumps(studio_turn.trace, ensure_ascii=False))
+
+        generation_failed = False
         try:
             # agent.chat yields Union[SentenceOutput, Dict[str, Any]]
             agent_output_stream = context.agent_engine.chat(batch_input)
@@ -137,6 +156,7 @@ async def process_single_conversation(
                     logger.debug(f"Unexpected item content: {output_item}")
 
         except Exception as e:
+            generation_failed = True
             logger.exception(
                 f"Error processing agent response stream: {e}"
             )  # Log with stack trace
@@ -151,10 +171,20 @@ async def process_single_conversation(
             # full_response will contain partial response before error
         # --- End processing agent response ---
 
+        save_memory = None
+        if (
+            studio_turn is not None
+            and not generation_failed
+            and full_response.strip()
+            and context.character_config.conf_uid == studio_turn.history_scope
+            and context.history_uid == studio_turn.history_uid
+        ):
+            save_memory = partial(studio_runtime.remember, studio_turn)
         await finalize_conversation_turn(
             tts_manager=tts_manager,
             websocket_send=websocket_send,
             client_uid=client_uid,
+            on_complete=save_memory,
         )
 
         if context.history_uid and full_response:  # Check full_response before storing

@@ -92,3 +92,4 @@ class BatchInput(BaseInput):
     images: Optional[List[ImageData]] = None
     files: Optional[List[FileData]] = None
     metadata: Optional[Dict[str, Any]] = None
+    studio_context: str | None = None

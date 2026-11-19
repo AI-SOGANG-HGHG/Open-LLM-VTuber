@@ -18,7 +18,7 @@ Open-LLM-VTuber를 기반으로 개인 페르소나 에이전트를 만들고, �
 - 현재 Ubuntu 서버에서 HTTPS와 화면 내 팀 로그인을 제공한다. [운영 안내](docs/team-https.md)와 실제 검증 범위를 함께 참고한다.
 - 현재 기능을 직접 확인할 때는 [수동 검증 순서와 확인 수준](docs/manual-verification.md)을 따른다.
 - 서강이 로컬 화면·재시작·검사 방법은 [서강이 앱 안내](web_tool/sogangi/README.md), 원본 레이어와 동작 제작 범위는 [Live2D 제작 설계](docs/sogangi-live2d-plan.md)를 참고한다. 실제 Live2D 중립·기쁨·화남·놀람 표정, 눈·입·작은 고개 기울기·호흡·오른팔 인사를 기본 화면에서 지원한다. SVG 모션도 선택할 수 있다. 입체 회전·디포머 계층·나머지 감정 원화는 남아 있다.
-- 플랫폼 시연은 [Persona Studio 안내](web_tool/platform/README.md)를 따른다. 캐릭터 설정·메모를 스튜디오 내부 실제 음성·Live2D 대화에 전달하며 캐릭터별 기록을 이어간다. 배포 서버는 화면에서 팀 공용 계정으로 로그인하고 서버 세션으로 대화 접근을 확인한다. 개인별 계정·서버 DB 기반 캐릭터 관리·RAG·방송/게임 연동은 아직 없다.
+- 플랫폼에서는 캐릭터별 기록을 이어가며, 팀 프리셋으로 벡터 기억 검색·행동 규칙·감정 상태를 실제 음성·Live2D 대화에 적용한다. 배포 설정은 팀 공용 계정과 서버 세션을 사용한다. [Persona Studio 실행 안내](web_tool/platform/README.md) · [파이프라인과 비교 시연](docs/studio-persona-pipeline.md)
 - 로컬 일상 사용 기능과 출시 조건은 [서강이 제품화 기록](docs/sogangi-release.md), 반복 가능한 말투·기억·행동 주장 검증은 [페르소나 평가](docs/sogangi-persona-evaluation.md)를 참고한다.
 
 ## 팀원이 읽을 순서
