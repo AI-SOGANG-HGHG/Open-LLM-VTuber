@@ -501,3 +501,8 @@ live_config:
     room_ids: [1991478060]
     # SESSDATA cookie value (optional, for authenticated requests)
     sessdata: ""
+  chzzk_live:
+    # Chzzk channel ID (32-character hash from https://chzzk.naver.com/live/<channel_id>)
+    channel_id: ""
+    # WebSocket URL of the local VTuber proxy endpoint
+    proxy_url: "ws://localhost:12393/proxy-ws"

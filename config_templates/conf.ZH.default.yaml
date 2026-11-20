@@ -497,3 +497,8 @@ live_config:
     room_ids: [1991478060]
     # SESSDATA cookie值（可选，用于认证请求，可以查看发送弹幕用户名）
     sessdata: ""
+  chzzk_live:
+    # Chzzk频道ID（频道URL https://chzzk.naver.com/live/<channel_id> 中的32位哈希值）
+    channel_id: ""
+    # 本地VTuber代理端点的WebSocket URL
+    proxy_url: "ws://localhost:12393/proxy-ws"
