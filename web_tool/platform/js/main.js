@@ -9,6 +9,7 @@ import { getCharacter, state } from './state.js';
 import { loadData, logActivity, persist } from './store.js';
 import { bindCharacterDetailEvents, openDelete } from './views/character-detail.js';
 import { renderCards } from './views/characters.js';
+import { bindConnectionEvents } from './views/connections.js';
 import { bindCreateFormEvents, openCreate } from './views/create-form.js';
 
 // Local Studio settings; live conversations use the existing backend inside an embedded runtime.
@@ -18,6 +19,7 @@ bindAuthEvents();
 bindRuntimeEvents();
 bindPreviewEvents();
 bindCreateFormEvents();
+bindConnectionEvents();
 
 $('#aboutButton').addEventListener('click', () => $('#aboutDialog').showModal());
 

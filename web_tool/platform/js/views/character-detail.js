@@ -73,6 +73,7 @@ function sampleReply(char, text) {
 
 export function openDelete(char) {
   deleteId = char.id;
+  $('#deleteTitle').textContent = `“${char.name}” 캐릭터를 삭제할까요?`;
   $('#deleteDialog').showModal();
 }
 
@@ -81,11 +82,21 @@ export function bindCharacterDetailEvents(render) {
     event.preventDefault();
     state.data.characters = state.data.characters.filter((char) => char.id !== deleteId);
     state.data.activities = state.data.activities.filter((entry) => entry.characterId !== deleteId);
-    persist('캐릭터를 삭제했어요.'); $('#deleteDialog').close(); deleteId = null; location.hash = 'characters';
+    persist('캐릭터를 삭제했어요.');
+    $('#deleteDialog').close();
+    deleteId = null;
+    if (location.hash === '#characters') {
+      render();
+      main.focus({ preventScroll: true });
+    } else {
+      location.hash = 'characters';
+    }
   });
   main.addEventListener('submit', (event) => {
+    const form = event.target;
+    if (!form.matches('#settingsForm, #memoryForm, #chatForm')) return;
     event.preventDefault();
-    const form = event.target, char = getCharacter(form.dataset.id);
+    const char = getCharacter(form.dataset.id);
     if (!char) return;
     const values = new FormData(form);
     if (form.id === 'settingsForm') {

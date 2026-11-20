@@ -16,7 +16,6 @@ export function openCreate(preset) {
 }
 
 export function bindCreateFormEvents() {
-  $('#sidebarCreate').addEventListener('click', () => openCreate());
   $('#characterForm').addEventListener('submit', (event) => {
     event.preventDefault();
     const form = new FormData(event.target);

@@ -79,8 +79,6 @@ input[type=range] { padding: 0; accent-color: var(--accent); border: 0; }
 .workspace-layout { display: grid; grid-template-columns: 202px minmax(0, 1fr); min-height: 100vh; }
 .sidebar { display: flex; flex-direction: column; position: sticky; top: 0; height: 100dvh; border-right: 1px solid var(--line); background: var(--surface); padding: 28px 21px 20px; }
 .sidebar .brand { margin-bottom: 32px; }
-.sidebar-create { align-self: stretch; margin: 20px 0 0; }
-.workspace-layout:has(#characterGrid) .sidebar-create { display: none; }
 .main-nav { display: flex; flex-direction: column; gap: 3px; }
 .main-nav a { display: block; padding: 10px 12px; border-left: 2px solid transparent; color: var(--muted); font-size: 14px; white-space: nowrap; }
 .main-nav a:hover { color: var(--ink); background: var(--wash); }
@@ -263,6 +261,8 @@ body.conversation-focus { overflow: hidden; }
 .connection-card { display: flex; flex-direction: column; padding: 27px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); }
 .connection-card h2 { font-size: 21px; }
 .connection-card p { font-size: 12px; line-height: 1.9; color: var(--muted); flex: 1; }
+.connection-chat-form { display: grid; gap: 8px; }
+.connection-chat-form label { margin: 0; }
 .connection-card .field-help { flex: 0; font-size: 10px; margin-bottom: 0; }
 .event-list { list-style: none; padding: 0; margin: 20px 0 0; }
 .event-list li { display: flex; align-items: center; gap: 15px; padding: 20px 0; border-bottom: 1px solid var(--line); }
@@ -322,7 +322,7 @@ dialog::backdrop { background: #201b16a6; }
   .main-nav { flex-direction: row; gap: 0; }
   .main-nav a { flex: 1; padding: 10px 5px; border-left: 0; border-bottom: 2px solid transparent; text-align: center; font-size: 12px; }
   .main-nav a[aria-current=page] { border-bottom-color: var(--accent); }
-  .sidebar-create, .sidebar-shortcuts { display: none; }
+  .sidebar-shortcuts { display: none; }
   .sidebar-bottom { position: absolute; right: 16px; top: 13px; padding: 0; border: 0; gap: 9px; max-width: 44%; }
   .topbar { min-height: 38px; padding-inline: 16px; font-size: 11px; }
   .workspace-footer { padding-inline: 16px; font-size: 10px; }
