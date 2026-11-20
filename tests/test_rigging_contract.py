@@ -9,14 +9,14 @@ class RiggingContractTests(unittest.TestCase):
     def setUp(self):
         root = Path("web_tool/sogangi")
         self.mapping = json.loads(
-            (root / "rigging-map.json").read_text(encoding="utf-8")
+            (root / "workshop/rigging-map/rigging-map.json").read_text(encoding="utf-8")
         )
         self.art = json.loads(
             (root / "assets/production/handoff-manifest.json").read_text(
                 encoding="utf-8"
             )
         )
-        self.spec = json.loads((root / "live2d-spec.json").read_text(encoding="utf-8"))
+        self.spec = json.loads((root / "workshop/live2d-plan/live2d-spec.json").read_text(encoding="utf-8"))
 
     def test_map_uses_exact_artifact_layers_and_canvas(self):
         self.assertEqual(self.mapping["psd_sha256"], self.art["psd_sha256"])

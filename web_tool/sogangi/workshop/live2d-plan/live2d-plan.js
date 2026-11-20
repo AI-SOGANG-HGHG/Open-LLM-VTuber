@@ -1,8 +1,8 @@
-import { SvgMascot } from '../platform/runtime/js/avatars/mascot-renderer.js';
+import { SvgMascot } from '../../../platform/runtime/js/avatars/mascot-renderer.js';
 
 async function loadDesign() {
   try {
-    const response = await fetch('./live2d-spec.json');
+    const response = await fetch('./workshop/live2d-plan/live2d-spec.json');
     if (!response.ok) throw new Error('spec');
     const spec = await response.json();
     const text = (id, value) => {

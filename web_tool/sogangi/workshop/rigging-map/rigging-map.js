@@ -1,7 +1,7 @@
 const $ = (id) => document.getElementById(id);
 async function init() {
   try {
-    const response = await fetch('./rigging-map.json');
+    const response = await fetch('./workshop/rigging-map/rigging-map.json');
     if (!response.ok) throw new Error('map');
     const map = await response.json();
     $('riggingCanvas').setAttribute('viewBox', `0 0 ${map.canvas.width} ${map.canvas.height}`);

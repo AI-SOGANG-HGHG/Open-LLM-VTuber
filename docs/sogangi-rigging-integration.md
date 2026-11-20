@@ -20,7 +20,7 @@
 .\tmp\art-tools\Scripts\python.exe tools/prepare_sogangi_rigging.py
 ```
 
-`rigging-map.json`에서 좌상단이 (0,0)이고 L/R은 화면 기준이다. 현재 SVG 인사와 맞춰 커스텀 인사 파라미터는 **ParamArmRWave**로 정리했다. 기존 초안의 ParamArmLWave 이름을 그대로 혼용하지 않는다. 실제 모델에서 캐릭터 기준 좌우로 바꾸려면 PSD·명세·동작 파일의 대응표도 함께 변경한다.
+`web_tool/sogangi/workshop/rigging-map/rigging-map.json`에서 좌상단이 (0,0)이고 L/R은 화면 기준이다. 현재 SVG 인사와 맞춰 커스텀 인사 파라미터는 **ParamArmRWave**로 정리했다. 기존 초안의 ParamArmLWave 이름을 그대로 혼용하지 않는다. 실제 모델에서 캐릭터 기준 좌우로 바꾸려면 PSD·명세·동작 파일의 대응표도 함께 변경한다.
 
 ## 실제 Cubism 모델 검수실
 
