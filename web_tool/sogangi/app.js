@@ -10,6 +10,7 @@ const studioProfile = await getStudioProfile();
   'use strict';
   const $ = (id) => document.getElementById(id);
   const characterName = studioProfile?.name || '서강이';
+  const historyTitle = `대화 기록 · ${characterName}`;
   const sessionScope = studioProfile ? `${studioProfile.workspace_id}.${studioProfile.character_id}` : '';
   const ui = Object.fromEntries(
     [
@@ -72,23 +73,22 @@ const studioProfile = await getStudioProfile();
     ui.settingsButton.textContent = '대화 설정';
     document.title = `${characterName} · Persona Studio`;
     document.querySelector('.stage').setAttribute('aria-label', `${characterName} 캐릭터`);
-    document.querySelector('.conversation').setAttribute('aria-label', `${characterName}와 대화`);
+    const conversationTitle = `대화 · ${characterName}`;
+    document.querySelector('.conversation').setAttribute('aria-label', conversationTitle);
     ui.mascot.setAttribute('aria-label', `${characterName} 캐릭터`);
     ui.avatarCanvas.setAttribute('aria-label', `Live2D ${characterName}`);
     document.querySelector('label[for="messageInput"]').textContent = `${characterName}에게 보낼 말`;
     document.querySelector('.stage-copy h1').textContent = characterName;
-    document.querySelector('.stage-copy .eyebrow').textContent = 'YOUR CHARACTER · LIVE CONVERSATION';
-    document.querySelector('.stage-copy > p:last-child').textContent = studioProfile.description || '함께하는 우리의 이야기';
-    document.querySelector('.conversation-heading h2').textContent = `${characterName}와 대화`;
-    document.querySelector('#welcome h3').textContent = '우리의 첫 번째 이야기';
+    const description = document.querySelector('.stage-copy > p:last-child');
+    description.textContent = studioProfile.description || '';
+    description.hidden = !studioProfile.description;
+    document.querySelector('.conversation-heading h2').textContent = conversationTitle;
     document.querySelector('#welcome p').textContent = studioProfile.greeting || '편하게 이야기해 주세요.';
-    document.querySelector('#historyTitle').textContent = `${characterName}와 나눈 이야기`;
-    document.querySelector('.history-help').textContent = '이 스튜디오 캐릭터의 대화 기록이에요.';
+    document.querySelector('#historyTitle').textContent = historyTitle;
     document.querySelector('.settings-about strong').textContent = `${characterName} · Persona Studio`;
-    document.querySelector('.stage-location').textContent = 'PERSONA STUDIO · LIVE CONVERSATION';
     document.querySelector('#mascotNote').textContent = studioProfile.greeting || '반가워요!';
     document.querySelectorAll('[data-prompt]').forEach((button, index) => {
-      if (index === 0) { button.textContent = '반갑게 인사하기'; button.dataset.prompt = '안녕! 짧게 자기소개해 줘.'; }
+      if (index === 0) { button.textContent = '인사하기'; button.dataset.prompt = '안녕! 짧게 자기소개해 줘.'; }
     });
     document.documentElement.dataset.studioAvatar = studioProfile.avatar;
     document.querySelector('.conversation-footnote a').hidden = studioProfile.avatar !== 'sogangi';
@@ -139,18 +139,18 @@ const studioProfile = await getStudioProfile();
   };
   function avatarChanged() {
     ui.greetButton.disabled = !renderer.canGreet;
-    ui.greetButton.title = '짧게 인사해요. 움직임 줄이기에서는 멈춰요.';
+    ui.greetButton.title = '‘움직임 줄이기’를 켜면 인사 동작이 멈춰요.';
     ui.avatarRetry.hidden = !renderer.degraded;
     ui.avatarRetry.disabled = renderer.active === 'loading';
     ui.avatarStatus.textContent =
       renderer.active === 'loading'
         ? '캐릭터를 준비하고 있어요. 대화는 계속할 수 있어요.'
         : renderer.degraded
-          ? 'Live2D를 불러오지 못해 SVG 표시로 돌아왔어요. 다시 읽거나 SVG 모션을 선택할 수 있어요.'
+          ? 'Live2D를 불러오지 못해 기본 움직임을 사용하고 있어요.'
           : renderer.active === 'live2d'
-            ? '중립·기쁨·화남·놀람 표정과 고개·호흡·팔 인사를 사용할 수 있어요.'
+            ? '표정이 바뀌고, 고개를 움직이거나 손을 흔들 수 있어요.'
             : renderer.active === 'svg'
-              ? 'SVG 모션을 사용하고 있어요. 고개·인사도 확인할 수 있어요.'
+              ? '고개 움직임과 인사 동작을 볼 수 있어요.'
               : '캐릭터를 이미지로 표시하고 있어요. 대화는 계속할 수 있어요.';
     if (studioProfile && studioProfile.avatar !== 'sogangi') {
       ui.avatarStatus.textContent = renderer.active === 'live2d' ? 'Live2D 캐릭터가 음성에 맞춰 입을 움직여요.' : renderer.active === 'loading' ? '캐릭터를 준비하고 있어요.' : '캐릭터를 이미지로 표시해요. 음성 대화는 계속 사용할 수 있어요.';
@@ -171,7 +171,7 @@ const studioProfile = await getStudioProfile();
   ui.messageInput.value = savedSession.draft;
   function persistSession() {
     if (!saveSession({ historyUid: state.historyUid, draft: ui.messageInput.value }, sessionScope))
-      ui.timing.textContent = '이 브라우저에서는 초안을 저장하지 못해. 닫기 전에 복사해 줘.';
+      ui.timing.textContent = '입력 중인 메시지를 저장하지 못했어요. 탭을 닫기 전에 복사해 주세요.';
   }
   function applyPreferences(persist = true) {
     const wasMuted = state.muted;
@@ -183,7 +183,7 @@ const studioProfile = await getStudioProfile();
       const scene = studioScenes[preferences.background] || studioScenes.night;
       document.documentElement.dataset.studioScene = preferences.background;
       document.documentElement.style.setProperty('--studio-scene-image', scene.image ? `url("${scene.image}")` : 'none');
-      document.querySelector('.stage-location').textContent = `${scene.label} · PERSONA STUDIO`;
+      document.querySelector('.stage-location').textContent = scene.label;
     }
     renderer.setReducedMotion(preferences.reducedMotion);
     renderer.setMode(preferences.avatarRenderer);
@@ -241,10 +241,10 @@ const studioProfile = await getStudioProfile();
     const blocked = !state.ready || state.busy || microphoneBusy;
     ui.messageInput.disabled = Boolean(microphoneBusy);
     ui.messageInput.placeholder = !state.ready
-      ? '연결을 기다리는 동안 적어 둬도 좋아.'
+      ? '연결을 기다리는 동안 메시지를 적어 둘 수 있어요.'
       : state.busy
-        ? '기다리는 동안 다음 이야기를 적어 둬도 좋아.'
-        : `${characterName}, 오늘은…`;
+        ? '답변을 기다리는 동안 다음 메시지를 적어 둘 수 있어요.'
+        : '메시지를 입력해 주세요.';
     ui.sendButton.disabled = blocked;
     ui.newChat.disabled = !state.ready || state.busy || Boolean(microphoneBusy);
     ui.historyButton.disabled = !state.ready || state.busy || Boolean(microphoneBusy);
@@ -288,7 +288,7 @@ const studioProfile = await getStudioProfile();
     const details = document.createElement('details');
     details.className = 'studio-turn-context';
     const summary = document.createElement('summary');
-    summary.textContent = `${preset.label} · 불러온 기억 ${memories.length}개`;
+    summary.textContent = `${preset.label} · 참고한 기억 ${memories.length}개`;
     const mood = document.createElement('p');
     const transition = (axis) => previous_affect
       ? `${previous_affect[axis].toFixed(2)} → ${affect[axis].toFixed(2)}`
@@ -298,17 +298,17 @@ const studioProfile = await getStudioProfile();
     mood.textContent = `${moodLabel} · 쾌·불쾌 ${transition('valence')} · 각성 ${transition('arousal')} · 통제감 ${transition('dominance')}`;
     details.append(summary, mood);
     const evidence = document.createElement('p');
-    evidence.textContent = retrieval === 'ok' ? '답변에 전달된 기억' : '기억 검색을 사용할 수 없었어요.';
+    evidence.textContent = retrieval === 'ok' ? '답변에 참고한 기억' : '관련 기억을 찾는 데 문제가 생겼어요.';
     details.append(evidence);
     const list = document.createElement('ul');
     for (const memory of memories) {
       const item = document.createElement('li');
-      const source = memory.source === 'manual_note' ? '기억 노트' : '이 대화의 사용자 발화';
+      const source = memory.source === 'manual_note' ? '기억 노트' : '이 대화에서 내가 한 말';
       item.textContent = `${source} · ${memory.text}`;
       list.append(item);
     }
     if (memories.length) details.append(list);
-    else if (retrieval === 'ok') evidence.textContent += ' 없음';
+    else if (retrieval === 'ok') evidence.textContent = '참고한 기억이 없어요.';
     const appliedRules = rules.map(rule => rule.behavior);
     if (!appliedRules.length && appraisal === 'ok' && retrieval === 'ok') appliedRules.push('적용된 규칙 없음');
     for (const behavior of appliedRules) {
@@ -328,7 +328,7 @@ const studioProfile = await getStudioProfile();
     state.busy = false;
     clearTimers();
     controls();
-    ui.phase.textContent = '편하게 이야기해 줘';
+    ui.phase.textContent = '메시지를 보낼 수 있어요.';
     mascot(state.lastExpression, 'idle', '네 이야기를 듣고 있어');
   }
   function completePlayback() {
@@ -349,7 +349,7 @@ const studioProfile = await getStudioProfile();
     audio.volume = preferences.volume;
     audio.playbackRate = preferences.rate;
     state.playing = audio;
-    ui.phase.textContent = `${characterName}가 말하고 있어`;
+    ui.phase.textContent = '음성을 재생하고 있어요.';
     state.lastExpression = item.expression || 'neutral';
     mascot(state.lastExpression, 'speaking', '같이 이야기하자!');
     const done = () => {
@@ -363,7 +363,7 @@ const studioProfile = await getStudioProfile();
     };
     audio.onended = done;
     audio.onerror = () => {
-      notice('음성을 재생하지 못했어. 글로 답변을 확인해 줘.');
+      notice('음성을 재생하지 못했어요. 화면에서 답변을 읽을 수 있어요.');
       done();
     };
     try {
@@ -377,7 +377,7 @@ const studioProfile = await getStudioProfile();
       syncMouth();
     } catch {
       if (state.playing !== audio || item.epoch !== state.epoch) return;
-      notice('브라우저에서 소리를 재생하지 못했어. 음소거와 출력 장치를 확인해 줘.');
+      notice('소리를 재생하지 못했어요. 음소거 상태와 스피커를 확인해 주세요.');
       done();
     }
   }
@@ -467,14 +467,14 @@ const studioProfile = await getStudioProfile();
     ui.messageInput.value = '';
     persistSession();
     controls();
-    ui.phase.textContent = '답변을 기다리고 있어 · 0초';
+    ui.phase.textContent = '답변을 기다리고 있어요 · 0초';
     mascot('thinking', 'waiting', '잠깐 생각해 볼게');
     state.ticker = setInterval(() => {
       if (state.firstAudio === null && state.busy)
-        ui.phase.textContent = `${state.firstText === null ? '답변을 기다리고 있어' : '음성을 준비하고 있어'} · ${Math.floor((performance.now() - state.started) / 1000)}초`;
+        ui.phase.textContent = `${state.firstText === null ? '답변을 기다리고 있어요' : '음성을 준비하고 있어요'} · ${Math.floor((performance.now() - state.started) / 1000)}초`;
     }, 1000);
     state.timeout = setTimeout(
-      () => interrupt('응답이 오래 걸려서 이번 요청을 멈췄어. 다시 짧게 물어봐 줘.'),
+      () => interrupt('답변이 오래 걸려 요청을 멈췄어요. 다시 질문해 주세요.'),
       90000,
     );
     send({
@@ -505,7 +505,7 @@ const studioProfile = await getStudioProfile();
     state.ready = false;
     controls();
     ui.historyDialog.close();
-    ui.phase.textContent = '이전 이야기를 불러오고 있어';
+    ui.phase.textContent = '이전 대화를 불러오고 있어요.';
     historyDeadline({ kind: 'fetch', uid, resuming });
     send({ type: 'fetch-and-set-history', history_uid: uid });
   }
@@ -532,7 +532,7 @@ const studioProfile = await getStudioProfile();
     state.lastQuestion = null;
     state.lastExpression = 'neutral';
     state.recoverable = false;
-    ui.timing.textContent = '답변 내용은 확인이 필요할 수 있어요.';
+    ui.timing.textContent = '답변에는 틀린 내용이 있을 수 있어요.';
   }
   function renderHistories(histories) {
     state.histories = histories;
@@ -547,8 +547,8 @@ const studioProfile = await getStudioProfile();
       const empty = document.createElement('p');
       empty.className = 'history-empty';
       empty.textContent = query
-        ? '검색한 내용이 없어. 다른 말로 찾아봐 줘.'
-        : '아직 저장된 이야기가 없어. 첫 대화를 시작해 보자.';
+        ? '검색어와 일치하는 대화가 없어요.'
+        : '아직 저장된 대화가 없어요.';
       ui.historyItems.append(empty);
       return;
     }
@@ -611,7 +611,7 @@ const studioProfile = await getStudioProfile();
     notice('');
     ui.connection.className = 'connection';
     ui.connection.textContent = '연결 중';
-    ui.phase.textContent = '대화방을 준비하고 있어';
+    ui.phase.textContent = '대화방을 준비하고 있어요.';
     const ws = new WebSocket(
       `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/client-ws`,
     );
@@ -636,11 +636,11 @@ const studioProfile = await getStudioProfile();
           send({ type: 'apply-studio-persona', profile });
         } else send({ type: 'switch-config', file: 'ko_sogangi.yaml' });
       } else if (data.type === 'studio-persona-error') {
-        notice('캐릭터 설정을 연결하지 못했어. 스튜디오에서 다시 연결해 줘.', false, 'error');
+        notice('캐릭터 설정을 불러오지 못했어요. 스튜디오에서 다시 연결해 주세요.', false, 'error');
         studioEvent('error', { code: data.code });
       } else if (data.type === 'config-switched' || data.type === 'studio-persona-applied') {
         if (studioProfile && (data.type !== 'studio-persona-applied' || data.character_id !== studioProfile.character_id || data.avatar !== studioProfile.avatar || data.name !== studioProfile.name)) {
-          notice('선택한 캐릭터와 서버의 연결 정보가 달라 연결을 중단했어요.', false, 'error');
+          notice('다른 캐릭터로 연결되어 대화를 멈췄어요.', false, 'error');
           studioEvent('error', { code: 'character_mismatch' });
           state.closing = true;
           ws.close();
@@ -669,7 +669,7 @@ const studioProfile = await getStudioProfile();
             message(item.role === 'human' ? 'user' : 'assistant', item.content);
         }
         historyReady(data.history_uid || pending.uid);
-        notice('이전 이야기를 불러왔어. 이어서 이야기해 줘.');
+        notice('이전 대화를 불러왔어요.');
       } else if (data.type === 'history-error') {
         const pending = state.historyPending;
         if (!pending || (data.history_uid && pending.uid !== data.history_uid)) return;
@@ -679,12 +679,12 @@ const studioProfile = await getStudioProfile();
           state.historyUid = null;
           persistSession();
           state.nextNotice =
-            '이전 기록을 불러오지 못해 새 대화를 열었어. 기존 기록 파일은 바꾸지 않았어.';
+            '이전 대화를 불러오지 못해 새 대화를 열었어요.';
           newHistory();
         } else if (pending.kind === 'fetch' && state.historyUid) {
           state.ready = true;
           ready();
-          notice('선택한 기록을 불러오지 못했어. 현재 대화는 유지했어.');
+          notice('선택한 대화를 불러오지 못했어요. 지금 대화는 그대로 이어갈 수 있어요.');
         } else {
           state.ws?.close(4000, 'History unavailable');
         }
@@ -727,19 +727,19 @@ const studioProfile = await getStudioProfile();
         if (!state.failed && state.assistant?.body.textContent) studioEvent('turn-complete', { requestId: state.requestId });
         if (!state.failed && !state.assistant?.body.textContent) {
           state.recoverable = true;
-          notice('답변을 완성하지 못했어. 질문을 다시 적어 보낼 수 있어.');
+          notice('답변을 끝까지 받지 못했어요. 이전 질문을 불러와 다시 보낼 수 있어요.');
         }
         ready();
       } else if (data.type === 'error') {
         state.lastExpression = 'neutral';
         renderer.setExpression('neutral');
         state.recoverable = Boolean(state.lastQuestion);
-        notice('응답을 처리하지 못했어. 잠시 후 다시 시도해 줘.', !state.ready, 'error');
+        notice('답변을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.', !state.ready, 'error');
         if (state.busy) {
           state.failed = true;
           stopAudio();
           completePlayback();
-          ui.phase.textContent = '이번 답변을 마무리하고 있어';
+          ui.phase.textContent = '답변을 마무리하고 있어요.';
         }
       }
     };
@@ -761,23 +761,23 @@ const studioProfile = await getStudioProfile();
       ui.connection.textContent = '연결 끊김';
       ui.connection.className = 'connection disconnected';
       studioEvent('disconnected');
-      ui.phase.textContent = '서버 연결을 확인해 줘';
+      ui.phase.textContent = '서버 연결을 확인해 주세요.';
       mascot('neutral', 'idle', '잠깐 연결을 기다릴게');
       if (state.reconnectAttempts < 5 && navigator.onLine) {
         const delay = [1000, 2000, 4000, 8000, 15000][state.reconnectAttempts++];
         notice(
-          `서버 연결이 끊어졌어. ${delay / 1000}초 뒤 다시 연결하고 이전 대화를 불러올게.`,
+          `연결이 끊겼어요. ${delay / 1000}초 뒤에 다시 연결해 이전 대화를 불러와요.`,
           true,
         );
         state.reconnectTimer = setTimeout(connect, delay);
       } else {
         notice(
-          '서버와 연결할 수 없어. 서버를 확인한 뒤 다시 연결을 눌러 줘. 작성한 초안은 유지했어.',
+          '서버에 연결할 수 없어요. 서버를 확인한 뒤 ‘다시 연결’을 눌러 주세요. 입력 중인 메시지는 남아 있어요.',
           true,
         );
       }
     };
-    ws.onerror = () => notice('서버에 연결할 수 없어. 서버가 실행 중인지 확인해 줘.', true);
+    ws.onerror = () => notice('서버에 연결할 수 없어요. 서버가 실행 중인지 확인해 주세요.', true);
   }
   ui.composer.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -793,13 +793,13 @@ const studioProfile = await getStudioProfile();
   for (const b of document.querySelectorAll('[data-prompt]'))
     b.addEventListener('click', () => begin(b.dataset.prompt));
   ui.stopButton.addEventListener('click', () =>
-    interrupt('이번 답변을 멈췄어. 다른 이야기를 해도 좋아.'),
+    interrupt('답변을 중단했어요. 다른 메시지를 보낼 수 있어요.'),
   );
   ui.newChat.addEventListener('click', newHistory);
   ui.historyButton.addEventListener('click', () => {
     state.historyLimit = 30;
     ui.historySearch.value = '';
-    ui.historyItems.textContent = '기록을 불러오고 있어…';
+    ui.historyItems.textContent = '대화 기록을 불러오고 있어요.';
     ui.historyDialog.showModal();
     send({ type: 'fetch-history-list' });
   });
@@ -811,20 +811,20 @@ const studioProfile = await getStudioProfile();
   ui.restoreQuestion.addEventListener('click', () => {
     if (!state.lastQuestion) return;
     if (ui.messageInput.value.trim()) {
-      notice('작성 중인 초안을 먼저 보내거나 비워 줘. 질문을 다시 쓰면서 덮어쓰지 않을게.');
+      notice('이전 질문을 불러오려면 입력 중인 메시지를 먼저 보내거나 지워 주세요.');
       return;
     }
     ui.messageInput.value = state.lastQuestion;
     persistSession();
     ui.messageInput.focus();
-    notice('질문을 다시 적었어. 확인한 뒤 보내기를 눌러 줘.');
+    notice('이전 질문을 불러왔어요. 확인한 뒤 ‘보내기’를 눌러 주세요.');
   });
   ui.historySearch.addEventListener('input', () => {
     state.historyLimit = 30;
     renderHistories(state.histories);
   });
   ui.exportChat.addEventListener('click', () => {
-    const lines = [`${characterName}와 나눈 이야기`, new Date().toLocaleString('ko-KR'), ''];
+    const lines = [historyTitle, new Date().toLocaleString('ko-KR'), ''];
     for (const node of ui.messages.querySelectorAll('.message'))
       lines.push(
         `${node.classList.contains('user') ? '나' : characterName}: ${node.querySelector('.message-body').textContent}`,
@@ -863,7 +863,7 @@ const studioProfile = await getStudioProfile();
     applyPreferences();
   });
   ui.greetButton.addEventListener('click', () => {
-    if (renderer.greet() && !state.busy) ui.mascotNote.textContent = studioProfile ? `${characterName}와 함께해요!` : '반가워, 학우야!';
+    if (renderer.greet() && !state.busy) ui.mascotNote.textContent = studioProfile?.greeting || (studioProfile ? '반가워요!' : '반가워, 학우야!');
   });
   ui.avatarRetry.addEventListener('click', () =>
     renderer.setMode(preferences.avatarRenderer, { force: true }),
@@ -905,14 +905,14 @@ const studioProfile = await getStudioProfile();
     if (state.micPending || state.transcribing) {
       cancelMicrophone();
       ready();
-      notice('음성 입력을 취소했어.');
+      notice('음성 입력을 취소했어요.');
       return;
     }
     const epoch = ++state.micEpoch;
     const previousDraft = ui.messageInput.value;
     state.micPending = true;
     ui.micButton.textContent = '권한 요청 취소';
-    ui.phase.textContent = '마이크 권한을 확인하고 있어';
+    ui.phase.textContent = '마이크 권한을 확인하고 있어요.';
     controls();
     try {
       if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder)
@@ -930,7 +930,7 @@ const studioProfile = await getStudioProfile();
       state.recording = true;
       ui.micButton.textContent = '녹음 끝내기';
       ui.micButton.setAttribute('aria-pressed', 'true');
-      ui.phase.textContent = '듣고 있어 · 마이크를 누르면 녹음이 끝나';
+      ui.phase.textContent = '녹음 중이에요. ‘녹음 끝내기’를 누르면 멈춰요.';
       controls();
       notice('');
       recorder.ondataavailable = (event) => {
@@ -940,7 +940,7 @@ const studioProfile = await getStudioProfile();
         if (epoch === state.micEpoch) {
           cancelMicrophone();
           ready();
-          notice('녹음을 계속할 수 없어. 입력 장치를 확인해 줘.');
+          notice('녹음이 중단됐어요. 마이크를 확인해 주세요.');
         }
       };
       recorder.onstop = async () => {
@@ -953,7 +953,7 @@ const studioProfile = await getStudioProfile();
         state.transcribing = true;
         ui.micButton.textContent = '인식 취소';
         ui.micButton.setAttribute('aria-pressed', 'false');
-        ui.phase.textContent = '말한 내용을 글로 바꾸고 있어';
+        ui.phase.textContent = '음성을 글로 바꾸고 있어요.';
         controls();
         const controller = new AbortController();
         state.asrController = controller;
@@ -980,15 +980,15 @@ const studioProfile = await getStudioProfile();
               .join('\n');
             ui.messageInput.value = ui.messageInput.value.slice(0, 4000);
             persistSession();
-            notice('인식한 문장을 확인하고 보내기를 눌러 줘.');
+            notice('입력된 내용을 확인하고 ‘보내기’를 눌러 주세요.');
             ui.messageInput.focus();
-          } else notice('잘 듣지 못했어. 조금 더 또렷하게 말해 줘.');
+          } else notice('음성을 알아듣지 못했어요. 다시 말씀해 주세요.');
         } catch {
           if (epoch !== state.micEpoch) return;
           state.transcribing = false;
           ui.micButton.textContent = '마이크';
           ready();
-          notice('음성을 인식하지 못했어. 텍스트로 입력하거나 다시 시도해 줘.');
+          notice('음성을 글로 바꾸지 못했어요. 직접 입력하거나 다시 녹음해 주세요.');
         } finally {
           clearTimeout(deadline);
           if (epoch === state.micEpoch) state.asrController = null;
@@ -1002,7 +1002,7 @@ const studioProfile = await getStudioProfile();
       if (epoch !== state.micEpoch) return;
       cancelMicrophone();
       ready();
-      notice('마이크를 사용할 수 없어. 브라우저 권한과 입력 장치를 확인해 줘.');
+      notice('마이크를 사용할 수 없어요. 브라우저 권한과 마이크 연결을 확인해 주세요.');
     }
   });
   window.addEventListener('pagehide', () => {
