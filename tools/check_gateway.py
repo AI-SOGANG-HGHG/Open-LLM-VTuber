@@ -58,7 +58,7 @@ async def check(credentials_path):
         checks.append("Page login and cookie session restored")
         for path in (
             "/web-tool/platform/runtime/",
-            "/web-tool/platform/app.js",
+            "/web-tool/platform/js/main.js",
             "/live2d-models/mao_pro/runtime/mao_pro.model3.json",
         ):
             assert client.get(path).status_code == 200, path

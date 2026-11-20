@@ -28,7 +28,7 @@
 | 일반 대화와 자동 기억 | 서버의 `chat_history/<conf_uid>/<history_uid>.json`. `conf_uid`는 작업공간 UUID와 캐릭터 ID의 조합에서 파생한다. 자동 기억은 하나의 기록에 귀속된다. |
 | 감정 | 현재 서버 연결의 메모리. 대화 기록별 VAD, 마지막으로 감정을 바꾼 사건 ID와 시각을 들고 간다. |
 
-브라우저가 WebSocket으로 캐릭터 프로필을 보내면 서버는 프리셋 ID를 검증하고 해당 연결의 Agent를 생성한다. 선택한 이름과 YAML의 역할·배경·성향·가치·말투가 시스템 프롬프트의 바탕이다. 팀 프리셋의 호기심은 YAML의 `curiosity` 값으로 전달된다. 직접 작성한 성격 모드는 작성한 지침과 최근 노트 본문을 프롬프트에 넣는 경로를 사용한다. [프로필 전송](../web_tool/platform/app.js) · [서버 프로필 적용](../src/open_llm_vtuber/studio_persona.py)
+브라우저가 WebSocket으로 캐릭터 프로필을 보내면 서버는 프리셋 ID를 검증하고 해당 연결의 Agent를 생성한다. 선택한 이름과 YAML의 역할·배경·성향·가치·말투가 시스템 프롬프트의 바탕이다. 팀 프리셋의 호기심은 YAML의 `curiosity` 값으로 전달된다. 직접 작성한 성격 모드는 작성한 지침과 최근 노트 본문을 프롬프트에 넣는 경로를 사용한다. [프로필 전송](../web_tool/platform/js/runtime-bridge.js) · [서버 프로필 적용](../src/open_llm_vtuber/studio_persona.py)
 
 ## 1. 입력을 받아 일반 기록에 남긴다
 
