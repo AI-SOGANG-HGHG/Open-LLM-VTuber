@@ -1,8 +1,8 @@
-import { AvatarRenderer } from './avatar-renderer.js';
+import { AvatarRenderer } from './avatars/sogangi-renderer.js';
 import { expressionFor } from './expressions.js';
 import { loadPreferences, savePreferences, loadSession, saveSession, studioScenes, loadStudioScene, saveStudioScene } from './local-state.js?studio=5';
 import { getStudioProfile, studioEvent, onStudioShutdown } from './studio-bridge.js';
-import { StudioAvatarRenderer } from './studio-avatar.js';
+import { StudioAvatarRenderer } from './avatars/live2d-avatar.js';
 
 const studioProfile = await getStudioProfile();
 
@@ -232,7 +232,7 @@ const studioProfile = await getStudioProfile();
     if (!renderer.ready && (!studioProfile || studioProfile.avatar === 'sogangi'))
       ui.mascot
         .querySelector('image')
-        ?.setAttribute('href', `./assets/sogangi-${frames[frame] || frames.neutral}.svg`);
+        ?.setAttribute('href', new URL(`../../../sogangi/assets/sogangi-${frames[frame] || frames.neutral}.svg`, import.meta.url).href);
     ui.mascotWrap.dataset.state = phase;
     ui.mascotNote.textContent = text;
   }

@@ -1,4 +1,4 @@
-import { SvgMascot } from './mascot-renderer.js';
+import { SvgMascot } from '../platform/runtime/js/avatars/mascot-renderer.js';
 
 async function loadDesign() {
   try {

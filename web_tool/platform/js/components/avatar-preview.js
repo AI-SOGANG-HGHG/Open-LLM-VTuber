@@ -22,7 +22,7 @@ export async function openPreview(char) {
   $('#avatarDialog').showModal();
   if (!avatarAssets[char.avatar].model) return;
   try {
-    const { createLivePreview } = await import('../../live-preview.js');
+    const { createLivePreview } = await import('../../../shared/live2d-loader.js');
     if (ticket !== previewEpoch) return;
     const instance = createLivePreview($('#liveAvatarCanvas'), $('#liveAvatarStage'), () => {
       if (ticket !== previewEpoch) return;

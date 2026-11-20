@@ -30,15 +30,15 @@ powershell -ExecutionPolicy Bypass -File .\restart-local.ps1 -OpenBrowser
 
 ## 화면과 움직임
 
-- `index.html`, `style.css`, `lounge.css`, `history.css`: 화면과 반응형 구성. `scene.css`는 초기 배경 실험 기록이며 현재 페이지에서 로드하지 않는다.
+- `index.html`, `../platform/runtime/css/style.css`, `../platform/runtime/css/lounge.css`, `../platform/runtime/css/history.css`: 화면과 반응형 구성. `scene.css`는 초기 배경 실험 기록이며 현재 페이지에서 로드하지 않는다.
 - `assets/campus-lounge.svg`: 가상의 캠퍼스 라운지. 공식 캐릭터와 어울리는 단순한 벡터 배경으로 교체했다.
-- `mascot-renderer.js`: 공식 파츠를 이용한 눈 깜빡임, 음성 크기 기반 입 움직임, 고개 기울기, 작은 시선 이동과 인사 동작. 눈·입의 작은 입력에서는 원화 모양을 연속 전환한다.
-- `avatar-renderer.js`: SVG/실제 Cubism 전환과 수명 관리. Live2D는 실제 Core의 눈·입 값을 구동하며 실패 시 SVG로 복귀한다. 재생 중 전환·지연 로드·컨텍스트 복구가 음성을 다시 재생하지 않는다.
-- `expressions.js`: 문장의 완전한 감정 태그에서 중립·기쁨·화남·놀람을 선택한다. SVG에서는 중립/기쁨으로 제한한다. 실제 재생 문장과 표정을 맞추고, 미지원 표정은 중립으로 대체한다. 상세 구현·검수 범위는 [리깅 연결 안내](../../docs/sogangi-rigging-integration.md)를 참고한다.
-- `app.js`: 설정 선택·대화·음성 큐·중단·음소거·기록 복원·녹음과 전사.
+- `../platform/runtime/js/avatars/mascot-renderer.js`: 공식 파츠를 이용한 눈 깜빡임, 음성 크기 기반 입 움직임, 고개 기울기, 작은 시선 이동과 인사 동작. 눈·입의 작은 입력에서는 원화 모양을 연속 전환한다.
+- `../platform/runtime/js/avatars/sogangi-renderer.js`: SVG/실제 Cubism 전환과 수명 관리. Live2D는 실제 Core의 눈·입 값을 구동하며 실패 시 SVG로 복귀한다. 재생 중 전환·지연 로드·컨텍스트 복구가 음성을 다시 재생하지 않는다.
+- `../platform/runtime/js/expressions.js`: 문장의 완전한 감정 태그에서 중립·기쁨·화남·놀람을 선택한다. SVG에서는 중립/기쁨으로 제한한다. 실제 재생 문장과 표정을 맞추고, 미지원 표정은 중립으로 대체한다. 상세 구현·검수 범위는 [리깅 연결 안내](../../docs/sogangi-rigging-integration.md)를 참고한다.
+- `../platform/runtime/js/app.js`: 설정 선택·대화·음성 큐·중단·음소거·기록 복원·녹음과 전사.
 - 손 흔들기 버튼은 SVG/Live2D에서 로컬 동작만 재생하며 대화 API를 호출하지 않는다. Live2D 인사는 1.6초 후 복귀하고 재생 중 중복 클릭을 쌓지 않는다. 중단·새 대화·모드 전환과 앱/OS 동작 줄이기는 인사를 취소하며 다시 켜도 이전 동작을 재생하지 않는다. 음성에 필요한 입 움직임은 유지한다.
 - 설정에서 음량·재생 속도·배경·큰 글씨·음소거·움직임을 바꾸고 저장할 수 있다. 대화 초안과 마지막 기록은 같은 탭에서 새로고침 후 이어진다. 재연결은 최대 5회 자동 시도하며 질문을 자동으로 재전송하지 않는다.
-- 기록 목록의 검색은 최근 메시지 내용 기준이다. 현재 대화는 한글 텍스트 파일로 내려받을 수 있다. `local-state.js`는 설정과 탭 상태 저장, `product.css`는 추가 화면 스타일을 담당한다.
+- 기록 목록의 검색은 최근 메시지 내용 기준이다. 현재 대화는 한글 텍스트 파일로 내려받을 수 있다. `../platform/runtime/js/local-state.js`는 설정과 탭 상태 저장, `../platform/runtime/css/product.css`는 추가 화면 스타일을 담당한다.
 
 데스크톱에서는 캐릭터 무대와 대화를 나란히, 모바일에서는 작은 무대와 대화를 위아래로 표시한다. 모바일 메시지만 내부 스크롤하고 입력창은 첫 화면 안에 둔다. 아주 낮은 화면이나 키보드·확대 설정은 기기에서 추가 확인이 필요하다.
 
