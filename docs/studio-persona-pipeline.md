@@ -58,6 +58,23 @@
 
 두 시연 프리셋은 같은 마감 위험 조건을 사용한다. 검토자는 일정 위험을 먼저 짚고 당장 할 일 하나를 지시한다. 코치는 부담을 인정하고 시작하기 쉬운 단계를 제안한다. 팀에서 작성한 규칙에 상황–행동 검색 방식을 적용했다. [Persona-CAPS 논문](https://aclanthology.org/2026.emnlp-main.1495.pdf)
 
+### Persona-CAPS 연구용 규칙 DB
+
+논문 본 실험에 사용한 `beck_2022_v2`의 상황–행동 항목 166개로 로컬 SQLite DB를 생성할 수 있다. 항목은 Beck과 Jackson의 경험표집 자료 `0060_beck`에서 추출한 Big Five 5개 축의 높음·낮음 집단에 속한다. 원본 코퍼스는 저자 표시와 비상업 조건이 있는 CC BY-NC 4.0이다. [저자 공개 저장소의 코퍼스와 라이선스](https://github.com/caps-research/persona-caps#4-released-corpus-data-archive)
+
+저장소 루트에서 아래 명령을 처음 한 번 실행한다. Python 표준 라이브러리로 적재한다.
+
+```bash
+git clone --filter=blob:none --no-checkout --config core.autocrlf=false https://github.com/caps-research/persona-caps.git private/persona-caps-source
+git -C private/persona-caps-source sparse-checkout set data/if_then/paper/beck_2022_v2
+git -C private/persona-caps-source checkout --detach 22584f46ca8e6efa945756a65971d2d5daa61417
+python3 scripts/import_persona_caps.py private/persona-caps-source/data/if_then/paper/beck_2022_v2 private/persona-caps.sqlite3
+```
+
+스크립트는 고정한 리비전의 `manifest.json`과 본 실험용 JSONL 10개의 SHA-256을 확인한다. `behavior_rules`에 항목 ID, 성향 축, 높음·낮음, 상황과 행동, 원본 파일·줄 번호 및 출처 정보가 담긴 원본 JSON을 저장한다. `corpus_metadata`에는 리비전, 파일 해시, 원본 매니페스트, 인용 정보와 라이선스가 들어간다. 기존 DB 파일을 재생성하려면 새 출력 경로를 지정한다.
+
+현재 Studio 대화는 위의 팀 YAML 프리셋을 읽는다. 연구 DB를 연결하는 실험에서는 Big Five 축과 높음·낮음을 명시하고, 한국어 발화로 상황 항목이 제대로 검색되는지와 응답에 전달된 항목의 ID를 확인한다. 팀 프리셋과의 비교 시 모델·상황 입력·최근 대화·기억을 동일하게 둔다.
+
 ## 3. 후보를 검증하고 감정을 갱신한다
 
 사건 평가 API 요청에는 프리셋의 정체성·성향·가치·말투, 이전 VAD, 현재 사용자 발화, 규칙 후보의 ID와 적용 조건, 기억 후보의 ID·본문·출처·시각을 넣는다. 평가 모델에서 검증 가능한 JSON을 받는다.
