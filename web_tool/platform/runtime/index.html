@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="./lounge.css" />
     <link rel="stylesheet" href="./history.css" />
     <link rel="stylesheet" href="./product.css" />
-    <script src="./app.js?studio=10" type="module"></script>
+    <script src="./app.js?studio=9" type="module"></script>
   </head>
   <body>
     <header class="topbar">
@@ -29,8 +29,9 @@
     <main class="workspace">
       <section class="stage" aria-label="캐릭터">
         <div class="stage-copy">
+          <p class="eyebrow">YOUR CAMPUS COMPANION</p>
           <h1>캐릭터</h1>
-          <p></p>
+          <p>여기서, 같이.</p>
         </div>
         <div class="mascot-wrap" id="mascotWrap" data-state="idle">
           <div class="mascot-halo" aria-hidden="true"></div>
@@ -67,7 +68,8 @@
       <section class="conversation" aria-label="캐릭터와 대화">
         <div class="conversation-heading">
           <div>
-            <h2>대화</h2>
+            <p class="eyebrow">OUR CONVERSATION</p>
+            <h2>오늘은 무슨 이야기할까?</h2>
           </div>
           <div class="conversation-actions">
             <button id="historyButton" class="quiet-button" type="button" disabled>기록</button>
@@ -83,7 +85,7 @@
           </div>
         </div>
         <div class="conversation-toolbar">
-          <span id="phase" role="status" aria-live="polite">대화방을 준비하고 있어요.</span
+          <span id="phase" role="status" aria-live="polite">대화방을 준비하고 있어</span
           ><button id="soundToggle" class="quiet-button" type="button" aria-pressed="false">
             음성 켜짐
           </button>
@@ -91,7 +93,8 @@
         <div id="messages" class="messages" role="log" aria-label="대화 기록" aria-live="polite">
           <div class="welcome" id="welcome">
             <span class="welcome-spark" aria-hidden="true">✳</span>
-            <p>편하게 이야기해 주세요.</p>
+            <h3>오늘은 어떤 하루야?</h3>
+            <p>편하게 한마디 건네 줘.<br />작은 고민부터 같이 풀어보자.</p>
             <div class="suggestions">
               <button type="button" data-prompt="안녕, 짧게 자기소개해 줘.">안녕, 반가워</button
               ><button type="button" data-prompt="프로젝트를 시작하려는데 첫 할 일을 같이 정해 줘.">
@@ -106,7 +109,7 @@
           <span id="noticeText"></span
           ><button id="retry" class="quiet-button" type="button" hidden>다시 연결</button>
           <button id="restoreQuestion" class="quiet-button" type="button" hidden>
-            이전 질문 불러오기
+            질문 다시 쓰기
           </button>
         </div>
         <form id="composer" class="composer">
@@ -115,7 +118,7 @@
             id="messageInput"
             rows="2"
             maxlength="4000"
-            placeholder="메시지를 입력해 주세요."
+            placeholder="안녕, 오늘은…"
             disabled
           ></textarea>
           <div class="composer-bottom">
@@ -144,7 +147,7 @@
           </div>
         </form>
         <div class="conversation-footnote">
-          <span id="timing">답변에는 틀린 내용이 있을 수 있어요.</span
+          <span id="timing">답변 내용은 확인이 필요할 수 있어요.</span
           ><a
             href="https://pr.sogang.ac.kr/front/boardview.do?bbsConfigFK=264&amp;pkid=901406"
             target="_blank"
@@ -157,14 +160,15 @@
     <dialog id="historyDialog" aria-labelledby="historyTitle">
       <div class="history-heading">
         <div>
-          <h2 id="historyTitle">대화 기록</h2>
+          <p class="eyebrow">PREVIOUS CONVERSATIONS</p>
+          <h2 id="historyTitle">캐릭터와 나눈 이야기</h2>
         </div>
         <button id="historyClose" class="icon-button" type="button" aria-label="대화 기록 닫기">
           ×
         </button>
       </div>
       <p class="history-help">
-        대화를 선택하면 이어서 이야기할 수 있어요.
+        이 PC의 캐릭터 대화 기록이에요. 선택하면 이어서 이야기할 수 있어요.
       </p>
       <label class="sr-only" for="historySearch">대화 기록 검색</label>
       <input
@@ -181,14 +185,14 @@
     </dialog>
     <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle">
       <div class="history-heading">
-        <h2 id="settingsTitle">대화 설정</h2>
+        <h2 id="settingsTitle">나에게 맞게</h2>
         <button id="settingsClose" class="icon-button" type="button" aria-label="설정 닫기">
           ×
         </button>
       </div>
       <p class="settings-help">이 브라우저에서 사용하는 설정이에요.</p>
       <label class="setting-row" for="volumeInput"
-        ><span>음성 크기 <output id="volumeValue" for="volumeInput">80%</output></span>
+        ><span>목소리 크기 <output id="volumeValue" for="volumeInput">80%</output></span>
         <input id="volumeInput" type="range" min="0" max="100" step="5" value="80" />
       </label>
       <label class="setting-row" for="rateInput"
@@ -218,7 +222,7 @@
         </select>
       </label>
       <p id="avatarStatus" class="settings-status" role="status">캐릭터를 준비하고 있어요.</p>
-      <button id="avatarRetry" class="quiet-button" type="button" hidden>Live2D 다시 불러오기</button>
+      <button id="avatarRetry" class="quiet-button" type="button" hidden>Live2D 다시 읽기</button>
       <label class="setting-check"
         ><input id="reducedMotionInput" type="checkbox" />움직임 줄이기</label
       >
@@ -228,7 +232,8 @@
         <strong>캐릭터 · 로컬 개발 버전</strong>
         <p>AI의 답변은 틀릴 수 있어요. 학교 공식 행정 서비스가 아니에요.</p>
         <p>
-          대화는 서버에 저장돼요. 입력 중인 메시지는 이 탭을 새로고침해도 남아 있어요.
+          이 탭의 대화와 초안은 새로고침 후 이어져요. 대화 원문은 로컬 서버에, 초안은 이 탭의
+          브라우저 저장소에 남아요.
         </p>
       </div>
     </dialog>
