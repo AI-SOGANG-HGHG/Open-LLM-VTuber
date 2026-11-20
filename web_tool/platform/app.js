@@ -215,19 +215,32 @@ function shortDate(value) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
 }
-function pageHeading(eyebrow, title, description, action = '') {
-  return `<div class="page-heading"><div>${eyebrow ? `<p class="eyebrow">${eyebrow}</p>` : ''}<h1>${title}</h1>${description ? `<p class="muted">${description}</p>` : ''}</div>${action}</div>`;
+function pageHeading(title, description, action = '') {
+  return `<div class="page-heading"><div><h1>${title}</h1>${description ? `<p class="muted">${description}</p>` : ''}</div>${action}</div>`;
 }
-function card(char, { catalog = false, demoPersona } = {}) {
+function card(char, { catalog = false, demoPersona, showAvatar = true } = {}) {
   const asset = avatarAssets[char.avatar];
   const target = catalog ? '#discover' : charLink(char, 'chat');
   return `<article class="character-card${demoPersona ? ' comparison-card' : ''}">
-    <a href="${target}" ${catalog ? `data-action="preset" data-id="${escapeHtml(char.id)}"` : ''} class="card-stage ${char.avatar} ${char.template === 'calm' ? 'calm' : ''}" aria-label="${escapeHtml(char.name)} ${catalog ? '프리셋 선택' : '대화 열기'}">${avatar(char)}${asset.credit ? `<span class="model-credit">${asset.credit}</span>` : ''}</a>
+    ${showAvatar ? `<a href="${target}" ${catalog ? `data-action="preset" data-id="${escapeHtml(char.id)}"` : ''} class="card-stage ${char.avatar}" aria-label="${escapeHtml(char.name)} ${catalog ? '프리셋 선택' : '대화 열기'}">${avatar(char)}${asset.credit ? `<span class="model-credit">${asset.credit}</span>` : ''}</a>` : ''}
     ${catalog ? '' : `<button class="favorite-button" data-action="favorite" data-id="${escapeHtml(char.id)}" aria-label="${escapeHtml(char.name)} 즐겨찾기" aria-pressed="${char.favorite}">${char.favorite ? '♥' : '♡'}</button>`}
-    <div class="card-body"><div class="card-title"><h3>${escapeHtml(char.name)}</h3>${demoPersona ? '' : `<span class="card-type">${asset.label}</span>`}</div><p class="card-description">${escapeHtml(demoPersona?.description ?? char.description)}</p><div class="tags">${tags(char)}</div>
+    <div class="card-body"><div class="card-title"><h3>${escapeHtml(char.name)}</h3>${demoPersona ? '' : `<span class="card-type">${asset.label}</span>`}</div><p class="card-description">${escapeHtml(demoPersona?.description ?? char.description)}</p>
     ${demoPersona ? '' : `<div class="card-meta"><span>${catalog ? presets[char.template].label : `기억 ${char.memories.length}개 · 대화 ${Number.isSafeInteger(char.liveTurns) ? char.liveTurns : 0}회`}</span></div>`}
-    <div class="card-actions">${catalog ? `<button class="button primary" data-action="preset" data-id="${escapeHtml(char.id)}">이 캐릭터로 시작</button>` : `<a class="button primary" href="${charLink(char, 'chat')}">대화 시작</a><a class="button secondary" href="${charLink(char)}">설정</a>`}<button class="button secondary preview-button" data-action="preview" data-id="${escapeHtml(char.id)}" data-catalog="${catalog}" aria-label="${escapeHtml(char.name)} 외형 미리보기">◉</button></div></div>
+    <div class="card-actions">${catalog ? `<button class="button primary" data-action="preset" data-id="${escapeHtml(char.id)}">이 캐릭터로 시작</button>` : `<a class="button primary" href="${charLink(char, 'chat')}">대화 시작</a><a class="button secondary" href="${charLink(char)}">설정</a>`}<button class="button secondary preview-button" data-action="preview" data-id="${escapeHtml(char.id)}" data-catalog="${catalog}" aria-label="${escapeHtml(char.name)} 외형 미리보기">미리보기</button></div></div>
   </article>`;
+}
+function comparisonContent(pair) {
+  const avatarId = pair[0].avatar;
+  const shared = pair.every(({ avatar }) => avatar === avatarId) ? avatarAssets[avatarId] : null;
+  const figure = shared?.image ? `<figure class="comparison-art ${avatarId}">
+    <img src="${shared.image}" alt="" />
+    <figcaption>${shared.name}${shared.credit ? ` <span>${shared.credit}</span>` : ''}</figcaption>
+  </figure>` : '';
+  return `<h2 id="comparisonTitle">같은 질문, 다른 답변</h2>
+    <p>같은 질문을 보내고 두 캐릭터의 답변과 참고한 기억을 비교해 보세요.${figure ? ` 외형은 둘 다 ${shared.name}로 맞췄어요.` : ''}</p>
+    <div class="comparison-layout">${figure}<div class="comparison-grid">
+      ${pair.map((char, index) => card(char, { demoPersona: demoPersonas[index], showAvatar: !figure })).join('')}
+    </div></div>`;
 }
 function renderCards() {
   const normalized = searchQuery.toLocaleLowerCase();
@@ -241,10 +254,7 @@ function renderCards() {
   const remaining = showComparison ? chars.filter((char) => !demoPair.includes(char)) : chars;
   const comparison = $('#demoComparison');
   comparison.hidden = !showComparison;
-  comparison.innerHTML = showComparison ? `
-    <h2 id="comparisonTitle">같은 질문, 다른 답변</h2>
-    <p>두 캐릭터에게 같은 질문을 보내고, 답변과 참고한 기억을 비교해 보세요.${demoPair.every((char) => char.avatar === 'mao') ? ' 외형은 둘 다 Mao로 맞췄어요.' : ''}</p>
-    <div class="comparison-grid">${demoPair.map((char, index) => card(char, { demoPersona: demoPersonas[index] })).join('')}</div>` : '';
+  comparison.innerHTML = showComparison ? comparisonContent(demoPair) : '';
   const emptyState = '<div class="empty-state">여기에는 아직 캐릭터가 없어요.<br />검색어나 필터를 바꾸거나 새로운 캐릭터를 만들어 보세요.</div>';
   $('#characterGrid').innerHTML = chars.length ? remaining.map((char) => card(char)).join('') : emptyState;
   const count = $('#resultCount');
@@ -253,14 +263,14 @@ function renderCards() {
   document.querySelectorAll('[data-filter]').forEach((button) => { button.classList.toggle('active', button.dataset.filter === collectionFilter); button.setAttribute('aria-pressed', String(button.dataset.filter === collectionFilter)); });
 }
 function renderCharacters() {
-  main.innerHTML = pageHeading('', '내 캐릭터', '', '<button class="button primary" data-action="create">＋ 캐릭터 만들기</button>') +
-    `<div class="section-toolbar"><div class="filter-tabs" aria-label="캐릭터 필터"><button class="filter-button" data-filter="all">전체 <span>${data.characters.length}</span></button><button class="filter-button" data-filter="favorites">♡ 즐겨찾기</button><button class="filter-button" data-filter="live2d">Live2D</button></div><label class="search-wrap" style="margin:0"><span aria-hidden="true">⌕</span><input class="search" id="characterSearch" type="search" placeholder="캐릭터 검색" aria-label="캐릭터 검색" maxlength="100" value="${escapeHtml(searchQuery)}" /></label></div>
+  main.innerHTML = pageHeading('내 캐릭터', '', '<button class="button secondary" data-action="create">캐릭터 만들기</button>') +
+    `<div class="section-toolbar"><div class="filter-tabs" aria-label="캐릭터 필터"><button class="filter-button" data-filter="all">전체 <span>${data.characters.length}</span></button><button class="filter-button" data-filter="favorites">즐겨찾기</button><button class="filter-button" data-filter="live2d">Live2D</button></div><label class="search-wrap"><input class="search" id="characterSearch" type="search" placeholder="캐릭터 검색" aria-label="캐릭터 검색" maxlength="100" value="${escapeHtml(searchQuery)}" /></label></div>
     <section id="demoComparison" class="demo-comparison" aria-labelledby="comparisonTitle" hidden></section>
     <p class="collection-caption" id="resultCount" aria-live="polite"></p><div class="character-grid" id="characterGrid"></div>`;
   renderCards();
 }
 function renderDiscover() {
-  main.innerHTML = pageHeading('FIND YOUR NEXT CHARACTER', '어떤 캐릭터를 만나볼까요?', '마음에 드는 모습에서 시작해, 당신만의 성격을 더해보세요.') + '<div class="discover-intro"><span aria-hidden="true">✧</span>처음이라면 프리셋으로 가볍게 시작하세요. 설정은 나중에도 바꿀 수 있어요.</div><div class="character-grid">' + catalogCharacters().map((char) => card(char, { catalog: true })).join('') + '</div><p class="bottom-note">Mao는 Open-LLM-VTuber에 등록된 기본 Live2D 모델이에요. 프리셋을 선택하면 이름·말투·첫 인사를 정해 내 캐릭터로 만들 수 있어요.</p>';
+  main.innerHTML = pageHeading('캐릭터 둘러보기', '기본 캐릭터를 선택한 뒤 이름과 성격을 바꿀 수 있어요.') + '<div class="character-grid">' + catalogCharacters().map((char) => card(char, { catalog: true })).join('') + '</div>';
 }
 function avatarPicker(char) {
   return `<fieldset class="avatar-picker"><legend>캐릭터 외형</legend>${Object.entries(avatarAssets).map(([id, asset]) => `<label class="avatar-option"><input type="radio" name="avatar" value="${id}" ${char.avatar === id ? 'checked' : ''} /><span class="avatar-option-art ${id}">${asset.image ? `<img src="${asset.image}" alt="" />` : '<span aria-hidden="true">✳</span>'}</span><strong>${asset.name}</strong><small>${id === 'mao' ? '기본 Live2D' : id === 'sogangi' ? '캠퍼스 동료' : '나만의 심볼'}</small></label>`).join('')}</fieldset>`;
@@ -269,20 +279,20 @@ function profilePreview(char, chat = false) {
   const liveProfile = char.studioPreset
     ? `<dt>대화 페르소나</dt><dd>${escapeHtml(studioPresets[char.studioPreset])}</dd>`
     : `<dt>말투</dt><dd>${escapeHtml(char.tone)}</dd>`;
-  return `<aside class="preview-card ${chat ? 'chat-character' : 'settings-preview'}"><div class="preview-art ${char.avatar}" id="settingsAvatar">${avatar(char)}</div><div class="preview-profile"><p class="eyebrow">${chat ? 'YOUR CONVERSATION PARTNER' : 'CHARACTER PREVIEW'}</p><h2 id="previewName">${escapeHtml(char.name)}</h2><p>${escapeHtml(char.description)}</p><div class="tags">${tags(char)}</div>${chat ? `<p class="field-help" style="margin:17px 0">${escapeHtml(char.tone)} · ${presets[char.template].label}</p><button class="button secondary" data-action="preview" data-id="${escapeHtml(char.id)}">외형만 미리보기 ◉</button>` : `<div class="greeting-quote" id="previewGreeting">“${escapeHtml(char.greeting)}”</div><dl class="definition-list">${liveProfile}<dt>기억</dt><dd>${char.memories.length}개 · 직접 등록</dd><dt>연결</dt><dd>방송·게임 준비 중</dd></dl>`}${char.avatar === 'mao' ? '<p class="asset-credit">Mao · © Live2D Inc.</p>' : ''}</div></aside>`;
+  return `<aside class="preview-card ${chat ? 'chat-character' : 'settings-preview'}"><div class="preview-art ${char.avatar}" id="settingsAvatar">${avatar(char)}</div><div class="preview-profile"><h2 id="previewName">${escapeHtml(char.name)}</h2><p>${escapeHtml(char.description)}</p><div class="tags">${tags(char)}</div>${chat ? `<p class="field-help" style="margin:17px 0">${escapeHtml(char.tone)} · ${presets[char.template].label}</p><button class="button secondary" data-action="preview" data-id="${escapeHtml(char.id)}">외형 미리보기</button>` : `<div class="greeting-quote" id="previewGreeting">“${escapeHtml(char.greeting)}”</div><dl class="definition-list">${liveProfile}<dt>기억</dt><dd>${char.memories.length}개 · 직접 등록</dd><dt>연결</dt><dd>방송·게임 준비 중</dd></dl>`}${char.avatar === 'mao' ? '<p class="asset-credit">Mao · © Live2D Inc.</p>' : ''}</div></aside>`;
 }
 function settingsPanel(char) {
-  return `<div class="detail-grid"><form class="panel" id="settingsForm" data-id="${escapeHtml(char.id)}"><p class="eyebrow">MAKE IT YOURS</p><h2>이 캐릭터만의 매력을 담아주세요.</h2><p class="muted">외형부터 첫 인사까지, 원하는 모습으로 다듬어보세요.</p>${avatarPicker(char)}
+  return `<div class="detail-grid"><form class="panel" id="settingsForm" data-id="${escapeHtml(char.id)}"><h2>프로필과 성격</h2>${avatarPicker(char)}
     <div class="form-columns"><div><label for="editName">이름</label><input id="editName" name="name" value="${escapeHtml(char.name)}" maxlength="30" required /></div><div><label for="editTone">말투</label><select id="editTone" name="tone">${['친근한 반말', '활기찬 반말', '차분한 존댓말'].map((tone) => `<option${char.tone === tone ? ' selected' : ''}>${tone}</option>`).join('')}</select></div></div>
     <label for="editDescription">한 줄 소개</label><input id="editDescription" name="description" value="${escapeHtml(char.description)}" maxlength="100" required />
-    <label for="editGreeting">첫 인사</label><textarea id="editGreeting" name="greeting" maxlength="300" style="min-height:85px" required>${escapeHtml(char.greeting)}</textarea><p class="field-help">대화 실험실을 처음 열었을 때 표시할 한마디예요.</p>
+    <label for="editGreeting">첫 인사</label><textarea id="editGreeting" name="greeting" maxlength="300" style="min-height:85px" required>${escapeHtml(char.greeting)}</textarea><p class="field-help">대화방을 처음 열면 이 인사가 보여요.</p>
     <label for="editStudioPreset">실제 대화 페르소나</label><select id="editStudioPreset" name="studioPreset"><option value="">직접 작성한 성격과 말투</option>${Object.entries(studioPresets).map(([id, label]) => `<option value="${id}"${char.studioPreset === id ? ' selected' : ''}>${label}</option>`).join('')}</select><p class="field-help">팀 프리셋을 고르면 서버의 성향·가치·말투와 함께 기억 검색과 감정 상태가 적용돼요.</p>
     <label for="editPersona">성격과 대화 지침</label><textarea id="editPersona" name="persona" maxlength="2000" required>${escapeHtml(char.persona)}</textarea>
     <label for="editExploration">탐색 성향 <span id="explorationValue">${char.exploration}</span></label>
     <input id="editExploration" name="exploration" type="range" min="0" max="100" value="${char.exploration}" aria-describedby="explorationHelp"${char.studioPreset ? ' disabled' : ''} />
     <div class="range-label"><span>익숙함을 선호</span><span>새로운 시도를 선호</span></div>
     <p id="explorationHelp" class="field-help">직접 작성한 성격과 말투에 적용돼요. 팀 프리셋은 서버에 설정된 호기심 값을 사용해요.</p>
-    <div class="panel-actions"><button type="submit" class="button primary">변경사항 저장 ↗</button></div><p class="field-help">저장한 설정은 다음 대화실 연결에 적용돼요. 기존 서강이 앱의 기본 설정은 변경하지 않아요.</p></form>${profilePreview(char)}</div>`;
+    <div class="panel-actions"><button type="submit" class="button primary">변경사항 저장</button></div><p class="field-help">저장한 설정은 대화실에 다시 연결할 때 적용돼요.</p></form>${profilePreview(char)}</div>`;
 }
 function chatPanel(char) {
   return `<section class="runtime-toolbar"><div><a class="runtime-back" href="#characters">← 스튜디오</a><span class="status-dot"></span><strong id="runtimeStatus" role="status">${escapeHtml(char.name)} 연결 준비 중…</strong></div><div><a class="button secondary" href="${charLink(char)}">캐릭터 설정</a><button class="button secondary" data-action="runtime-layout">스튜디오 보기</button><button class="button secondary" data-action="runtime-connect" data-id="${escapeHtml(char.id)}">다시 연결</button><button class="button secondary" data-action="runtime-disconnect">연결 해제</button></div></section><div class="studio-runtime" id="studioRuntime"><iframe id="studioFrame" title="${escapeHtml(char.name)} 실제 음성·Live2D 대화실" allow="microphone; autoplay" referrerpolicy="no-referrer"></iframe></div><p class="field-help">${char.studioPreset ? '답변 아래에서 적용된 페르소나, 감정과 답변에 전달된 기억을 확인할 수 있어요.' : '직접 작성한 성격과 등록 메모로 대화해요. 기억 검색을 사용하려면 실제 대화 페르소나에서 팀 프리셋을 선택해 주세요.'}</p>`;
@@ -292,28 +302,28 @@ function sampleChatPanel(char) {
 }
 function renderMessages(char) {
   const container = $('#chatMessages');
-  container.innerHTML = char.messages.length ? char.messages.map((msg) => `<div class="chat-message${msg.role === 'user' ? ' user' : ''}">${msg.role === 'user' ? '' : `<span class="chat-author">${escapeHtml(char.name)} · 샘플</span>`}${escapeHtml(msg.content)}</div>`).join('') : `<div class="chat-empty"><span class="mini-spark" aria-hidden="true">✳</span><h3>우리의 첫 번째 이야기.</h3><p>${escapeHtml(char.greeting)}</p><div class="chat-suggestions"><button data-action="suggest" data-message="안녕!">반갑게 인사하기 ↗</button><button data-action="suggest" data-message="오늘 할 일이 많아">오늘 할 일 이야기하기 ↗</button></div></div>`;
+  container.innerHTML = char.messages.length ? char.messages.map((msg) => `<div class="chat-message${msg.role === 'user' ? ' user' : ''}">${msg.role === 'user' ? '' : `<span class="chat-author">${escapeHtml(char.name)} · 샘플</span>`}${escapeHtml(msg.content)}</div>`).join('') : `<div class="chat-empty"><p>${escapeHtml(char.greeting)}</p><div class="chat-suggestions"><button data-action="suggest" data-message="안녕!">인사하기</button><button data-action="suggest" data-message="오늘 할 일이 많아">오늘 할 일 이야기하기</button></div></div>`;
   container.scrollTop = container.scrollHeight;
 }
 function memoryPanel(char) {
-  return `<section class="panel"><p class="eyebrow">THINGS TO REMEMBER</p><h2>작은 기억이, 특별한 캐릭터를 만들어요.</h2><p class="muted">취향, 약속, 함께한 일. 캐릭터가 기억했으면 하는 내용을 모아두세요.</p><form id="memoryForm" class="memory-form" data-id="${escapeHtml(char.id)}"><input name="memory" placeholder="예: 매주 수요일에 프로젝트 회의를 한다." aria-label="새 기억" maxlength="300" required /><button type="submit" class="button primary">＋ 기억 추가</button></form>
+  return `<section class="panel"><h2>기억 노트</h2><p class="muted">캐릭터가 대화에서 참고할 취향, 약속이나 함께한 일을 적어두세요.</p><form id="memoryForm" class="memory-form" data-id="${escapeHtml(char.id)}"><input name="memory" placeholder="예: 매주 수요일에 프로젝트 회의를 한다." aria-label="새 기억" maxlength="300" required /><button type="submit" class="button primary">기억 추가</button></form>
     ${char.memories.length ? char.memories.map((memory) => `<div class="memory-item"><span>${escapeHtml(memory.text)}<small>직접 등록 · ${shortDate(memory.at)}</small></span><button class="icon-button" data-action="remove-memory" data-id="${escapeHtml(char.id)}" data-memory="${escapeHtml(memory.id)}" aria-label="기억 삭제">×</button></div>`).join('') : '<div class="empty-state">아직 비어 있는 기억 노트.<br />위 입력란에서 첫 번째 기억을 남겨보세요.</div>'}<p class="field-help" style="margin-top:22px">${char.studioPreset ? '대화실에서 직접 등록한 최근 메모 최대 50개 중 질문과 관련된 항목을 검색해요.' : '직접 작성한 페르소나는 대화실에 최근 메모 최대 50개를 전달해요.'}</p></section>`;
 }
 function renderConnections(char) {
   const selected = char || data.characters.find((item) => item.id === 'sogangi') || data.characters[0];
-  return `<div class="connection-grid"><section class="connection-card"><span class="connection-icon" aria-hidden="true">↗</span><span class="tag">스튜디오 대화실</span><h2>음성·Live2D 대화</h2><p>선택한 캐릭터의 성격과 등록한 기억을 적용하고, 스튜디오 안에서 목소리와 움직임으로 이야기해요.</p>${selected ? `<a class="button primary" href="${charLink(selected, 'chat')}">${escapeHtml(selected.name)} 대화실 연결 ↗</a>` : '<button class="button primary" data-action="create">먼저 캐릭터 만들기</button>'}<p class="field-help">대화 서버 필요 · 메시지 전송 시 API 사용</p></section>
-    <section class="connection-card"><span class="connection-icon" aria-hidden="true">◉</span><span class="tag">준비 중</span><h2>방송 스튜디오</h2><p>채팅과 방송 이벤트를 받아, ${char ? escapeHtml(char.name) : '선택한 캐릭터'}의 목소리와 표정으로 시청자와 만나요.</p><button class="button secondary" disabled>방송 연결 준비 중</button></section>
-    <section class="connection-card"><span class="connection-icon" aria-hidden="true">◇</span><span class="tag">준비 중</span><h2>Minecraft 월드</h2><p>같은 성격과 기억을 가진 캐릭터로, 블록 너머 새로운 모험을 시작해요.</p><button class="button secondary" disabled>게임 연결 준비 중</button></section></div><p class="bottom-note">앞으로 연결할 무대를 미리 보여드려요. 방송·게임 접속과 에이전트 실행은 아직 지원하지 않아요.</p>`;
+  return `<div class="connection-grid"><section class="connection-card"><h2>음성·Live2D 대화</h2><p>선택한 캐릭터와 음성으로 대화해요.</p>${selected ? `<a class="button primary" href="${charLink(selected, 'chat')}">${escapeHtml(selected.name)} 대화 시작</a>` : '<button class="button primary" data-action="create">캐릭터 만들기</button>'}<p class="field-help">대화 서버가 필요해요.</p></section>
+    <section class="connection-card"><h2>방송 스튜디오</h2><p>방송 채팅이나 이벤트에 캐릭터가 반응하는 기능을 준비하고 있어요.</p></section>
+    <section class="connection-card"><h2>Minecraft</h2><p>스튜디오에서 만든 캐릭터를 게임에 연결하는 기능을 준비하고 있어요.</p></section></div>`;
 }
 function renderRecords(char) {
   const activities = char ? data.activities.filter((event) => event.characterId === char.id) : data.activities;
-  return `<section class="panel"><p class="eyebrow">YOUR STUDIO JOURNAL</p><h2>${char ? escapeHtml(char.name) + '와 함께한' : '스튜디오의'} 발자취</h2><p class="muted">캐릭터를 만들고 다듬어 온 작은 순간들을 모았어요.</p>${activities.length ? `<ul class="event-list">${activities.map((event) => `<li><span class="event-marker" aria-hidden="true">↗</span><div><strong>${escapeHtml(event.title)}</strong><small>${escapeHtml(event.name)} · 브라우저 데모</small></div><time datetime="${escapeHtml(event.at)}">${shortDate(event.at)}</time></li>`).join('')}</ul>` : '<div class="empty-state">아직 기록된 활동이 없어요.<br />캐릭터를 만들거나 첫 대화를 시작해 보세요.</div>'}<p class="field-help" style="margin-top:20px">이 데모에서 직접 수행한 활동만 표시해요.</p></section>`;
+  return `<section class="panel"${char ? ' aria-label="캐릭터 활동 기록"' : ' aria-label="최근 활동"'}>${char ? '<h2>캐릭터 활동 기록</h2>' : ''}${activities.length ? `<ul class="event-list">${activities.map((event) => `<li><div><strong>${escapeHtml(event.title)}</strong><small>${escapeHtml(event.name)}</small></div><time datetime="${escapeHtml(event.at)}">${shortDate(event.at)}</time></li>`).join('')}</ul>` : '<p class="muted">아직 기록된 활동이 없어요.</p>'}</section>`;
 }
 function renderDetail(char, tab) {
   const tabs = { settings: '프로필·성격', chat: '음성·Live2D 대화', memory: '기억 노트', connections: '연결', records: '기록', sample: '샘플 대화' };
   if (!Object.hasOwn(tabs, tab)) tab = 'settings';
   $('#breadcrumb').textContent = `스튜디오 / ${char.name} / ${tabs[tab]}`;
-  main.innerHTML = `<a class="back-link" href="#characters">← 내 캐릭터로 돌아가기</a><div class="detail-heading"><div class="detail-avatar ${char.avatar}">${avatar(char)}</div><div><h1>${escapeHtml(char.name)}</h1><p>${escapeHtml(char.description)}</p></div><div class="detail-actions"><button class="button secondary" data-action="preview" data-id="${escapeHtml(char.id)}">외형 미리보기 ◉</button><button class="button secondary" data-action="duplicate" data-id="${escapeHtml(char.id)}">복제</button><button class="button secondary" data-action="delete" data-id="${escapeHtml(char.id)}">삭제</button></div></div><nav class="tabs" aria-label="캐릭터 관리 메뉴">${Object.entries(tabs).map(([key, label]) => `<a href="${charLink(char, key)}" class="${tab === key ? 'active' : ''}"${tab === key ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
+  main.innerHTML = `<a class="back-link" href="#characters">← 내 캐릭터로 돌아가기</a><div class="detail-heading"><div class="detail-avatar ${char.avatar}">${avatar(char)}</div><div><h1>${escapeHtml(char.name)}</h1><p>${escapeHtml(char.description)}</p></div><div class="detail-actions"><button class="button secondary" data-action="preview" data-id="${escapeHtml(char.id)}">외형 미리보기</button><button class="button secondary" data-action="duplicate" data-id="${escapeHtml(char.id)}">복제</button><button class="button secondary" data-action="delete" data-id="${escapeHtml(char.id)}">삭제</button></div></div><nav class="tabs" aria-label="캐릭터 관리 메뉴">${Object.entries(tabs).map(([key, label]) => `<a href="${charLink(char, key)}" class="${tab === key ? 'active' : ''}"${tab === key ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
   if (tab === 'settings') main.innerHTML += settingsPanel(char);
   if (tab === 'chat') { main.innerHTML += chatPanel(char); setConversationFocus(true); connectRuntime(char); }
   if (tab === 'sample') { main.innerHTML += sampleChatPanel(char); renderMessages(char); }
@@ -387,9 +397,7 @@ window.addEventListener('message', (event) => {
 window.addEventListener('pagehide', disposeRuntime);
 function renderShell() {
   $('#profileName').textContent = profile;
-  $('#profileAvatar').textContent = profile.slice(0, 1).toUpperCase();
-  $('#navCount').textContent = data.characters.length;
-  $('#quickChats').innerHTML = data.characters.slice(0, 3).map((char) => `<a class="shortcut" href="${charLink(char, 'chat')}"><span class="shortcut-avatar ${char.avatar}">${avatar(char)}</span>${escapeHtml(char.name)}<span aria-hidden="true">↗</span></a>`).join('');
+  $('#quickChats').innerHTML = data.characters.slice(0, 3).map((char) => `<a class="shortcut" href="${charLink(char, 'chat')}">${escapeHtml(char.name)}</a>`).join('');
 }
 function render() {
   setConversationFocus(false);
@@ -400,7 +408,7 @@ function render() {
   renderShell();
   const route = location.hash.slice(1).split('/');
   const section = ['discover', 'connections', 'records'].includes(route[0]) ? route[0] : 'characters';
-  const sectionNames = { characters: '내 캐릭터', discover: '둘러보기', connections: '연결 허브', records: '활동 기록' };
+  const sectionNames = { characters: '내 캐릭터', discover: '둘러보기', connections: '서비스 연결', records: '활동 기록' };
   document.querySelectorAll('[data-nav]').forEach((link) => { link.classList.toggle('active', link.dataset.nav === section); if (link.dataset.nav === section) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current'); });
   $('#breadcrumb').textContent = `스튜디오 / ${sectionNames[section]}`;
   if (route[0] === 'character') {
@@ -410,8 +418,8 @@ function render() {
     if (char) renderDetail(char, route[2]);
     else main.innerHTML = '<div class="empty-state">이 캐릭터를 찾을 수 없어요.<br /><a class="button secondary" style="margin-top:18px" href="#characters">내 캐릭터로 돌아가기</a></div>';
   } else if (section === 'discover') renderDiscover();
-  else if (section === 'connections') main.innerHTML = pageHeading('BEYOND THE CONVERSATION', '캐릭터의 다음 무대.', '대화에서 방송, 게임까지. 같은 캐릭터와 더 넓은 세상으로.') + renderConnections();
-  else if (section === 'records') main.innerHTML = pageHeading('STUDIO ACTIVITY', '우리가 만들어 온 이야기.', '캐릭터의 시작부터 지금까지, 스튜디오의 활동을 확인하세요.') + renderRecords();
+  else if (section === 'connections') main.innerHTML = pageHeading('서비스 연결', '') + renderConnections();
+  else if (section === 'records') main.innerHTML = pageHeading('활동 기록', '캐릭터 설정과 이 브라우저에서 한 활동을 확인할 수 있어요.') + renderRecords();
   else renderCharacters();
   document.title = `${sectionNames[section]} · Persona Studio`;
 }
