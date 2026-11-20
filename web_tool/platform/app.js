@@ -17,6 +17,10 @@ const studioPresets = {
   calm: '차분한 전략가',
   warm: '다정한 동료',
 };
+const demoPersonas = [
+  { id: 'direct-reviewer', description: '마감에 맞추려면 지금 뭘 해야 할지 짚어줘요.', tags: ['마감 점검', '우선순위 정하기'] },
+  { id: 'supportive-coach', description: '막막할 때, 지금 할 수 있는 일부터 함께 정해요.', tags: ['부담 덜기', '작은 단계로 나누기'] },
+];
 const avatarAssets = {
   mao: { name: 'Mao', label: 'Open-LLM-VTuber 기본', image: './assets/mao.png', model: '/live2d-models/mao_pro/runtime/mao_pro.model3.json', credit: '© Live2D Inc.' },
   sogangi: { name: '서강이', label: '캠퍼스 캐릭터', image: '../sogangi/assets/sogangi-neutral.svg', model: '/live2d-models/sogangi-expressions/runtime/sogangi.model3.json', credit: '' },
@@ -38,11 +42,7 @@ function catalogCharacters() {
   return [mao, sogangi, moa];
 }
 function demoCharacters() {
-  const demos = [
-    ['direct-reviewer', '마감 위험을 짚고 지금 할 일을 분명하게 제안해요.'],
-    ['supportive-coach', '부담을 함께 살피고 시작하기 쉬운 단계를 제안해요.'],
-  ];
-  return demos.map(([id, description]) => {
+  return demoPersonas.map(({ id, description }) => {
     const char = createCharacter(id, studioPresets[id], description, 'calm', 'mao');
     char.studioPreset = id;
     char.memories.push({ id: crypto.randomUUID(), text: DEMO_MEMORY, at: now() });
@@ -115,6 +115,7 @@ function loginError(message = '') {
 }
 function configureLogin() {
   const demo = authMode === 'demo';
+  $('#loginTitle').textContent = demo ? '스튜디오 미리보기' : '팀 계정으로 로그인';
   $('#loginUsernameLabel').textContent = demo ? '어떻게 불러드릴까요?' : '아이디';
   $('#loginUsername').placeholder = demo ? '이름 또는 닉네임' : '팀 계정 아이디';
   $('#loginUsername').autocomplete = demo ? 'nickname' : 'username';
@@ -123,8 +124,6 @@ function configureLogin() {
   $('#loginSubmit').disabled = authBusy;
   $('#loginSubmit').formNoValidate = authMode === 'error';
   $('#loginSubmit').textContent = authBusy ? (authMode === 'team' ? '로그인 중…' : '연결 확인 중…') : demo ? '스튜디오 둘러보기 ↗' : authMode === 'error' ? '다시 연결' : '로그인 ↗';
-  $('#loginHint').textContent = demo ? '화면 미리보기예요. 캐릭터 설정은 이 브라우저에 저장됩니다.' : '팀 계정으로 로그인해 주세요. 캐릭터 설정은 이 브라우저에 저장됩니다.';
-  $('#loginView .demo-pill').textContent = demo ? 'LOCAL PREVIEW' : 'TEAM ACCESS';
 }
 function clearProfile() {
   profile = '';
@@ -133,7 +132,7 @@ function clearProfile() {
   $('#loginPassword').value = '';
   history.replaceState(null, '', location.pathname + location.search);
   render();
-  document.title = 'Persona Studio · 상상에 성격을 더하다';
+  document.title = 'Persona Studio';
 }
 function enterProfile(username) {
   profile = username;
@@ -204,7 +203,11 @@ function avatar(char) {
   const asset = avatarAssets[char.avatar];
   return asset.image ? `<img src="${asset.image}" alt="${escapeHtml(char.name)} 캐릭터" />` : '<span class="stage-symbol" aria-hidden="true">✳</span>';
 }
-function tags(char) { return presets[char.template].tags.map((tag) => `<span class="tag">${tag}</span>`).join(''); }
+function tags(char) {
+  const demoPersona = demoPersonas.find(({ id }) => id === char.studioPreset);
+  const labels = demoPersona?.tags ?? presets[char.template].tags;
+  return labels.map((tag) => `<span class="tag">${tag}</span>`).join('');
+}
 function charLink(char, tab = 'settings') { return `#character/${encodeURIComponent(char.id)}/${tab}`; }
 function runtimeOrigin() { return location.pathname.startsWith('/web-tool/') ? location.origin : 'http://localhost:12393'; }
 function getCharacter(id) { return data.characters.find((char) => char.id === id); }
@@ -213,17 +216,17 @@ function shortDate(value) {
   return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
 }
 function pageHeading(eyebrow, title, description, action = '') {
-  return `<div class="page-heading"><div><p class="eyebrow">${eyebrow}</p><h1>${title}</h1><p class="muted">${description}</p></div>${action}</div>`;
+  return `<div class="page-heading"><div>${eyebrow ? `<p class="eyebrow">${eyebrow}</p>` : ''}<h1>${title}</h1>${description ? `<p class="muted">${description}</p>` : ''}</div>${action}</div>`;
 }
-function card(char, catalog = false) {
+function card(char, { catalog = false, demoPersona } = {}) {
   const asset = avatarAssets[char.avatar];
   const target = catalog ? '#discover' : charLink(char, 'chat');
-  return `<article class="character-card">
-    <a href="${target}" ${catalog ? `data-action="preset" data-id="${escapeHtml(char.id)}"` : ''} class="card-stage ${char.avatar} ${char.template === 'calm' ? 'calm' : ''}" aria-label="${escapeHtml(char.name)} ${catalog ? '프리셋 선택' : '대화 열기'}"><span class="stage-label">${char.avatar === 'mao' ? 'ORIGINAL LIVE2D' : char.avatar === 'sogangi' ? 'CAMPUS COMPANION' : 'YOUR OWN PERSONA'}</span>${avatar(char)}${asset.credit ? `<span class="model-credit">${asset.credit}</span>` : ''}</a>
+  return `<article class="character-card${demoPersona ? ' comparison-card' : ''}">
+    <a href="${target}" ${catalog ? `data-action="preset" data-id="${escapeHtml(char.id)}"` : ''} class="card-stage ${char.avatar} ${char.template === 'calm' ? 'calm' : ''}" aria-label="${escapeHtml(char.name)} ${catalog ? '프리셋 선택' : '대화 열기'}">${avatar(char)}${asset.credit ? `<span class="model-credit">${asset.credit}</span>` : ''}</a>
     ${catalog ? '' : `<button class="favorite-button" data-action="favorite" data-id="${escapeHtml(char.id)}" aria-label="${escapeHtml(char.name)} 즐겨찾기" aria-pressed="${char.favorite}">${char.favorite ? '♥' : '♡'}</button>`}
-    <div class="card-body"><div class="card-title"><h3>${escapeHtml(char.name)}</h3><span class="card-type">${asset.label}</span></div><p class="card-description">${escapeHtml(char.description)}</p><div class="tags">${tags(char)}</div>
-    <div class="card-meta"><span>${catalog ? presets[char.template].label : `기억 ${char.memories.length}개 · 실제 대화 ${Number.isSafeInteger(char.liveTurns) ? char.liveTurns : 0}회`}</span><span>${catalog ? '프리셋' : '내 캐릭터'}</span></div>
-    <div class="card-actions">${catalog ? `<button class="button primary" data-action="preset" data-id="${escapeHtml(char.id)}">이 캐릭터로 시작 ↗</button>` : `<a class="button secondary" href="${charLink(char)}">설정</a><a class="button primary" href="${charLink(char, 'chat')}">대화 시작 ↗</a>`}<button class="button secondary preview-button" data-action="preview" data-id="${escapeHtml(char.id)}" data-catalog="${catalog}" aria-label="${escapeHtml(char.name)} 외형 미리보기">◉</button></div></div>
+    <div class="card-body"><div class="card-title"><h3>${escapeHtml(char.name)}</h3>${demoPersona ? '' : `<span class="card-type">${asset.label}</span>`}</div><p class="card-description">${escapeHtml(demoPersona?.description ?? char.description)}</p><div class="tags">${tags(char)}</div>
+    ${demoPersona ? '' : `<div class="card-meta"><span>${catalog ? presets[char.template].label : `기억 ${char.memories.length}개 · 대화 ${Number.isSafeInteger(char.liveTurns) ? char.liveTurns : 0}회`}</span></div>`}
+    <div class="card-actions">${catalog ? `<button class="button primary" data-action="preset" data-id="${escapeHtml(char.id)}">이 캐릭터로 시작</button>` : `<a class="button primary" href="${charLink(char, 'chat')}">대화 시작</a><a class="button secondary" href="${charLink(char)}">설정</a>`}<button class="button secondary preview-button" data-action="preview" data-id="${escapeHtml(char.id)}" data-catalog="${catalog}" aria-label="${escapeHtml(char.name)} 외형 미리보기">◉</button></div></div>
   </article>`;
 }
 function renderCards() {
@@ -231,20 +234,33 @@ function renderCards() {
   const chars = data.characters.filter((char) => `${char.name} ${char.description}`.toLocaleLowerCase().includes(normalized)
     && (collectionFilter !== 'favorites' || char.favorite)
     && (collectionFilter !== 'live2d' || avatarAssets[char.avatar].model));
-  $('#characterGrid').innerHTML = chars.length ? chars.map((char) => card(char)).join('') : '<div class="empty-state">여기에는 아직 캐릭터가 없어요.<br />검색어나 필터를 바꾸거나 새로운 캐릭터를 만들어 보세요.</div>';
-  $('#resultCount').textContent = `${chars.length}개의 캐릭터`;
+  const demoPair = !normalized && collectionFilter === 'all'
+    ? demoPersonas.map(({ id }) => chars.find((char) => char.id === id && char.studioPreset === id))
+    : [];
+  const showComparison = demoPair.length === demoPersonas.length && demoPair.every(Boolean);
+  const remaining = showComparison ? chars.filter((char) => !demoPair.includes(char)) : chars;
+  const comparison = $('#demoComparison');
+  comparison.hidden = !showComparison;
+  comparison.innerHTML = showComparison ? `
+    <h2 id="comparisonTitle">같은 질문, 다른 답변</h2>
+    <p>두 캐릭터에게 같은 질문을 보내고, 답변과 참고한 기억을 비교해 보세요.${demoPair.every((char) => char.avatar === 'mao') ? ' 외형은 둘 다 Mao로 맞췄어요.' : ''}</p>
+    <div class="comparison-grid">${demoPair.map((char, index) => card(char, { demoPersona: demoPersonas[index] })).join('')}</div>` : '';
+  const emptyState = '<div class="empty-state">여기에는 아직 캐릭터가 없어요.<br />검색어나 필터를 바꾸거나 새로운 캐릭터를 만들어 보세요.</div>';
+  $('#characterGrid').innerHTML = chars.length ? remaining.map((char) => card(char)).join('') : emptyState;
+  const count = $('#resultCount');
+  count.hidden = showComparison && !remaining.length;
+  count.textContent = `${showComparison ? '다른 캐릭터' : '캐릭터'} ${remaining.length}명`;
   document.querySelectorAll('[data-filter]').forEach((button) => { button.classList.toggle('active', button.dataset.filter === collectionFilter); button.setAttribute('aria-pressed', String(button.dataset.filter === collectionFilter)); });
 }
 function renderCharacters() {
-  main.innerHTML = pageHeading('YOUR PERSONAL CAST', '내 캐릭터', `${escapeHtml(profile)}님, 오늘은 누구와 이야기를 나눌까요?`, '<button class="button primary" data-action="create">＋ 캐릭터 만들기</button>') +
-    `<section class="collection-hero"><div class="hero-copy"><p class="eyebrow">A LITTLE PERSONALITY. ENDLESS POSSIBILITIES.</p><h2>상상에,<br /><em>성격을 더하다.</em></h2><p>말투부터 기억까지, 당신의 취향을 담아.<br />함께할 캐릭터를 만나보세요.</p><a class="button" href="#discover">캐릭터 둘러보기 <span aria-hidden="true">↗</span></a></div><div class="hero-art"><span class="hero-ring"></span><img src="./assets/mao.png" alt="Mao, 기본 Live2D 캐릭터" /><span class="hero-character-label">MEET THE ORIGINAL<strong>Mao</strong></span><span class="floating-label">✧ Open-LLM-VTuber의 첫 번째 캐릭터</span></div></section>
-    <div class="section-toolbar"><div class="filter-tabs" aria-label="캐릭터 필터"><button class="filter-button" data-filter="all">전체 <span>${data.characters.length}</span></button><button class="filter-button" data-filter="favorites">♡ 즐겨찾기</button><button class="filter-button" data-filter="live2d">Live2D</button></div><label class="search-wrap" style="margin:0"><span aria-hidden="true">⌕</span><input class="search" id="characterSearch" type="search" placeholder="어떤 캐릭터를 찾고 있나요?" aria-label="캐릭터 검색" maxlength="100" value="${escapeHtml(searchQuery)}" /></label></div>
-    <div class="collection-caption"><span id="resultCount"></span><span>나만의 성격, 나만의 이야기.</span></div><div class="character-grid" id="characterGrid"></div>
-    <div class="create-strip"><div><strong>아직 만나지 못한 캐릭터가 있나요?</strong><p>외형과 성격을 골라, 당신만의 페르소나를 만들어보세요.</p></div><button class="button secondary" data-action="create">직접 만들기 ＋</button></div>`;
+  main.innerHTML = pageHeading('', '내 캐릭터', '', '<button class="button primary" data-action="create">＋ 캐릭터 만들기</button>') +
+    `<div class="section-toolbar"><div class="filter-tabs" aria-label="캐릭터 필터"><button class="filter-button" data-filter="all">전체 <span>${data.characters.length}</span></button><button class="filter-button" data-filter="favorites">♡ 즐겨찾기</button><button class="filter-button" data-filter="live2d">Live2D</button></div><label class="search-wrap" style="margin:0"><span aria-hidden="true">⌕</span><input class="search" id="characterSearch" type="search" placeholder="캐릭터 검색" aria-label="캐릭터 검색" maxlength="100" value="${escapeHtml(searchQuery)}" /></label></div>
+    <section id="demoComparison" class="demo-comparison" aria-labelledby="comparisonTitle" hidden></section>
+    <p class="collection-caption" id="resultCount" aria-live="polite"></p><div class="character-grid" id="characterGrid"></div>`;
   renderCards();
 }
 function renderDiscover() {
-  main.innerHTML = pageHeading('FIND YOUR NEXT CHARACTER', '어떤 캐릭터를 만나볼까요?', '마음에 드는 모습에서 시작해, 당신만의 성격을 더해보세요.') + '<div class="discover-intro"><span aria-hidden="true">✧</span>처음이라면 프리셋으로 가볍게 시작하세요. 설정은 나중에도 바꿀 수 있어요.</div><div class="character-grid">' + catalogCharacters().map((char) => card(char, true)).join('') + '</div><p class="bottom-note">Mao는 Open-LLM-VTuber에 등록된 기본 Live2D 모델이에요. 프리셋을 선택하면 이름·말투·첫 인사를 정해 내 캐릭터로 만들 수 있어요.</p>';
+  main.innerHTML = pageHeading('FIND YOUR NEXT CHARACTER', '어떤 캐릭터를 만나볼까요?', '마음에 드는 모습에서 시작해, 당신만의 성격을 더해보세요.') + '<div class="discover-intro"><span aria-hidden="true">✧</span>처음이라면 프리셋으로 가볍게 시작하세요. 설정은 나중에도 바꿀 수 있어요.</div><div class="character-grid">' + catalogCharacters().map((char) => card(char, { catalog: true })).join('') + '</div><p class="bottom-note">Mao는 Open-LLM-VTuber에 등록된 기본 Live2D 모델이에요. 프리셋을 선택하면 이름·말투·첫 인사를 정해 내 캐릭터로 만들 수 있어요.</p>';
 }
 function avatarPicker(char) {
   return `<fieldset class="avatar-picker"><legend>캐릭터 외형</legend>${Object.entries(avatarAssets).map(([id, asset]) => `<label class="avatar-option"><input type="radio" name="avatar" value="${id}" ${char.avatar === id ? 'checked' : ''} /><span class="avatar-option-art ${id}">${asset.image ? `<img src="${asset.image}" alt="" />` : '<span aria-hidden="true">✳</span>'}</span><strong>${asset.name}</strong><small>${id === 'mao' ? '기본 Live2D' : id === 'sogangi' ? '캠퍼스 동료' : '나만의 심볼'}</small></label>`).join('')}</fieldset>`;
