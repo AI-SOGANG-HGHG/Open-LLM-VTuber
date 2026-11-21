@@ -1,3 +1,4 @@
+import { agentError, archiveAgent, editAgent, ensureAgent, readTraits, serverProfiles, traitControls } from '../agents.js';
 import { avatar, tags } from '../components/card.js';
 import { $, charLink, escapeHtml, main, now, shortDate, toast } from '../dom.js';
 import { avatarAssets, defaultGreeting, presets, studioPresets } from '../presets.js';
@@ -20,19 +21,16 @@ function profilePreview(char, chat = false) {
 }
 function settingsPanel(char) {
   return `<div class="detail-grid"><form class="panel" id="settingsForm" data-id="${escapeHtml(char.id)}"><h2>프로필과 성격</h2>${avatarPicker(char)}
-    <div class="form-columns"><div><label for="editName">이름</label><input id="editName" name="name" value="${escapeHtml(char.name)}" maxlength="30" required /></div><div><label for="editTone">말투</label><select id="editTone" name="tone">${['친근한 반말', '활기찬 반말', '차분한 존댓말'].map((tone) => `<option${char.tone === tone ? ' selected' : ''}>${tone}</option>`).join('')}</select></div></div>
+    <div class="form-columns"><div><label for="editName">이름</label><input id="editName" name="name" value="${escapeHtml(char.name)}" maxlength="30" required /></div><div><label for="editTone">말투</label><select id="editTone" name="tone">${char.studioPreset ? '<option value="">프리셋 기본 말투</option>' : ''}${['친근한 반말', '활기찬 반말', '차분한 존댓말'].map((tone) => `<option${(char.studioPreset ? char.agentTone : char.tone) === tone ? ' selected' : ''}>${tone}</option>`).join('')}</select></div></div>
     <label for="editDescription">한 줄 소개</label><input id="editDescription" name="description" value="${escapeHtml(char.description)}" maxlength="100" required />
     <label for="editGreeting">첫 인사</label><textarea id="editGreeting" name="greeting" maxlength="300" style="min-height:85px" required>${escapeHtml(char.greeting)}</textarea><p class="field-help">대화방을 처음 열면 이 인사가 보여요.</p>
-    <label for="editStudioPreset">대화에 적용할 성격</label><select id="editStudioPreset" name="studioPreset"><option value="">직접 작성한 성격과 말투</option>${Object.entries(studioPresets).map(([id, label]) => `<option value="${id}"${char.studioPreset === id ? ' selected' : ''}>${label}</option>`).join('')}</select><p class="field-help">팀에서 정해 둔 성격과 말투로 대화해요. 상황에 따라 감정이 달라지고, 답변할 때 관련 기억을 찾아봐요.</p>
-    <label for="editPersona">성격과 대화 지침</label><textarea id="editPersona" name="persona" maxlength="2000" required>${escapeHtml(char.persona)}</textarea>
-    <label for="editExploration">탐색 성향 <span id="explorationValue">${char.exploration}</span></label>
-    <input id="editExploration" name="exploration" type="range" min="0" max="100" value="${char.exploration}" aria-describedby="explorationHelp"${char.studioPreset ? ' disabled' : ''} />
-    <div class="range-label"><span>익숙함을 선호</span><span>새로운 시도를 선호</span></div>
-    <p id="explorationHelp" class="field-help">성격을 직접 설정할 때 이 값을 바꿀 수 있어요. 팀 프리셋에는 정해진 값이 있어요.</p>
+    <p class="field-help">시작 프리셋 · ${escapeHtml(studioPresets[char.studioPreset] || '직접 작성한 성격')}</p>
+    ${traitControls(char.traits || { openness: char.exploration / 100 })}
+    <label for="editPersona">추가 성격과 대화 지침</label><textarea id="editPersona" name="persona" maxlength="2000"${char.studioPreset ? '' : ' required'}>${escapeHtml(char.studioPreset ? char.instructions : char.persona)}</textarea>
     <div class="panel-actions"><button type="submit" class="button primary">변경사항 저장</button></div><p class="field-help">저장한 설정은 대화실에 다시 연결할 때 적용돼요.</p></form>${profilePreview(char)}</div>`;
 }
 function chatPanel(char) {
-  return `<section class="runtime-toolbar"><div><a class="runtime-back" href="#characters">← 스튜디오</a><span class="status-dot"></span><strong id="runtimeStatus" role="status">${escapeHtml(char.name)} 연결 준비 중…</strong></div><div><a class="button secondary" href="${charLink(char)}">캐릭터 설정</a><button class="button secondary" data-action="runtime-layout">스튜디오 보기</button><button class="button secondary" data-action="runtime-connect" data-id="${escapeHtml(char.id)}">다시 연결</button><button class="button secondary" data-action="runtime-disconnect">연결 해제</button></div></section><div class="studio-runtime" id="studioRuntime"><iframe id="studioFrame" title="${escapeHtml(char.name)} 실제 음성·Live2D 대화실" allow="microphone; autoplay" referrerpolicy="no-referrer"></iframe></div><p class="field-help">${char.studioPreset ? '답변 아래에서 캐릭터의 성격, 감정 변화, 참고한 기억을 확인할 수 있어요.' : '직접 설정한 성격으로 대화하고, 적어 둔 기억을 참고해요.'}</p>`;
+  return `<section class="runtime-toolbar"><div><a class="runtime-back" href="#characters">← 스튜디오</a><span class="status-dot"></span><strong id="runtimeStatus" role="status">${escapeHtml(char.name)} 연결 준비 중…</strong></div><div><a class="button secondary" href="${charLink(char)}">캐릭터 설정</a><button class="button secondary" data-action="runtime-layout">스튜디오 보기</button><button class="button secondary" data-action="runtime-connect" data-id="${escapeHtml(char.id)}">다시 연결</button><button class="button secondary" data-action="runtime-disconnect">연결 해제</button></div></section><div class="studio-runtime" id="studioRuntime"><iframe id="studioFrame" title="${escapeHtml(char.name)} 실제 음성·Live2D 대화실" allow="microphone; autoplay" referrerpolicy="no-referrer"></iframe></div><p class="field-help">답변 아래에서 행동 규칙, 감정 변화, 참고한 기억을 확인할 수 있어요.</p>`;
 }
 function sampleChatPanel(char) {
   return `<div class="chat-layout">${profilePreview(char, true)}<section class="panel chat-panel"><div class="chat-top"><div><h2>${escapeHtml(char.name)}</h2><p>${escapeHtml(char.tone)} · ${presets[char.template].label}</p></div><span class="demo-pill">샘플 대화</span></div><div id="chatMessages" class="chat-messages" role="log" aria-label="샘플 대화 기록"></div><form id="chatForm" class="chat-compose" data-id="${escapeHtml(char.id)}"><input name="message" id="chatInput" placeholder="${escapeHtml(char.name)}에게 메시지 보내기…" aria-label="샘플 메시지" maxlength="500" autocomplete="off" required /><button class="button primary" type="submit" aria-label="메시지 보내기">↑</button></form><p class="chat-footnote">미리 준비한 답변으로 대화해 볼 수 있어요.</p></section></div>`;
@@ -44,7 +42,7 @@ function renderMessages(char) {
 }
 function memoryPanel(char) {
   return `<section class="panel"><h2>기억 노트</h2><p class="muted">캐릭터에게 기억해 달라고 할 취향이나 약속, 함께한 일을 적어 주세요.</p><form id="memoryForm" class="memory-form" data-id="${escapeHtml(char.id)}"><input name="memory" placeholder="예: 매주 수요일에 프로젝트 회의를 한다." aria-label="새 기억" maxlength="300" required /><button type="submit" class="button primary">기억 추가</button></form>
-    ${char.memories.length ? char.memories.map((memory) => `<div class="memory-item"><span>${escapeHtml(memory.text)}<small>직접 등록 · ${shortDate(memory.at)}</small></span><button class="icon-button" data-action="remove-memory" data-id="${escapeHtml(char.id)}" data-memory="${escapeHtml(memory.id)}" aria-label="기억 삭제">×</button></div>`).join('') : '<div class="empty-state">아직 적어 둔 기억이 없어요.</div>'}<p class="field-help" style="margin-top:22px">${char.studioPreset ? '최근에 적어 둔 기억 가운데 최대 50개를 살펴보고 대화에 관련된 내용을 찾아요.' : '성격을 직접 설정하면 최근에 적어 둔 기억을 최대 50개까지 참고해요.'}</p></section>`;
+    ${char.memories.length ? char.memories.map((memory) => `<div class="memory-item"><span>${escapeHtml(memory.text)}<small>직접 등록 · ${shortDate(memory.at)}</small></span><button class="icon-button" data-action="remove-memory" data-id="${escapeHtml(char.id)}" data-memory="${escapeHtml(memory.id)}" aria-label="기억 삭제">×</button></div>`).join('') : '<div class="empty-state">아직 적어 둔 기억이 없어요.</div>'}<p class="field-help" style="margin-top:22px">캐릭터가 대화에서 관련 노트를 검색해요. 노트는 50개까지 적을 수 있어요.</p></section>`;
 }
 
 export function renderDetail(char, tab) {
@@ -52,12 +50,34 @@ export function renderDetail(char, tab) {
   if (!Object.hasOwn(tabs, tab)) tab = 'settings';
   $('#breadcrumb').textContent = `스튜디오 / ${char.name} / ${tabs[tab]}`;
   main.innerHTML = `<a class="back-link" href="#characters">← 내 캐릭터로 돌아가기</a><div class="detail-heading"><div class="detail-avatar ${char.avatar}">${avatar(char)}</div><div><h1>${escapeHtml(char.name)}</h1><p>${escapeHtml(char.description)}</p></div><div class="detail-actions"><button class="button secondary" data-action="preview" data-id="${escapeHtml(char.id)}">외형 미리보기</button><button class="button secondary" data-action="duplicate" data-id="${escapeHtml(char.id)}">복제</button><button class="button secondary" data-action="delete" data-id="${escapeHtml(char.id)}">삭제</button></div></div><nav class="tabs" aria-label="캐릭터 관리 메뉴">${Object.entries(tabs).map(([key, label]) => `<a href="${charLink(char, key)}" class="${tab === key ? 'active' : ''}"${tab === key ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
-  if (tab === 'settings') main.innerHTML += settingsPanel(char);
+  if (tab === 'settings' || tab === 'memory') showEditor(char, tab);
   if (tab === 'chat') { main.innerHTML += chatPanel(char); setConversationFocus(true); connectRuntime(char); }
   if (tab === 'sample') { main.innerHTML += sampleChatPanel(char); renderMessages(char); }
-  if (tab === 'memory') main.innerHTML += memoryPanel(char);
   if (tab === 'connections') main.innerHTML += renderConnections(char);
   if (tab === 'records') main.innerHTML += renderRecords(char);
+}
+
+async function showEditor(char, tab) {
+  const panel = document.createElement('div');
+  main.append(panel);
+  if (serverProfiles) {
+    panel.textContent = '서버에 저장된 캐릭터를 불러오는 중…';
+    try {
+      await ensureAgent(char);
+    } catch (error) {
+      panel.textContent = agentError(error);
+      const retry = document.createElement('button');
+      retry.className = 'button secondary';
+      retry.textContent = '다시 불러오기';
+      retry.onclick = () => {
+        panel.remove();
+        showEditor(char, tab);
+      };
+      panel.append(' ', retry);
+      return;
+    }
+  }
+  if (panel.isConnected) panel.innerHTML = tab === 'settings' ? settingsPanel(char) : memoryPanel(char);
 }
 
 function sampleReply(char, text) {
@@ -78,10 +98,22 @@ export function openDelete(char) {
 }
 
 export function bindCharacterDetailEvents(render) {
-  $('#deleteForm').addEventListener('submit', (event) => {
+  $('#deleteForm').addEventListener('submit', async (event) => {
     event.preventDefault();
-    state.data.characters = state.data.characters.filter((char) => char.id !== deleteId);
-    state.data.activities = state.data.activities.filter((entry) => entry.characterId !== deleteId);
+    const char = getCharacter(deleteId);
+    const button = event.submitter;
+    if (!char || button?.disabled) return;
+    if (button) button.disabled = true;
+    try {
+      await archiveAgent(char);
+    } catch (error) {
+      toast(agentError(error), true);
+      return;
+    } finally {
+      if (button) button.disabled = false;
+    }
+    state.data.characters = state.data.characters.filter((entry) => entry.id !== char.id);
+    state.data.activities = state.data.activities.filter((entry) => entry.characterId !== char.id);
     persist('캐릭터를 삭제했어요.');
     $('#deleteDialog').close();
     deleteId = null;
@@ -92,27 +124,60 @@ export function bindCharacterDetailEvents(render) {
       location.hash = 'characters';
     }
   });
-  main.addEventListener('submit', (event) => {
+  main.addEventListener('submit', async (event) => {
     const form = event.target;
     if (!form.matches('#settingsForm, #memoryForm, #chatForm')) return;
     event.preventDefault();
     const char = getCharacter(form.dataset.id);
-    if (!char) return;
+    if (!char || form.dataset.saving) return;
     const values = new FormData(form);
     if (form.id === 'settingsForm') {
       const name = values.get('name').trim(), description = values.get('description').trim(), persona = values.get('persona').trim(), greeting = values.get('greeting').trim();
-      if (!name || !description || !persona || !greeting) { toast('이름, 소개, 첫 인사, 성격 지침을 입력해 주세요.', true); return; }
-      const studioPreset = values.get('studioPreset');
-      const exploration = Number(form.elements.namedItem('exploration').value);
-      Object.assign(char, { name, description, persona, greeting, avatar: values.get('avatar'), tone: values.get('tone'), exploration, studioPreset: Object.hasOwn(studioPresets, studioPreset) ? studioPreset : '', updatedAt: now() });
-      logActivity(char, '캐릭터 설정 저장'); persist('캐릭터 설정을 저장했어요.'); render(); $('#editName').focus({ preventScroll: true });
+      if (!name || !description || !greeting || (!char.studioPreset && !persona)) { toast('필수 프로필 항목을 입력해 주세요.', true); return; }
+      const tone = values.get('tone');
+      const draft = {
+        ...char, name, description, persona, greeting, avatar: values.get('avatar'),
+        instructions: persona, tone: tone || char.tone, agentTone: tone, traits: readTraits(values),
+      };
+      await saveEditor(form, char, draft, '캐릭터 설정 저장', '캐릭터 설정을 저장했어요.', render);
     } else if (form.id === 'memoryForm') {
       const text = values.get('memory').trim(); if (!text) return;
-      char.memories.push({ id: crypto.randomUUID(), text, at: now() }); logActivity(char, '기억 직접 등록'); persist('기억을 등록했어요.'); render(); $('#memoryForm input').focus({ preventScroll: true });
+      if (char.memories.some((memory) => memory.text === text)) { toast('이미 적어 둔 기억이에요.', true); return; }
+      if (char.memories.length >= 50) { toast('기억 노트는 50개까지 적을 수 있어요.', true); return; }
+      const memories = [...char.memories, { id: crypto.randomUUID(), text, at: now() }];
+      await saveEditor(form, char, { ...char, memories }, '기억 직접 등록', '기억을 등록했어요.', render);
     } else if (form.id === 'chatForm') {
       const text = values.get('message').trim(); if (!text) return;
       char.messages.push({ role: 'user', content: text }, { role: 'assistant', content: sampleReply(char, text) }); char.messages = char.messages.slice(-80);
       logActivity(char, '샘플 대화 진행'); persist(); renderMessages(char); form.reset(); $('#chatInput').focus({ preventScroll: true });
     }
   });
+  main.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-action="remove-memory"]');
+    if (!button) return;
+    const form = $('#memoryForm');
+    const char = getCharacter(button.dataset.id);
+    if (!form || !char || form.dataset.saving) return;
+    const memories = char.memories.filter((memory) => memory.id !== button.dataset.memory);
+    await saveEditor(form, char, { ...char, memories }, '직접 등록한 기억 삭제', '기억을 삭제했어요.', render);
+  });
+}
+
+async function saveEditor(form, char, draft, activity, message, render) {
+  form.dataset.saving = 'true';
+  const button = form.querySelector('button[type=submit]');
+  button.disabled = true;
+  try {
+    await editAgent(char, draft);
+    char.updatedAt = now();
+    logActivity(char, activity);
+    persist(message);
+    if (form.isConnected) render();
+  } catch (error) {
+    toast(agentError(error), true);
+    if (error.status === 409 && form.isConnected) render();
+  } finally {
+    delete form.dataset.saving;
+    button.disabled = false;
+  }
 }

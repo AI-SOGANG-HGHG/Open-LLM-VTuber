@@ -284,11 +284,13 @@ const studioProfile = await getStudioProfile();
     state.assistant.body.textContent += (state.assistant.body.textContent ? ' ' : '') + text;
     ui.messages.scrollTop = ui.messages.scrollHeight;
   }
-  function studioTurnDetails({ preset, affect, previous_affect, appraisal, retrieval, rules, memories }) {
+  function studioTurnDetails({ preset, affect, previous_affect, appraisal, retrieval, rule_selection, rules, memories, unverified_memories = [], task_states = [] }) {
     const details = document.createElement('details');
     details.className = 'studio-turn-context';
     const summary = document.createElement('summary');
-    summary.textContent = `${preset.label} · 참고한 기억 ${memories.length}개`;
+    summary.textContent = unverified_memories.length
+      ? `${preset.label} · 기억 후보 ${unverified_memories.length}개`
+      : `${preset.label} · 불러온 기억 ${memories.length}개`;
     const mood = document.createElement('p');
     const transition = (axis) => previous_affect
       ? `${previous_affect[axis].toFixed(2)} → ${affect[axis].toFixed(2)}`
@@ -297,20 +299,36 @@ const studioProfile = await getStudioProfile();
     const moodLabel = appraisal === 'ok' && affectChanged ? '캐릭터 감정 변화' : '이전 감정 유지';
     mood.textContent = `${moodLabel} · 쾌·불쾌 ${transition('valence')} · 각성 ${transition('arousal')} · 통제감 ${transition('dominance')}`;
     details.append(summary, mood);
+    const taskStatuses = { not_started: '시작 전', in_progress: '진행 중', completed: '완료' };
+    for (const task of task_states) {
+      const item = document.createElement('p');
+      item.textContent = `현재 과제 · ${task.title} · ${taskStatuses[task.status]}`;
+      details.append(item);
+    }
     const evidence = document.createElement('p');
-    evidence.textContent = retrieval === 'ok' ? '답변에 참고한 기억' : '관련 기억을 찾는 데 문제가 생겼어요.';
+    evidence.textContent = unverified_memories.length ? '답변에 전달한 기억 후보 · 답변 모델이 관련성을 판단해요.'
+      : retrieval !== 'ok' ? '기억 검색을 사용할 수 없었어요.'
+      : appraisal !== 'ok' ? '기억의 관련성을 확인하지 못했어요.' : '답변에 전달된 기억';
     details.append(evidence);
     const list = document.createElement('ul');
-    for (const memory of memories) {
+    for (const memory of [...memories, ...unverified_memories]) {
       const item = document.createElement('li');
-      const source = memory.source === 'manual_note' ? '기억 노트' : '이 대화에서 내가 한 말';
+      const source = memory.source === 'manual_note' ? '기억 노트' : '이 캐릭터와의 이전 대화';
       item.textContent = `${source} · ${memory.text}`;
       list.append(item);
     }
-    if (memories.length) details.append(list);
-    else if (retrieval === 'ok') evidence.textContent = '참고한 기억이 없어요.';
-    const appliedRules = rules.map(rule => rule.behavior);
-    if (!appliedRules.length && appraisal === 'ok' && retrieval === 'ok') appliedRules.push('적용된 규칙 없음');
+    if (list.childElementCount) details.append(list);
+    else if (retrieval === 'ok' && appraisal === 'ok') evidence.textContent += ' 없음';
+    const traitLabels = {
+      openness: '개방성', conscientiousness: '성실성', extraversion: '외향성',
+      agreeableness: '친화성', neuroticism: '정서 민감도',
+    };
+    const appliedRules = rules.map(rule => {
+      const trait = traitLabels[rule.trait];
+      return trait ? `${trait} ${rule.direction === 'high' ? '높음' : '낮음'} · ${rule.behavior}` : rule.behavior;
+    });
+    if (rule_selection === 'unavailable') appliedRules.push('적용할 규칙을 확인하지 못했어요.');
+    else if (!appliedRules.length && retrieval === 'ok' && (rule_selection || appraisal === 'ok')) appliedRules.push('적용된 규칙 없음');
     for (const behavior of appliedRules) {
       const item = document.createElement('p');
       item.textContent = `행동 규칙 · ${behavior}`;
@@ -521,7 +539,7 @@ const studioProfile = await getStudioProfile();
     ui.connection.textContent = '연결됨';
     ui.connection.className = 'connection connected';
     ready();
-    studioEvent('connected', { historyUid: uid, characterId: studioProfile?.character_id, avatar: studioProfile?.avatar, name: characterName });
+    studioEvent('connected', { historyUid: uid, agentId: studioProfile?.agent_id, characterId: studioProfile?.character_id, avatar: studioProfile?.avatar, name: characterName });
   }
   function resetMessages() {
     renderer.cancelGesture();
@@ -632,14 +650,13 @@ const studioProfile = await getStudioProfile();
       if (data.type === 'set-model-and-conf' && !requestedConfig) {
         requestedConfig = true;
         if (studioProfile) {
-          const { greeting, ...profile } = studioProfile;
-          send({ type: 'apply-studio-persona', profile });
+          send({ type: 'apply-studio-persona', workspace_id: studioProfile.workspace_id, agent_id: studioProfile.agent_id });
         } else send({ type: 'switch-config', file: 'ko_sogangi.yaml' });
       } else if (data.type === 'studio-persona-error') {
         notice('캐릭터 설정을 불러오지 못했어요. 스튜디오에서 다시 연결해 주세요.', false, 'error');
         studioEvent('error', { code: data.code });
       } else if (data.type === 'config-switched' || data.type === 'studio-persona-applied') {
-        if (studioProfile && (data.type !== 'studio-persona-applied' || data.character_id !== studioProfile.character_id || data.avatar !== studioProfile.avatar || data.name !== studioProfile.name)) {
+        if (studioProfile && (data.type !== 'studio-persona-applied' || data.agent_id !== studioProfile.agent_id || data.character_id !== studioProfile.character_id || data.avatar !== studioProfile.avatar || data.name !== studioProfile.name)) {
           notice('다른 캐릭터로 연결되어 대화를 멈췄어요.', false, 'error');
           studioEvent('error', { code: 'character_mismatch' });
           state.closing = true;

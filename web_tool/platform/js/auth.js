@@ -1,3 +1,4 @@
+import { agentError, restoreAgents } from './agents.js';
 import { closePreview } from './components/avatar-preview.js';
 import { $, toast } from './dom.js';
 import { render } from './router.js';
@@ -35,7 +36,12 @@ function clearProfile() {
   render();
   document.title = 'Persona Studio';
 }
-function enterProfile(username) {
+async function enterProfile(username) {
+  try {
+    await restoreAgents();
+  } catch (error) {
+    toast(agentError(error), true);
+  }
   state.profile = username;
   $('#loginPassword').value = '';
   if (!location.hash) history.replaceState(null, '', location.pathname + location.search + '#characters');
@@ -56,11 +62,12 @@ export async function restoreSession() {
     authMode = status.enabled ? 'team' : 'demo';
     loginError();
     if (authMode === 'demo') {
-      try { state.profile = sessionStorage.getItem(SESSION_KEY) || ''; } catch { state.profile = ''; }
-      render();
-      if (state.profile && state.needsMigration) persist();
+      let nickname = '';
+      try { nickname = sessionStorage.getItem(SESSION_KEY) || ''; } catch { /* Page-local preview. */ }
+      if (nickname && state.profile !== nickname) await enterProfile(nickname);
+      else if (!nickname) render();
     } else if (status.authenticated && typeof status.username === 'string') {
-      if (state.profile !== status.username) enterProfile(status.username);
+      if (state.profile !== status.username) await enterProfile(status.username);
     } else if (state.profile) clearProfile();
   } catch {
     authMode = 'error';
@@ -87,7 +94,7 @@ export function bindAuthEvents() {
     if (!username) return;
     if (authMode === 'demo') {
       try { sessionStorage.setItem(SESSION_KEY, username); } catch { /* This preview stays page-local. */ }
-      enterProfile(username); return;
+      await enterProfile(username); return;
     }
     authBusy = true; configureLogin(); loginError();
     $('#loginForm').setAttribute('aria-busy', 'true');
@@ -101,7 +108,7 @@ export function bindAuthEvents() {
         return;
       }
       const session = await response.json();
-      enterProfile(session.username);
+      await enterProfile(session.username);
       authChannel?.postMessage('refresh');
     } catch { loginError('서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.'); }
     finally { authBusy = false; configureLogin(); $('#loginForm').setAttribute('aria-busy', 'false'); }

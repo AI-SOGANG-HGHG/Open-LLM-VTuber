@@ -10,9 +10,12 @@ from loguru import logger
 from .service_context import ServiceContext
 from .websocket_handler import WebSocketHandler
 from .proxy_handler import ProxyHandler
+from .studio_registry import StudioRegistry
 
 
-def init_client_ws_route(default_context_cache: ServiceContext) -> APIRouter:
+def init_client_ws_route(
+    default_context_cache: ServiceContext, studio_registry: StudioRegistry | None = None
+) -> APIRouter:
     """
     Create and return API routes for handling the `/client-ws` WebSocket connections.
 
@@ -24,7 +27,9 @@ def init_client_ws_route(default_context_cache: ServiceContext) -> APIRouter:
     """
 
     router = APIRouter()
-    ws_handler = WebSocketHandler(default_context_cache)
+    ws_handler = WebSocketHandler(
+        default_context_cache, studio_registry=studio_registry
+    )
 
     @router.websocket("/client-ws")
     async def websocket_endpoint(websocket: WebSocket):

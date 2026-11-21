@@ -12,6 +12,7 @@ export const studioPresets = {
   'supportive-coach': '다정한 코치',
   calm: '차분한 전략가',
   warm: '다정한 동료',
+  curious: '호기심 많은 탐험가',
 };
 export const demoPersonas = [
   { id: 'direct-reviewer', description: '마감에 맞추려면 지금 뭘 해야 할지 짚어줘요.', tags: ['마감 점검', '우선순위 정하기'] },
