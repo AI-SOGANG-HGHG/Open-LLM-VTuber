@@ -7,6 +7,36 @@ from dotenv import dotenv_values
 from playwright.sync_api import expect, sync_playwright
 
 
+def check_session_retry(browser, url):
+    page = browser.new_page()
+    errors = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.add_init_script(
+        'Object.defineProperty(Crypto.prototype, "randomUUID", { value: undefined });'
+    )
+    page.clock.install()
+    pending = []
+    page.route("**/auth/session", lambda route: pending.append(route), times=1)
+    with page.expect_request("**/auth/session"):
+        page.goto(url, wait_until="domcontentloaded")
+    button = page.locator("#loginSubmit")
+    expect(button).to_be_disabled()
+    expect(button).to_contain_text("연결 확인 중")
+
+    page.clock.fast_forward(9000)
+    expect(button).to_be_enabled()
+    expect(button).to_have_text("다시 연결")
+    expect(page.locator("#loginError")).to_contain_text("서버에 연결하지 못했어요")
+    pending[0].abort()
+
+    button.click()
+    expect(button).to_be_enabled()
+    expect(button).to_contain_text("로그인")
+    expect(page.locator("#loginError")).to_be_hidden()
+    assert not errors, errors
+    page.close()
+
+
 def main():
     credentials = dotenv_values("private/web-access.env", interpolate=False)
     output = Path("tmp/studio-login-browser")
@@ -16,6 +46,7 @@ def main():
         browser = playwright.chromium.launch(
             headless=True, args=["--no-proxy-server", "--enable-unsafe-swiftshader"]
         )
+        check_session_retry(browser, credentials["PUBLIC_URL"])
         context = browser.new_context(viewport={"width": 1440, "height": 900})
         context.add_init_script(
             "sessionStorage.setItem('persona-studio.demo-session.v1', 'forged-profile');"
@@ -96,6 +127,7 @@ def main():
         )
         report = {
             "public_login_without_basic_auth": True,
+            "session_check_timeout_and_retry_without_random_uuid": True,
             "forged_storage_rejected": True,
             "incorrect_password_rejected": True,
             "cookie_login_and_reload": True,

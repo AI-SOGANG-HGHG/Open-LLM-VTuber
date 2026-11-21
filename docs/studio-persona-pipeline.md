@@ -14,9 +14,9 @@
 | 1 | 프로젝트 발표는 몇 시에 시작하고 몇 분 동안 한다고 했어요? | 답변 아래에 `기억 노트` 출처로 오전 10시와 5분이 들어 있는 문장이 표시되는지 본다. |
 | 2 | 발표가 내일인데 아직 초안도 작성하지 못했어요. 어디서 시작하면 좋을까요? | `deadline-risk` 규칙이 적용되는지, 검토자는 위험을 짚고 코치는 부담을 인정하며 시작을 돕는지, VAD 값이 어떻게 움직이는지 비교한다. |
 | 3 | 자료를 받고 초안까지 완성했어요. 이제 한결 안심돼요. | 앞선 턴에서 이어진 감정 값과 이번 값의 변화를 확인한다. |
-| 4 | 저는 카페인을 못 먹어서 보리차만 마셔요. | 일상적인 선호를 말할 때 감정이 유지되는지 본다. 응답이 끝나면 같은 기록을 다시 열고 “제가 평소에 어떤 차를 마신다고 했죠?”라고 묻는다. 불러온 기억에 `이 대화의 사용자 발화`가 표시되면 서버에 저장된 자동 기억이 검색된 것이다. |
+| 4 | 저는 카페인을 못 먹어서 보리차만 마셔요. | 일상적인 선호를 말할 때 감정이 유지되는지 본다. 응답이 끝나면 같은 기록을 다시 열고 “제가 평소에 어떤 차를 마신다고 했죠?”라고 묻는다. 참고한 기억에 `이 대화에서 내가 한 말`가 표시되면 서버에 저장된 자동 기억이 검색된 것이다. |
 
-응답 아래의 **프리셋 이름 · 불러온 기억 N개**를 펼치면 검색 결과, 적용한 행동 규칙과 VAD 값의 전후를 볼 수 있다. 모델 평가와 답변은 실행마다 달라질 수 있다. 기억 노트와 자동 기억의 출처를 함께 확인하면 검색 성공 여부를 답변 문구와 따로 검증할 수 있다.
+응답 아래의 **프리셋 이름 · 참고한 기억 N개**를 펼치면 검색 결과, 적용한 행동 규칙과 VAD 값의 전후를 볼 수 있다. 모델 평가와 답변은 실행마다 달라질 수 있다. 기억 노트와 자동 기억의 출처를 함께 확인하면 검색 성공 여부를 답변 문구와 따로 검증할 수 있다.
 
 ## 0. 대화 연결 전에 준비되는 데이터
 
@@ -28,7 +28,7 @@
 | 일반 대화와 자동 기억 | 서버의 `chat_history/<conf_uid>/<history_uid>.json`. `conf_uid`는 작업공간 UUID와 캐릭터 ID의 조합에서 파생한다. 자동 기억은 하나의 기록에 귀속된다. |
 | 감정 | 현재 서버 연결의 메모리. 대화 기록별 VAD, 마지막으로 감정을 바꾼 사건 ID와 시각을 들고 간다. |
 
-브라우저가 WebSocket으로 캐릭터 프로필을 보내면 서버는 프리셋 ID를 검증하고 해당 연결의 Agent를 생성한다. 선택한 이름과 YAML의 역할·배경·성향·가치·말투가 시스템 프롬프트의 바탕이다. 팀 프리셋의 호기심은 YAML의 `curiosity` 값으로 전달된다. 직접 작성한 성격 모드는 작성한 지침과 최근 노트 본문을 프롬프트에 넣는 경로를 사용한다. [프로필 전송](../web_tool/platform/app.js) · [서버 프로필 적용](../src/open_llm_vtuber/studio_persona.py)
+브라우저가 WebSocket으로 캐릭터 프로필을 보내면 서버는 프리셋 ID를 검증하고 해당 연결의 Agent를 생성한다. 선택한 이름과 YAML의 역할·배경·성향·가치·말투가 시스템 프롬프트의 바탕이다. 팀 프리셋의 호기심은 YAML의 `curiosity` 값으로 전달된다. 직접 작성한 성격 모드는 작성한 지침과 최근 노트 본문을 프롬프트에 넣는 경로를 사용한다. [프로필 전송](../web_tool/platform/js/runtime-bridge.js) · [서버 프로필 적용](../src/open_llm_vtuber/studio_persona.py)
 
 ## 1. 입력을 받아 일반 기록에 남긴다
 
@@ -58,6 +58,23 @@
 
 두 시연 프리셋은 같은 마감 위험 조건을 사용한다. 검토자는 일정 위험을 먼저 짚고 당장 할 일 하나를 지시한다. 코치는 부담을 인정하고 시작하기 쉬운 단계를 제안한다. 팀에서 작성한 규칙에 상황–행동 검색 방식을 적용했다. [Persona-CAPS 논문](https://aclanthology.org/2026.emnlp-main.1495.pdf)
 
+### Persona-CAPS 연구용 규칙 DB
+
+논문 본 실험에 사용한 `beck_2022_v2`의 상황–행동 항목 166개로 로컬 SQLite DB를 생성할 수 있다. 항목은 Beck과 Jackson의 경험표집 자료 `0060_beck`에서 추출한 Big Five 5개 축의 높음·낮음 집단에 속한다. 원본 코퍼스는 저자 표시와 비상업 조건이 있는 CC BY-NC 4.0이다. [저자 공개 저장소의 코퍼스와 라이선스](https://github.com/caps-research/persona-caps#4-released-corpus-data-archive)
+
+저장소 루트에서 아래 명령을 처음 한 번 실행한다. Python 표준 라이브러리로 적재한다.
+
+```bash
+git clone --filter=blob:none --no-checkout --config core.autocrlf=false https://github.com/caps-research/persona-caps.git private/persona-caps-source
+git -C private/persona-caps-source sparse-checkout set data/if_then/paper/beck_2022_v2
+git -C private/persona-caps-source checkout --detach 22584f46ca8e6efa945756a65971d2d5daa61417
+python3 scripts/import_persona_caps.py private/persona-caps-source/data/if_then/paper/beck_2022_v2 private/persona-caps.sqlite3
+```
+
+스크립트는 고정한 리비전의 `manifest.json`과 본 실험용 JSONL 10개의 SHA-256을 확인한다. `behavior_rules`에 항목 ID, 성향 축, 높음·낮음, 상황과 행동, 원본 파일·줄 번호 및 출처 정보가 담긴 원본 JSON을 저장한다. `corpus_metadata`에는 리비전, 파일 해시, 원본 매니페스트, 인용 정보와 라이선스가 들어간다. 기존 DB 파일을 재생성하려면 새 출력 경로를 지정한다.
+
+현재 Studio 대화는 위의 팀 YAML 프리셋을 읽는다. 연구 DB를 연결하는 실험에서는 Big Five 축과 높음·낮음을 명시하고, 한국어 발화로 상황 항목이 제대로 검색되는지와 응답에 전달된 항목의 ID를 확인한다. 팀 프리셋과의 비교 시 모델·상황 입력·최근 대화·기억을 동일하게 둔다.
+
 ## 3. 후보를 검증하고 감정을 갱신한다
 
 사건 평가 API 요청에는 프리셋의 정체성·성향·가치·말투, 이전 VAD, 현재 사용자 발화, 규칙 후보의 ID와 적용 조건, 기억 후보의 ID·본문·출처·시각을 넣는다. 평가 모델에서 검증 가능한 JSON을 받는다.
@@ -77,7 +94,7 @@
 2. **최근 대화 메시지 최대 12개**를 사용자·캐릭터 역할과 함께 순서대로 붙인다. 개별 메시지 수를 센다. 첫 항목이 캐릭터 답변이면 그 항목부터 제외한다.
 3. **현재 사용자 메시지**에 서버가 선택한 `{ behavior_rules, experience, affect }` JSON을 텍스트 항목으로 넣고, 별도 텍스트 항목으로 이번 발화를 넣는다.
 
-최근 대화는 후속 질문의 문맥과 방금 정정된 사실을 유지하는 데 쓰인다. 예를 들어 직전에 “발표 준비가 끝났다”고 말했다면 최근 대화를 바탕으로 상태를 답할 수 있다. 화면의 **불러온 기억**은 `experience`의 항목 수다. [최종 메시지 조립](../src/open_llm_vtuber/agent/agents/basic_memory_agent.py)
+최근 대화는 후속 질문의 문맥과 방금 정정된 사실을 유지하는 데 쓰인다. 예를 들어 직전에 “발표 준비가 끝났다”고 말했다면 최근 대화를 바탕으로 상태를 답할 수 있다. 화면의 **참고한 기억**은 `experience`의 항목 수다. [최종 메시지 조립](../src/open_llm_vtuber/agent/agents/basic_memory_agent.py)
 
 현재 로컬 Gemini 설정에서는 사건 평가와 답변 생성을 `gemini-3.5-flash-lite`로 각각 호출한다. 일반적인 한 턴에는 임베딩 1회, 사건 평가 1회, 답변 생성 1회가 순서대로 들어간다. 답변 API는 대화 텍스트를 스트리밍하며 서버가 문장 단위로 표시·음성 합성·Live2D 표정 처리를 한다. 검색이나 사건 평가가 실패해도 최근 대화와 확보된 문맥으로 답변을 이어간다. [Gemini 설정](../config_templates/conf.gemini.example.yaml) · [LLM 호출](../src/open_llm_vtuber/agent/stateless_llm/openai_compatible_llm.py)
 

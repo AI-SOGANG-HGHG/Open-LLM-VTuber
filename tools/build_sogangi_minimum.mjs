@@ -147,7 +147,7 @@ parameters.push({
 const manifest = { profile: 'infer-sample', parameters };
 if (motion) {
   const rig = JSON.parse(
-    await readFile(path.join(root, 'web_tool/sogangi/rigging-map.json'), 'utf8'),
+    await readFile(path.join(root, 'web_tool/sogangi/workshop/rigging-map/rigging-map.json'), 'utf8'),
   );
   if (greeting) {
     const arm = rig.deformers.find((deformer) => deformer.id === 'ArmRWave');

@@ -30,7 +30,7 @@ export class SvgMascot {
 
   async init() {
     try {
-      const response = await fetch('./assets/layers/sogangi-visible-layers.svg');
+      const response = await fetch(new URL('../../../../sogangi/assets/layers/sogangi-visible-layers.svg', import.meta.url));
       if (!response.ok) throw new Error('Missing mascot parts');
       const sourceText = await response.text();
       if (this.disposed) return false;

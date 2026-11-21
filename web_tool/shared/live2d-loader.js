@@ -20,8 +20,8 @@ function loadScript(url, ready) {
 function loadLibraries() {
   if (!libraries) libraries = (async () => {
     await loadScript('/libs/live2dcubismcore.min.js', () => Boolean(window.Live2DCubismCore));
-    await loadScript('../sogangi/vendor/pixi.min.js', () => Boolean(window.PIXI));
-    await loadScript('../sogangi/vendor/cubism4.min.js', () => Boolean(window.PIXI?.live2d?.Live2DModel));
+    await loadScript(new URL('./vendor/pixi.min.js', import.meta.url).href, () => Boolean(window.PIXI));
+    await loadScript(new URL('./vendor/cubism4.min.js', import.meta.url).href, () => Boolean(window.PIXI?.live2d?.Live2DModel));
   })().catch((error) => { libraries = null; throw error; });
   return libraries;
 }

@@ -1,5 +1,5 @@
 import { SvgMascot } from './mascot-renderer.js';
-import { normalizeExpression } from './expressions.js';
+import { normalizeExpression } from '../expressions.js';
 
 const MODEL = '/live2d-models/sogangi-expressions/runtime/sogangi.model3.json';
 const REQUIRED = [
@@ -42,8 +42,8 @@ async function loadLibraries() {
   if (!libraries) {
     libraries = (async () => {
       await loadScript('/libs/live2dcubismcore.min.js', () => window.Live2DCubismCore);
-      await loadScript('./vendor/pixi.min.js', () => window.PIXI);
-      await loadScript('./vendor/cubism4.min.js', () => window.PIXI?.live2d?.Live2DModel);
+      await loadScript(new URL('../../../../shared/vendor/pixi.min.js', import.meta.url).href, () => window.PIXI);
+      await loadScript(new URL('../../../../shared/vendor/cubism4.min.js', import.meta.url).href, () => window.PIXI?.live2d?.Live2DModel);
     })().catch((error) => {
       libraries = null;
       throw error;
@@ -362,7 +362,7 @@ export class AvatarRenderer {
     const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
     image.setAttribute(
       'href',
-      `./assets/sogangi-${this.state.expression === 'joy' ? 'joy' : 'neutral'}.svg`,
+      new URL(`../../../../sogangi/assets/sogangi-${this.state.expression === 'joy' ? 'joy' : 'neutral'}.svg`, import.meta.url).href,
     );
     image.setAttribute('width', '270');
     image.setAttribute('height', '337');

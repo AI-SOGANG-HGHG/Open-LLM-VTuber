@@ -1,4 +1,4 @@
-import { createLivePreview } from '../platform/live-preview.js';
+import { createLivePreview } from '../../../../shared/live2d-loader.js';
 
 // The existing app's speech queue drives this adapter through the same mouth/phase interface.
 export class StudioAvatarRenderer {
@@ -14,7 +14,7 @@ export class StudioAvatarRenderer {
     this.host.replaceChildren(); this.host.setAttribute('viewBox', '0 0 270 337');
     if (this.avatar === 'mao') {
       const image = document.createElementNS(ns, 'image');
-      image.setAttribute('href', '../platform/assets/mao.png'); image.setAttribute('width', '270'); image.setAttribute('height', '337'); this.host.append(image);
+      image.setAttribute('href', new URL('../../../assets/mao.png', import.meta.url).href); image.setAttribute('width', '270'); image.setAttribute('height', '337'); this.host.append(image);
     } else {
       const text = document.createElementNS(ns, 'text');
       text.setAttribute('x', '135'); text.setAttribute('y', '205'); text.setAttribute('text-anchor', 'middle'); text.setAttribute('font-size', '130'); text.setAttribute('fill', '#b9dbcc'); text.textContent = '✳'; this.host.append(text);
