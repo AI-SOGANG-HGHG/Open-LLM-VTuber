@@ -23,6 +23,10 @@ async def check(credentials_path):
             response.status_code == 200 and "www-authenticate" not in response.headers
         )
         checks.append("Public login page: 200, no browser authentication challenge")
+        image = client.get("/web-tool/sogangi/assets/sogangi-cheer.svg")
+        assert image.status_code == 200, "Login page Sogangi illustration is unavailable"
+        assert image.headers["content-type"].split(";", 1)[0] == "image/svg+xml"
+        checks.append("Public login page Sogangi illustration: 200 SVG")
         assert client.get("/auth/session").json() == {
             "enabled": True,
             "authenticated": False,
