@@ -49,7 +49,7 @@ export function loadData() {
       ids.add(char.id);
       updateDefaultCopy(char);
       char.favorite = char.favorite === true;
-      char.studioPreset = Object.hasOwn(studioPresets, char.studioPreset) ? char.studioPreset : '';
+      if (!char.agentId && !Object.hasOwn(studioPresets, char.studioPreset)) char.studioPreset = '';
     }
     if (!data.activities.every((entry) => entry && ['id', 'characterId', 'name', 'title', 'at'].every((key) => typeof entry[key] === 'string'))) throw Error('Invalid activity');
     if (typeof data.workspaceId !== 'string' || !/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(data.workspaceId)) {
