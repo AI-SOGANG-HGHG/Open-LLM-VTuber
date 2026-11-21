@@ -1,3 +1,4 @@
+import { createRandomId } from '../../../shared/random-id.js';
 import { AvatarRenderer } from './avatars/sogangi-renderer.js';
 import { expressionFor } from './expressions.js';
 import { loadPreferences, savePreferences, loadSession, saveSession, studioScenes, loadStudioScene, saveStudioScene } from './local-state.js?studio=5';
@@ -470,7 +471,7 @@ const studioProfile = await getStudioProfile();
     state.firstAudio = null;
     state.firstText = null;
     state.textStreaming = false;
-    state.requestId = crypto.randomUUID();
+    state.requestId = createRandomId();
     state.started = performance.now();
     message('user', text);
     ui.messageInput.value = '';

@@ -1,3 +1,4 @@
+import { createRandomId } from '../../shared/random-id.js';
 import { $, LIVE_CHAT_ACTIVITY } from './dom.js';
 import { getCharacter, state } from './state.js';
 import { logActivity, persist } from './store.js';
@@ -21,7 +22,7 @@ export function connectRuntime(char) {
   disposeRuntime();
   persist(); // Keep the browser workspace stable before giving the server its history scope.
   const frame = $('#studioFrame');
-  const instanceId = crypto.randomUUID();
+  const instanceId = createRandomId();
   const origin = runtimeOrigin();
   const payload = {
     workspace_id: state.data.workspaceId, character_id: char.id, name: char.name,

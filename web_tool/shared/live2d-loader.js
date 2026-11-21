@@ -1,3 +1,4 @@
+import { createRandomId } from './random-id.js';
 // Loads only the two bundled, approved models. No microphone, audio, WebSocket, or model API.
 let libraries;
 function loadScript(url, ready) {
@@ -62,7 +63,7 @@ export function createLivePreview(canvas, stage, onFailure = () => {}) {
       const settings = await response.json();
       const url = new URL(path, location.origin);
       const directory = url.pathname.slice(0, url.pathname.lastIndexOf('/') + 1);
-      const identity = crypto.randomUUID();
+      const identity = createRandomId();
       function fresh(value) {
         const resource = new URL(value, url);
         if (resource.origin !== url.origin || !resource.pathname.startsWith(directory)) throw Error('Invalid model resource');

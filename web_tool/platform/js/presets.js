@@ -1,3 +1,4 @@
+import { createRandomId } from '../../shared/random-id.js';
 import { now } from './dom.js';
 
 const DEMO_MEMORY = '프로젝트 발표는 오전 10시에 시작하고 발표 시간은 5분이다.';
@@ -67,7 +68,7 @@ export function demoCharacters() {
   return demoPersonas.map(({ id, description }) => {
     const char = createCharacter(id, studioPresets[id], description, 'calm', 'mao');
     char.studioPreset = id;
-    char.memories.push({ id: crypto.randomUUID(), text: DEMO_MEMORY, at: now() });
+    char.memories.push({ id: createRandomId(), text: DEMO_MEMORY, at: now() });
     return char;
   });
 }

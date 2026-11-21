@@ -5,6 +5,7 @@ import { state } from './state.js';
 import { persist } from './store.js';
 
 const SESSION_KEY = 'persona-studio.demo-session.v1';
+const SESSION_CHECK_TIMEOUT_MS = 8_000;
 
 let authMode = 'checking';
 let authBusy = false;
@@ -42,17 +43,33 @@ function enterProfile(username) {
   render();
   if (state.needsMigration || state.storageWarning) persist();
 }
+async function fetchSessionStatus() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), SESSION_CHECK_TIMEOUT_MS);
+  try {
+    const response = await fetch('/auth/session', {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    if (!response.ok) throw Error('Session check failed');
+    return await response.json();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function restoreSession() {
   if (authBusy) return;
   authBusy = true;
+  if (!state.profile) {
+    $('#loginSubmit').disabled = true;
+    $('#loginSubmit').textContent = '연결 확인 중…';
+  }
   try {
-    let status;
-    if (!location.pathname.startsWith('/web-tool/')) status = { enabled: false };
-    else {
-      const response = await fetch('/auth/session', { credentials: 'same-origin', cache: 'no-store' });
-      if (!response.ok) throw Error('Unavailable');
-      status = await response.json();
-    }
+    const status = location.pathname.startsWith('/web-tool/')
+      ? await fetchSessionStatus()
+      : { enabled: false };
     authMode = status.enabled ? 'team' : 'demo';
     loginError();
     if (authMode === 'demo') {

@@ -1,3 +1,4 @@
+import { createRandomId } from '../../../../shared/random-id.js';
 // SVG-part animation for the image prototype, not a Cubism/Live2D runtime.
 function smoothTransition(value, end) {
   const progress = Math.max(0, Math.min(1, value / end));
@@ -55,7 +56,7 @@ export class SvgMascot {
       );
       for (const id of ['Mouth_Open', 'Mouth_Closed', 'EyeL_Closed', 'EyeR_Closed'])
         if (!available.has(id)) throw new Error('Missing expression candidates');
-      const prefix = `sogangi-${crypto.randomUUID()}-`;
+      const prefix = `sogangi-${createRandomId()}-`;
       for (const node of [source, ...source.querySelectorAll('*')]) {
         if (node.id) node.id = prefix + node.id;
         for (const attribute of [...node.attributes]) {

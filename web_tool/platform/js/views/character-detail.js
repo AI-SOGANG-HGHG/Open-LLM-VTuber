@@ -1,3 +1,4 @@
+import { createRandomId } from '../../../shared/random-id.js';
 import { avatar, tags } from '../components/card.js';
 import { $, charLink, escapeHtml, main, now, shortDate, toast } from '../dom.js';
 import { avatarAssets, defaultGreeting, presets, studioPresets } from '../presets.js';
@@ -108,7 +109,7 @@ export function bindCharacterDetailEvents(render) {
       logActivity(char, '캐릭터 설정 저장'); persist('캐릭터 설정을 저장했어요.'); render(); $('#editName').focus({ preventScroll: true });
     } else if (form.id === 'memoryForm') {
       const text = values.get('memory').trim(); if (!text) return;
-      char.memories.push({ id: crypto.randomUUID(), text, at: now() }); logActivity(char, '기억 직접 등록'); persist('기억을 등록했어요.'); render(); $('#memoryForm input').focus({ preventScroll: true });
+      char.memories.push({ id: createRandomId(), text, at: now() }); logActivity(char, '기억 직접 등록'); persist('기억을 등록했어요.'); render(); $('#memoryForm input').focus({ preventScroll: true });
     } else if (form.id === 'chatForm') {
       const text = values.get('message').trim(); if (!text) return;
       char.messages.push({ role: 'user', content: text }, { role: 'assistant', content: sampleReply(char, text) }); char.messages = char.messages.slice(-80);

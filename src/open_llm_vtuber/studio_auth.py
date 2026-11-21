@@ -43,6 +43,7 @@ PUBLIC_PATHS = frozenset(
         LOGIN_PAGE + "style.css",
         LOGIN_PAGE + "assets/mark.svg",
         LOGIN_PAGE + "assets/mao.png",
+        "/web-tool/shared/random-id.js",
         "/web-tool/sogangi/assets/sogangi-cheer.svg",
         "/web-tool/sogangi/assets/sogangi-neutral.svg",
     }

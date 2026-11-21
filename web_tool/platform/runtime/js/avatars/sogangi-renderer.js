@@ -1,3 +1,4 @@
+import { createRandomId } from '../../../../shared/random-id.js';
 import { SvgMascot } from './mascot-renderer.js';
 import { normalizeExpression } from '../expressions.js';
 
@@ -117,7 +118,7 @@ class CubismMascot {
         autoDensity: true,
       });
       const url = new URL(MODEL, location.origin);
-      const identity = crypto.randomUUID();
+      const identity = createRandomId();
       const fresh = (file) => {
         const target = new URL(file, url);
         target.searchParams.set('_avatar', identity);

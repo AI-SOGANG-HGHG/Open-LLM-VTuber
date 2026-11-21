@@ -1,3 +1,4 @@
+import { createRandomId } from '../../shared/random-id.js';
 import { bindAuthEvents, restoreSession } from './auth.js';
 import { bindPreviewEvents, closePreview, openPreview } from './components/avatar-preview.js';
 import { avatar } from './components/card.js';
@@ -64,7 +65,7 @@ main.addEventListener('click', (event) => {
   }
   if (action === 'suggest') { $('#chatInput').value = button.dataset.message; $('#chatForm').requestSubmit(); }
   if (action === 'duplicate' && char) {
-    const copy = { ...structuredClone(char), id: crypto.randomUUID(), name: `${char.name.slice(0, 25)} 복사본`, favorite: false, messages: [], memories: [], createdAt: now(), updatedAt: now() };
+    const copy = { ...structuredClone(char), id: createRandomId(), name: `${char.name.slice(0, 25)} 복사본`, favorite: false, messages: [], memories: [], createdAt: now(), updatedAt: now() };
     state.data.characters.push(copy); logActivity(copy, '캐릭터 설정 복제'); persist('캐릭터를 복제했어요. 대화와 기억은 새로 시작해요.'); location.hash = charLink(copy);
   }
   if (action === 'delete' && char) openDelete(char);
