@@ -82,11 +82,7 @@ input[type=range] { padding: 0; accent-color: var(--accent); border: 0; }
 .main-nav { display: flex; flex-direction: column; gap: 3px; }
 .main-nav a { display: block; padding: 10px 12px; border-left: 2px solid transparent; color: var(--muted); font-size: 14px; white-space: nowrap; }
 .main-nav a:hover { color: var(--ink); background: var(--wash); }
-.main-nav a[aria-current=page] { color: var(--accent); border-left-color: var(--accent); font-weight: 700; }
-.sidebar-shortcuts { margin-top: 27px; border-top: 1px solid var(--line); padding-top: 19px; }
-.nav-label { font-size: 11px; font-weight: 700; color: var(--muted); padding: 0 12px; margin-bottom: 6px; }
-.shortcut { display: block; padding: 7px 12px; color: var(--ink); font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
-.shortcut:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 4px; }
+.main-nav a[aria-current=page] { color: var(--accent); border-left-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
 .sidebar-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 13px; margin-top: auto; border-top: 1px solid var(--line); }
 #profileName { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 .sidebar-bottom button { flex-shrink: 0; }
@@ -322,7 +318,6 @@ dialog::backdrop { background: #201b16a6; }
   .main-nav { flex-direction: row; gap: 0; }
   .main-nav a { flex: 1; padding: 10px 5px; border-left: 0; border-bottom: 2px solid transparent; text-align: center; font-size: 12px; }
   .main-nav a[aria-current=page] { border-bottom-color: var(--accent); }
-  .sidebar-shortcuts { display: none; }
   .sidebar-bottom { position: absolute; right: 16px; top: 13px; padding: 0; border: 0; gap: 9px; max-width: 44%; }
   .topbar { min-height: 38px; padding-inline: 16px; font-size: 11px; }
   .workspace-footer { padding-inline: 16px; font-size: 10px; }
