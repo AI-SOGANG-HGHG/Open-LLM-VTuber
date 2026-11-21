@@ -3,6 +3,7 @@ import { expressionFor } from './expressions.js';
 import { loadPreferences, savePreferences, loadSession, saveSession, studioScenes, loadStudioScene, saveStudioScene } from './local-state.js?studio=5';
 import { getStudioProfile, studioEvent, onStudioShutdown } from './studio-bridge.js';
 import { StudioAvatarRenderer } from './avatars/live2d-avatar.js';
+import { createHistoryView } from './history-view.js';
 
 const studioProfile = await getStudioProfile();
 
@@ -126,8 +127,6 @@ const studioProfile = await getStudioProfile();
     historyUid: savedSession.historyUid,
     historyPending: null,
     historyTimer: null,
-    histories: [],
-    historyLimit: 30,
     reconnectTimer: null,
     connectTimer: null,
     reconnectAttempts: 0,
@@ -137,6 +136,16 @@ const studioProfile = await getStudioProfile();
     recoverable: false,
     nextNotice: '',
   };
+  const historyView = createHistoryView(ui, {
+    historyTitle,
+    characterName,
+    downloadPrefix: studioProfile ? '캐릭터' : '서강이',
+    cleanMessage: clean,
+    getActiveHistoryUid: () => state.historyUid,
+    onRequest: () => send({ type: 'fetch-history-list' }),
+    onSelect: restoreHistory,
+  });
+
   function avatarChanged() {
     ui.greetButton.disabled = !renderer.canGreet;
     ui.greetButton.title = '‘움직임 줄이기’를 켜면 인사 동작이 멈춰요.';
@@ -534,63 +543,6 @@ const studioProfile = await getStudioProfile();
     state.recoverable = false;
     ui.timing.textContent = '답변에는 틀린 내용이 있을 수 있어요.';
   }
-  function renderHistories(histories) {
-    state.histories = histories;
-    ui.historyItems.replaceChildren();
-    const query = ui.historySearch.value.trim().toLocaleLowerCase('ko-KR');
-    const filtered = histories.filter((history) =>
-      String(history.latest_message?.content || '')
-        .toLocaleLowerCase('ko-KR')
-        .includes(query),
-    );
-    if (!filtered.length) {
-      const empty = document.createElement('p');
-      empty.className = 'history-empty';
-      empty.textContent = query
-        ? '검색어와 일치하는 대화가 없어요.'
-        : '아직 저장된 대화가 없어요.';
-      ui.historyItems.append(empty);
-      return;
-    }
-    for (const history of filtered.slice(0, state.historyLimit)) {
-      if (typeof history.uid !== 'string' || !/^[\w-]{1,120}$/.test(history.uid)) continue;
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'history-item';
-      button.dataset.historyUid = history.uid;
-      if (history.uid === state.historyUid) button.setAttribute('aria-current', 'true');
-      const title = document.createElement('span');
-      title.className = 'history-item-title';
-      title.textContent = clean(history.latest_message?.content).slice(0, 100) || '이전 대화';
-      const date = document.createElement('span');
-      date.className = 'history-item-date';
-      const value = new Date(history.timestamp);
-      date.textContent = Number.isNaN(value.getTime())
-        ? '저장된 대화'
-        : value.toLocaleString('ko-KR');
-      button.append(title, date);
-      button.addEventListener('click', () => {
-        restoreHistory(history.uid);
-      });
-      const item = document.createElement('div');
-      item.setAttribute('role', 'listitem');
-      item.append(button);
-      ui.historyItems.append(item);
-    }
-    if (filtered.length > state.historyLimit) {
-      const more = document.createElement('button');
-      more.type = 'button';
-      more.className = 'quiet-button history-more';
-      more.textContent = `더 보기 · ${filtered.length - state.historyLimit}개 남음`;
-      more.addEventListener('click', () => {
-        const previous = state.historyLimit;
-        state.historyLimit += 30;
-        renderHistories(state.histories);
-        ui.historyItems.querySelectorAll('.history-item')[previous]?.focus();
-      });
-      ui.historyItems.append(more);
-    }
-  }
   function connect() {
     state.lastExpression = 'neutral';
     clearTimeout(state.reconnectTimer);
@@ -654,7 +606,7 @@ const studioProfile = await getStudioProfile();
         notice(state.nextNotice);
         state.nextNotice = '';
       } else if (data.type === 'history-list') {
-        renderHistories(Array.isArray(data.histories) ? data.histories : []);
+        historyView.showList(Array.isArray(data.histories) ? data.histories : []);
       } else if (data.type === 'history-data') {
         const pending = state.historyPending;
         if (
@@ -796,14 +748,6 @@ const studioProfile = await getStudioProfile();
     interrupt('답변을 중단했어요. 다른 메시지를 보낼 수 있어요.'),
   );
   ui.newChat.addEventListener('click', newHistory);
-  ui.historyButton.addEventListener('click', () => {
-    state.historyLimit = 30;
-    ui.historySearch.value = '';
-    ui.historyItems.textContent = '대화 기록을 불러오고 있어요.';
-    ui.historyDialog.showModal();
-    send({ type: 'fetch-history-list' });
-  });
-  ui.historyClose.addEventListener('click', () => ui.historyDialog.close());
   ui.retry.addEventListener('click', () => {
     state.reconnectAttempts = 0;
     connect();
@@ -818,26 +762,6 @@ const studioProfile = await getStudioProfile();
     persistSession();
     ui.messageInput.focus();
     notice('이전 질문을 불러왔어요. 확인한 뒤 ‘보내기’를 눌러 주세요.');
-  });
-  ui.historySearch.addEventListener('input', () => {
-    state.historyLimit = 30;
-    renderHistories(state.histories);
-  });
-  ui.exportChat.addEventListener('click', () => {
-    const lines = [historyTitle, new Date().toLocaleString('ko-KR'), ''];
-    for (const node of ui.messages.querySelectorAll('.message'))
-      lines.push(
-        `${node.classList.contains('user') ? '나' : characterName}: ${node.querySelector('.message-body').textContent}`,
-        '',
-      );
-    const url = URL.createObjectURL(
-      new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/plain;charset=utf-8' }),
-    );
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${studioProfile ? '캐릭터' : '서강이'}-대화-${new Date().toISOString().slice(0, 10)}.txt`;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
   ui.settingsButton.addEventListener('click', () => ui.settingsDialog.showModal());
   ui.settingsClose.addEventListener('click', () => ui.settingsDialog.close());
