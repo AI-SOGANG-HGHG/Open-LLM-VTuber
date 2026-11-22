@@ -188,7 +188,7 @@ class StudioPersonaTests(unittest.IsolatedAsyncioTestCase):
 
     def test_scope_is_stable_and_separates_workspace_and_character(self):
         first = StudioPersona(**payload())
-        same = first.model_copy()
+        same = StudioPersona(**{**first.model_dump(), "avatar": "ivory-crown"})
         other_character = first.model_copy(update={"character_id": "character-b"})
         other_workspace = first.model_copy(update={"workspace_id": uuid4()})
         self.assertEqual(first.history_scope, same.history_scope)

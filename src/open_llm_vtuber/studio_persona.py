@@ -46,7 +46,7 @@ class StudioPersona(BaseModel):
     greeting: str = Field(default="", max_length=300)
     persona: str | None = Field(default=None, min_length=1, max_length=2000)
     tone: Literal["친근한 반말", "활기찬 반말", "차분한 존댓말"] | None = None
-    avatar: Literal["mao", "sogangi", "symbol"]
+    avatar: Literal["mao", "sogangi", "ivory-crown", "symbol"]
     exploration: int = Field(default=40, ge=0, le=100)
     memories: list[MemoryText] = Field(default_factory=list, max_length=50)
     preset_id: str | None = Field(default=None, pattern=r"^[a-z0-9_-]{1,40}$")

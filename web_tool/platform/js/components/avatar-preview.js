@@ -18,7 +18,7 @@ export async function openPreview(char) {
   $('#avatarFallback').innerHTML = avatar(char);
   $('#avatarFallback').hidden = false;
   $('#liveAvatarCanvas').hidden = true;
-  $('#avatarStatus').textContent = avatarAssets[char.avatar].model ? 'Live2D 캐릭터를 불러오고 있어요…' : '프로필에서 다른 외형을 선택할 수 있어요.';
+  $('#avatarStatus').textContent = avatarAssets[char.avatar].model ? 'Live2D 캐릭터를 불러오고 있어요…' : avatarAssets[char.avatar].label;
   $('#avatarDialog').showModal();
   if (!avatarAssets[char.avatar].model) return;
   try {

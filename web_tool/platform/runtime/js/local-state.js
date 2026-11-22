@@ -73,6 +73,7 @@ export function loadStudioScene(scope, avatar) {
       } catch { /* Ignore an unavailable previous background. */ }
     }
   }
+  if (avatar === 'ivory-crown') return 'room';
   return avatar === 'sogangi' ? 'campus' : 'night';
 }
 export function saveStudioScene(scope, scene) {

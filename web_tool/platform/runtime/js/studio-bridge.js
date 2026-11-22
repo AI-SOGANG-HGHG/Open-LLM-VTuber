@@ -16,13 +16,13 @@ export async function getStudioProfile() {
   connection = { origin, instanceId };
   document.documentElement.dataset.studio = 'true';
   const css = document.createElement('link');
-  css.rel = 'stylesheet'; css.href = new URL('../css/studio.css?v=6', import.meta.url).href; document.head.append(css);
+  css.rel = 'stylesheet'; css.href = new URL('../css/studio.css?v=7', import.meta.url).href; document.head.append(css);
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => { window.removeEventListener('message', receive); reject(Error('Studio settings not received')); }, 20000);
     function receive(event) {
       if (event.source !== parent || event.origin !== origin || event.data?.channel !== 'persona-studio-runtime' || event.data.instanceId !== instanceId || event.data.type !== 'configure') return;
       const profile = event.data.profile;
-      if (!profile || typeof profile.name !== 'string' || !['sogangi', 'mao', 'symbol'].includes(profile.avatar)) return;
+      if (!profile || typeof profile.name !== 'string' || !['sogangi', 'mao', 'ivory-crown', 'symbol'].includes(profile.avatar)) return;
       if (query.has('characterId') && profile.character_id !== query.get('characterId')) return;
       if (query.has('avatar') && profile.avatar !== query.get('avatar')) return;
       clearTimeout(timeout); window.removeEventListener('message', receive);

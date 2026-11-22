@@ -24,6 +24,7 @@ PUBLIC_PATHS = frozenset(
     {
         LOGIN_PAGE,
         LOGIN_PAGE + "index.html",
+        LOGIN_PAGE + "js/agents.js",
         LOGIN_PAGE + "js/auth.js",
         LOGIN_PAGE + "js/components/avatar-preview.js",
         LOGIN_PAGE + "js/components/card.js",

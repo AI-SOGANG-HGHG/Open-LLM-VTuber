@@ -85,6 +85,10 @@ class StudioAuthTests(unittest.TestCase):
         self.assertEqual(
             self.client.get("/web-tool/shared/random-id.js").status_code, 200
         )
+        self.assertEqual(self.client.get(LOGIN_PAGE + "js/agents.js").status_code, 200)
+        self.assertEqual(
+            self.client.get(LOGIN_PAGE + "assets/ivory-crown.webp").status_code, 401
+        )
         self.assertEqual(self.client.get(f"{artwork}/sogangi-joy.svg").status_code, 401)
 
     def test_correct_login_sets_private_secure_cookie_and_refresh_restores_session(
