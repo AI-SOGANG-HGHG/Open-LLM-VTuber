@@ -1,12 +1,14 @@
+import { createRandomId } from '../../shared/random-id.js';
+import { agentError, ensureAgent, serverProfiles } from './agents.js';
 import { $, LIVE_CHAT_ACTIVITY } from './dom.js';
 import { getCharacter, state } from './state.js';
 import { logActivity, persist } from './store.js';
 
 let activeRuntime;
-
-function runtimeOrigin() { return location.pathname.startsWith('/web-tool/') ? location.origin : 'http://localhost:12393'; }
+let connectEpoch = 0;
 
 export function disposeRuntime() {
+  connectEpoch++;
   if (!activeRuntime) return;
   clearTimeout(activeRuntime.timeout);
   activeRuntime.frame.contentWindow?.postMessage({ channel: 'persona-studio-runtime', instanceId: activeRuntime.instanceId, type: 'shutdown' }, activeRuntime.origin);
@@ -17,20 +19,28 @@ export function setConversationFocus(enabled) {
   const button = document.querySelector('[data-action="runtime-layout"]');
   if (button) { button.textContent = enabled ? '스튜디오 보기' : '대화에 집중'; button.setAttribute('aria-pressed', String(enabled)); }
 }
-export function connectRuntime(char) {
+export async function connectRuntime(char) {
   disposeRuntime();
-  persist(); // Keep the browser workspace stable before giving the server its history scope.
+  const ticket = connectEpoch;
   const frame = $('#studioFrame');
-  const instanceId = crypto.randomUUID();
-  const origin = runtimeOrigin();
+  if (!serverProfiles) {
+    $('#runtimeStatus').textContent = '실시간 대화는 서버의 /web-tool/platform/에서 연결할 수 있어요.';
+    return;
+  }
+  try {
+    await ensureAgent(char);
+  } catch (error) {
+    if (ticket === connectEpoch && frame.isConnected) $('#runtimeStatus').textContent = agentError(error);
+    return;
+  }
+  if (ticket !== connectEpoch || !frame.isConnected) return;
+  const instanceId = createRandomId();
+  const origin = location.origin;
   const payload = {
     workspace_id: state.data.workspaceId, character_id: char.id, name: char.name,
     description: char.description,
     avatar: char.avatar, greeting: char.greeting,
-    memories: char.memories.slice(-50).map((memory) => memory.text.trim()).filter(Boolean),
-    ...(char.studioPreset
-      ? { preset_id: char.studioPreset }
-      : { persona: char.persona, tone: char.tone, exploration: char.exploration }),
+    agent_id: char.agentId,
   };
   activeRuntime = { frame, instanceId, origin, charId: char.id, payload, turns: new Set() };
   $('#runtimeStatus').textContent = `${char.name}의 설정으로 대화 서버에 연결 중…`;
@@ -52,7 +62,7 @@ export function bindRuntimeEvents() {
       runtime.frame.contentWindow.postMessage({ channel: 'persona-studio-runtime', instanceId: runtime.instanceId, type: 'configure', profile: runtime.payload }, runtime.origin);
     } else if (message.type === 'connected') {
       clearTimeout(runtime.timeout);
-      if (message.characterId !== runtime.charId || message.avatar !== runtime.payload.avatar || message.name !== runtime.payload.name) {
+      if (message.agentId !== runtime.payload.agent_id || message.characterId !== runtime.charId || message.avatar !== runtime.payload.avatar || message.name !== runtime.payload.name) {
         disposeRuntime(); $('#studioFrame').removeAttribute('src');
         $('#runtimeStatus').textContent = '다른 캐릭터로 연결되어 대화를 멈췄어요. 다시 연결해 주세요.';
         return;

@@ -24,6 +24,7 @@ PUBLIC_PATHS = frozenset(
     {
         LOGIN_PAGE,
         LOGIN_PAGE + "index.html",
+        LOGIN_PAGE + "js/agents.js",
         LOGIN_PAGE + "js/auth.js",
         LOGIN_PAGE + "js/components/avatar-preview.js",
         LOGIN_PAGE + "js/components/card.js",
@@ -43,6 +44,7 @@ PUBLIC_PATHS = frozenset(
         LOGIN_PAGE + "style.css",
         LOGIN_PAGE + "assets/mark.svg",
         LOGIN_PAGE + "assets/mao.png",
+        "/web-tool/shared/random-id.js",
         "/web-tool/sogangi/assets/sogangi-cheer.svg",
         "/web-tool/sogangi/assets/sogangi-neutral.svg",
     }

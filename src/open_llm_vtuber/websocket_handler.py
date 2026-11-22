@@ -8,6 +8,8 @@ from loguru import logger
 
 from .service_context import ServiceContext
 from .studio_persona import StudioPersona, apply_studio_persona
+from .studio_registry import AgentNotFound, StudioRegistry, WORKSPACE_COOKIE
+from uuid import UUID
 from .chat_group import (
     ChatGroupManager,
     handle_group_operation,
@@ -62,13 +64,18 @@ class WSMessage(TypedDict, total=False):
 class WebSocketHandler:
     """Handles WebSocket connections and message routing"""
 
-    def __init__(self, default_context_cache: ServiceContext):
+    def __init__(
+        self,
+        default_context_cache: ServiceContext,
+        studio_registry: StudioRegistry | None = None,
+    ) -> None:
         """Initialize the WebSocket handler with default context"""
         self.client_connections: Dict[str, WebSocket] = {}
         self.client_contexts: Dict[str, ServiceContext] = {}
         self.chat_group_manager = ChatGroupManager()
         self.current_conversation_tasks: Dict[str, Optional[asyncio.Task]] = {}
         self.default_context_cache = default_context_cache
+        self.studio_registry = studio_registry
         self.received_data_buffers: Dict[str, np.ndarray] = {}
 
         # Message handlers mapping
@@ -538,9 +545,6 @@ class WebSocketHandler:
             context.character_config.conf_uid,
             history_uid,
         )
-        studio_runtime = getattr(context.agent_engine, "studio_runtime", None)
-        if success and studio_runtime is not None:
-            studio_runtime.forget(history_uid)
         await websocket.send_text(
             json.dumps(
                 {
@@ -628,22 +632,43 @@ class WebSocketHandler:
 
     async def _handle_studio_persona(
         self, websocket: WebSocket, client_uid: str, data: dict
-    ):
+    ) -> None:
         task = self.current_conversation_tasks.get(client_uid)
         if task and not task.done():
             await websocket.send_text(
                 json.dumps({"type": "studio-persona-error", "code": "busy"})
             )
             return
+        registered = None
         try:
-            profile = StudioPersona.model_validate(data.get("profile", {}))
-        except ValueError:
+            if self.studio_registry is not None:
+                workspace = UUID(str(data.get("workspace_id")))
+                agent_id = UUID(str(data.get("agent_id"))).hex
+                registered = await asyncio.to_thread(
+                    self.studio_registry.get,
+                    workspace,
+                    websocket.cookies.get(WORKSPACE_COOKIE, ""),
+                    agent_id,
+                )
+                profile = registered.profile
+            else:
+                profile = StudioPersona.model_validate(data.get("profile", {}))
+        except (ValueError, AgentNotFound):
             await websocket.send_text(
                 json.dumps({"type": "studio-persona-error", "code": "invalid_profile"})
             )
             return
         try:
-            await apply_studio_persona(self.client_contexts[client_uid], profile)
+            if registered is not None:
+                await asyncio.to_thread(
+                    self.studio_registry.import_memories, registered
+                )
+            await apply_studio_persona(
+                self.client_contexts[client_uid],
+                profile,
+                registered,
+                self.studio_registry,
+            )
         except Exception:
             logger.warning("Studio character initialization failed for a connection")
             await websocket.send_text(
@@ -657,7 +682,17 @@ class WebSocketHandler:
                 {
                     "type": "studio-persona-applied",
                     "character_id": profile.character_id,
-                    "conf_uid": profile.history_scope,
+                    "conf_uid": registered.history_scope
+                    if registered
+                    else profile.history_scope,
+                    **(
+                        {
+                            "agent_id": registered.agent_id,
+                            "version": registered.personality.version,
+                        }
+                        if registered
+                        else {}
+                    ),
                     "name": profile.name,
                     "avatar": profile.avatar,
                     "memory_count": len(profile.memories),

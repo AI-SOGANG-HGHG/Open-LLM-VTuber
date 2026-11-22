@@ -183,14 +183,15 @@ class SogangiProductTests(SogangiBrowserCase):
             self.page.locator("#messageInput").input_value(), "연결 중에도 남겨둘 초안"
         )
 
-    def test_missing_saved_history_falls_back_without_overwriting_it(self):
+    def test_missing_saved_history_falls_back_without_overwriting_it(self) -> None:
+        """Open a new conversation and preserve the draft after a history error."""
         self.page.locator("#messageInput").fill("보존할 초안")
         self.fixture.histories.clear()
         self.page.reload(wait_until="domcontentloaded")
         self.wait_ready()
         self.assertEqual(self.fixture.history, 2)
         self.assertIn(
-            "이전 기록을 불러오지 못해", self.page.locator("#noticeText").inner_text()
+            "새 대화를 열었어요", self.page.locator("#noticeText").inner_text()
         )
         self.assertEqual(
             self.page.locator("#messageInput").input_value(), "보존할 초안"

@@ -10,16 +10,25 @@ from sogangi_smoke import ChatFixture, wav_fixture
 
 
 class StudioChatFixture(ChatFixture):
+    registration = None
+
     def receive(self, raw):
         message = json.loads(raw)
         if message["type"] != "apply-studio-persona":
             super().receive(raw)
             return
         self.received.append(message)
-        profile = message["profile"]
+        profile = self.registration["profile"]
+        if (
+            message["agent_id"] != self.registration["agent_id"]
+            or message["workspace_id"] != profile["workspace_id"]
+        ):
+            self.send({"type": "studio-persona-error", "code": "character_mismatch"})
+            return
         self.send(
             {
                 "type": "studio-persona-applied",
+                "agent_id": self.registration["agent_id"],
                 **{key: profile[key] for key in ("character_id", "avatar", "name")},
             }
         )
@@ -49,7 +58,14 @@ class IvoryCrownTests(unittest.TestCase):
             form.locator('[name="name"]').fill("테스트 대화 상대")
             form.locator('[name="description"]').fill("2D 외형 연결을 확인해요.")
             form.locator(".avatar-option").filter(has_text="Ivory Crown").click()
-            form.locator('button[type="submit"]').click()
+            with page.expect_response(
+                lambda response: response.url == f"{base}/studio/agents"
+                and response.request.method == "POST"
+            ) as creation:
+                form.locator('button[type="submit"]').click()
+            self.assertTrue(creation.value.ok, creation.value.status)
+            fixture.registration = creation.value.json()
+            self.assertEqual(fixture.registration["profile"]["avatar"], "ivory-crown")
             expect(page.locator('#settingsForm [value="ivory-crown"]')).to_be_checked()
             expect(page.locator("#settingsAvatar img")).to_have_js_property(
                 "complete", True
@@ -71,7 +87,9 @@ class IvoryCrownTests(unittest.TestCase):
                 "data-renderer", "canvas2d"
             )
             expect(frame.locator("#greetButton")).to_be_hidden()
-            self.assertEqual(fixture.received[0]["profile"]["avatar"], "ivory-crown")
+            self.assertEqual(
+                fixture.received[0]["agent_id"], fixture.registration["agent_id"]
+            )
 
             # Compare the canvas mouth pixels against neutral with blinking paused.
             frame.locator("#motionToggle").click()
