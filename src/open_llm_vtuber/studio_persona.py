@@ -18,6 +18,7 @@ from pydantic import (
 )
 
 from .agent.agent_factory import AgentFactory
+from .live2d_model import Live2dModel
 from .studio_profiles import (
     BigFive,
     PersonaPreset,
@@ -82,8 +83,7 @@ class StudioPersona(BaseModel):
             "자동 검색하거나 실제로 경험한 기억이라고 꾸며내지 마.\n"
             f"<사용자_참고_메모>\n{notes}\n</사용자_참고_메모>\n"
             "답변은 기본적으로 한국어로 간결하게 해. 도구가 연결되지 않은 행동을 "
-            "수행했다고 주장하지 마. 표정 태그를 쓴다면 [neutral], [joy], "
-            "[anger], [surprise] 중 하나를 문장과 함께 사용해."
+            "수행했다고 주장하지 마.\n"
         )
 
 
@@ -113,7 +113,7 @@ async def apply_studio_persona(
     )
     if registered and profile.persona:
         character.persona_prompt += (
-            f"\n캐릭터 설정에 담긴 구체적인 대화 지침\n{profile.persona}"
+            f"\n캐릭터 설정에 담긴 구체적인 대화 지침\n{profile.persona}\n"
         )
     agent_config = character.agent_config
     agent_config.conversation_agent_choice = "basic_memory_agent"
@@ -126,13 +126,18 @@ async def apply_studio_persona(
         llm_config.request_timeout = 45
     if hasattr(llm_config, "max_retries") and llm_config.max_retries is None:
         llm_config.max_retries = 0
-    system_prompt = await context.construct_system_prompt(character.persona_prompt)
+    live2d_model = (
+        Live2dModel("sogangi") if profile.avatar == "sogangi" else context.live2d_model
+    )
+    system_prompt = await context.construct_system_prompt(
+        character.persona_prompt, live2d_model=live2d_model
+    )
     agent = AgentFactory.create_agent(
         conversation_agent_choice=agent_config.conversation_agent_choice,
         agent_settings=agent_config.agent_settings.model_dump(),
         llm_configs=agent_config.llm_configs.model_dump(),
         system_prompt=system_prompt,
-        live2d_model=context.live2d_model,
+        live2d_model=live2d_model,
         tts_preprocessor_config=character.tts_preprocessor_config,
         character_avatar=character.avatar or "",
         system_config=context.system_config.model_dump(),

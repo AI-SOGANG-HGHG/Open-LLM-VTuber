@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -23,6 +24,7 @@ from src.open_llm_vtuber.chat_history_manager import (
 from src.open_llm_vtuber.conversations.single_conversation import (
     process_single_conversation,
 )
+from src.open_llm_vtuber.live2d_model import Live2dModel
 from src.open_llm_vtuber.message_handler import message_handler
 from src.open_llm_vtuber.service_context import ServiceContext
 from src.open_llm_vtuber.studio_persona import StudioPersona, apply_studio_persona
@@ -71,9 +73,8 @@ def context_fixture():
     context.config = config
     context.system_config = config.system_config
     context.character_config = config.character_config
-    context.live2d_model = object()
+    context.live2d_model = Live2dModel("mao_pro")
     context.agent_engine = SimpleNamespace(close=AsyncMock())
-    context.construct_system_prompt = AsyncMock(side_effect=lambda text: text)
     return context
 
 
@@ -237,6 +238,40 @@ class StudioPersonaTests(unittest.IsolatedAsyncioTestCase):
             original_config.character_config.conf_uid, profile.history_scope
         )
         old_agent.close.assert_awaited_once()
+
+    async def test_sogangi_uses_its_own_expressions_on_the_studio_connection(self):
+        context = context_fixture()
+        default_model = context.live2d_model
+        profile = StudioPersona(
+            **{**payload(), "avatar": "sogangi", "preset_id": "calm"}
+        )
+        agent = SimpleNamespace(enable_studio_runtime=Mock())
+
+        with patch(
+            "src.open_llm_vtuber.studio_persona.AgentFactory.create_agent",
+            return_value=agent,
+        ) as factory:
+            await apply_studio_persona(context, profile)
+            selected = factory.call_args.kwargs
+            self.assertEqual(
+                selected["live2d_model"].emo_map,
+                {"neutral": 0, "joy": 1, "anger": 2, "surprise": 3},
+            )
+            self.assertIn("\n## Expressions\n", selected["system_prompt"])
+            self.assertEqual(
+                re.findall(r"\[([a-z]+)\]", selected["system_prompt"]),
+                ["neutral", "joy", "anger", "surprise"],
+            )
+            self.assertIs(context.live2d_model, default_model)
+
+            mao = profile.model_copy(update={"avatar": "mao"})
+            await apply_studio_persona(context, mao)
+            selected = factory.call_args.kwargs
+            self.assertIs(selected["live2d_model"], default_model)
+            self.assertEqual(
+                re.findall(r"\[([a-z]+)\]", selected["system_prompt"]),
+                list(default_model.emo_map),
+            )
 
     async def test_failed_initialization_leaves_previous_agent_and_history(self):
         context = context_fixture()

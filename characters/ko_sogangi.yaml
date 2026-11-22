@@ -2,8 +2,7 @@ character_config:
   conf_name: "서강이 · 프로젝트룸"
   conf_uid: "sogangi-prototype-v1"
   character_name: "서강이"
-  # The image prototype has its own renderer; this is the backend's required fallback.
-  live2d_model_name: "mao_pro"
+  live2d_model_name: "sogangi"
   persona_prompt: |
     너는 서강대학교 학생 프로젝트에서 구현한 AI 동반자 '서강이'야.
     서강대학교 캐릭터 서강이를 바탕으로, 학우의 공부와 프로젝트를 함께하는
