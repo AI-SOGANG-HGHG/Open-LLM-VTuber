@@ -40,6 +40,13 @@ html[data-studio] .history-item { background: #34213e; color: #dfc6eb; border-co
 html[data-studio] input, html[data-studio] select { background: #211627; color: #efdef7; border-color: #61406e; }
 html[data-studio] .settings-about { background: #35203f; border-color: #61406e; color: #d4b4e2; }
 html[data-studio-avatar=mao] .mascot-wrap { width: auto; aspect-ratio: 900 / 1100; }
+html[data-studio-avatar=ivory-crown]:not([data-studio-scene=plain]) .workspace {
+  background-image: linear-gradient(90deg, #20162064, #1b14278a), var(--studio-scene-image);
+}
+html[data-studio-avatar=ivory-crown] .mascot-wrap { aspect-ratio: 2 / 3; height: 87%; bottom: 0; }
+html[data-studio-avatar=ivory-crown] .mascot { mask-image: linear-gradient(#000 89%, transparent); }
+html[data-studio-avatar=ivory-crown] .mascot-live2d { object-fit: contain; }
+html[data-studio-avatar=ivory-crown] .mascot-shadow { display: none; }
 html[data-studio-scene=campus] .stage-copy h1 { color: #243d33; text-shadow: 0 1px 8px #fff8; }
 html[data-studio-scene=campus] .stage-copy > p:last-child { color: #385447; text-shadow: 0 1px 8px #fffa; }
 html[data-studio-scene=plain] .workspace { background-image: none; }

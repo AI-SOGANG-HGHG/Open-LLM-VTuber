@@ -1,6 +1,6 @@
 import { AvatarRenderer } from './avatars/sogangi-renderer.js';
 import { expressionFor } from './expressions.js';
-import { loadPreferences, savePreferences, loadSession, saveSession, studioScenes, loadStudioScene, saveStudioScene } from './local-state.js?studio=5';
+import { loadPreferences, savePreferences, loadSession, saveSession, studioScenes, loadStudioScene, saveStudioScene } from './local-state.js?studio=6';
 import { getStudioProfile, studioEvent, onStudioShutdown } from './studio-bridge.js';
 import { StudioAvatarRenderer } from './avatars/live2d-avatar.js';
 
@@ -76,7 +76,7 @@ const studioProfile = await getStudioProfile();
     const conversationTitle = `대화 · ${characterName}`;
     document.querySelector('.conversation').setAttribute('aria-label', conversationTitle);
     ui.mascot.setAttribute('aria-label', `${characterName} 캐릭터`);
-    ui.avatarCanvas.setAttribute('aria-label', `Live2D ${characterName}`);
+    ui.avatarCanvas.setAttribute('aria-label', `${characterName} 아바타`);
     document.querySelector('label[for="messageInput"]').textContent = `${characterName}에게 보낼 말`;
     document.querySelector('.stage-copy h1').textContent = characterName;
     const description = document.querySelector('.stage-copy > p:last-child');
@@ -157,7 +157,13 @@ const studioProfile = await getStudioProfile();
       ui.avatarInput.closest('label').hidden = true;
       ui.greetButton.textContent = '모션 재생';
       ui.greetButton.title = '기본 Live2D 모션을 재생해요.';
-      ui.greetButton.hidden = studioProfile.avatar === 'symbol';
+      ui.greetButton.hidden = studioProfile.avatar !== 'mao';
+      if (studioProfile.avatar === 'ivory-crown') ui.avatarRetry.textContent = '2D 움직임 다시 불러오기';
+      if (renderer.active === 'canvas2d') {
+        ui.avatarStatus.textContent = '눈을 깜빡이고 음성에 맞춰 입을 움직여요.';
+      } else if (studioProfile.avatar === 'ivory-crown' && renderer.degraded) {
+        ui.avatarStatus.textContent = '2D 움직임을 불러오지 못해 외형 이미지를 표시해요.';
+      }
     }
   }
   const renderer = studioProfile && studioProfile.avatar !== 'sogangi'

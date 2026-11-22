@@ -115,9 +115,11 @@ input[type=range] { padding: 0; accent-color: var(--accent); border: 0; }
 .card-stage { display: block; position: relative; height: 168px; overflow: hidden; background: var(--sogangi-art); }
 .card-stage:focus-visible { outline-offset: -4px; }
 .card-stage.mao { background: var(--mao-art); }
+.card-stage.ivory-crown, .preview-art.ivory-crown, .avatar-option-art.ivory-crown { background: radial-gradient(ellipse at 50% 40%, #f2dcd6, #cfa5ae); }
 .card-stage.symbol { background: var(--symbol-art); }
 .card-stage > img { position: absolute; width: 160px; max-width: none; bottom: -5px; left: 50%; transform: translateX(-50%); }
 .card-stage.mao > img { width: 255px; top: -2px; bottom: auto; }
+.card-stage.ivory-crown > img { width: auto; height: 250px; top: -10px; bottom: auto; }
 .card-stage.sogangi > img { width: auto; height: calc(100% - 12px); bottom: 0; }
 .card-stage > .stage-symbol { display: grid; place-items: center; color: #56634c; font-size: 74px; width: 100%; height: 100%; }
 .favorite-button { position: absolute; top: 10px; right: 10px; z-index: 1; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--muted); font-size: 19px; line-height: 1; }
@@ -187,6 +189,7 @@ input[type=range] { padding: 0; accent-color: var(--accent); border: 0; }
 .preview-art.mao img { position: absolute; height: 520px; max-width: none; bottom: -210px; left: 50%; transform: translateX(-50%); }
 .preview-art.sogangi { background: var(--sogangi-art); }
 .preview-art.sogangi img { position: absolute; height: 250px; bottom: 0; left: 50%; transform: translateX(-50%); }
+.preview-art.ivory-crown img { display: block; height: 145%; max-width: none; margin: -12px auto 0; }
 .preview-art.symbol { display: grid; place-items: center; background: var(--symbol-art); }
 .preview-art .stage-symbol { font-size: 140px; color: #56634c; }
 .preview-profile { padding: 24px; }
@@ -198,7 +201,7 @@ input[type=range] { padding: 0; accent-color: var(--accent); border: 0; }
 .definition-list dt { color: var(--muted); }
 .definition-list dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
 .callout { padding: 16px 18px; margin-top: 20px; border-radius: 4px; border: 1px solid var(--line); background: var(--wash); color: var(--muted); font-size: 11px; line-height: 1.9; }
-.avatar-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; border: 0; padding: 0; margin: 25px 0 0; }
+.avatar-picker { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; border: 0; padding: 0; margin: 25px 0 0; }
 .avatar-picker legend { margin-bottom: 13px; }
 .avatar-option { position: relative; margin: 0; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; text-align: center; padding-bottom: 12px; background: var(--surface); cursor: pointer; }
 .avatar-option:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
@@ -209,6 +212,7 @@ input[type=range] { padding: 0; accent-color: var(--accent); border: 0; }
 .avatar-option-art.mao img { height: 215px; bottom: -105px; }
 .avatar-option-art.sogangi { background: var(--sogangi-art); }
 .avatar-option-art.sogangi img { height: 95px; top: 13px; }
+.avatar-option-art.ivory-crown img { height: 190px; top: -12px; }
 .avatar-option-art.symbol { background: var(--symbol-art); display: grid; place-items: center; font-size: 55px; color: #56634c; }
 .avatar-option strong { display: block; font-size: 11px; color: var(--ink); font-weight: 500; }
 .avatar-option small { display: block; font-size: 9px; color: var(--muted); margin-top: 5px; }
@@ -352,6 +356,7 @@ dialog::backdrop { background: #201b16a6; }
   .card-stage { height: 128px; }
   .card-stage > img { width: 118px; }
   .card-stage.mao > img { width: 200px; }
+  .card-stage.ivory-crown > img { height: 198px; }
   .card-stage > .stage-symbol { font-size: 57px; }
   .favorite-button { top: 7px; right: 7px; width: 28px; height: 28px; }
   .model-credit { font-size: 8px; }
@@ -371,7 +376,7 @@ dialog::backdrop { background: #201b16a6; }
   .panel { padding: 19px 15px; }
   .panel h2 { font-size: 19px; }
   .form-columns { grid-template-columns: 1fr; gap: 0; }
-  .avatar-picker { gap: 7px; }
+  .avatar-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
   .avatar-option-art { height: 84px; }
   .avatar-option-art.mao img { height: 190px; bottom: -99px; }
   .avatar-option-art.sogangi img { height: 83px; top: 12px; }
