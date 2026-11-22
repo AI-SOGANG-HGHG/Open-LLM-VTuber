@@ -26,7 +26,9 @@ from src.open_llm_vtuber.studio_profiles import (
 )
 from src.open_llm_vtuber.studio_registry import StudioRegistry, WORKSPACE_COOKIE
 from src.open_llm_vtuber.studio_registry_api import studio_registry_router
+from src.open_llm_vtuber.studio_tasks import TaskUpdate
 from src.open_llm_vtuber.studio_turn import (
+    Appraisal,
     MemoryMeaning,
     RECALL_METADATA,
     RecallItem,
@@ -221,6 +223,97 @@ class AgentRecallTests(unittest.IsolatedAsyncioTestCase):
         [saved] = registry.memories(agent.agent_id, "fixture", 64)
         self.assertEqual(saved["id"], first.source.id)
         self.assertEqual(saved["source_history_id"], original)
+
+    async def test_recall_accepts_an_earlier_version_id_from_a_retrieved_memory(
+        self,
+    ) -> None:
+        """Keep the correction and its history when appraisal selects an older ID."""
+        agent = self.registry.create(profile(self.workspace), self.token)
+        scope = agent.history_scope
+        room = create_new_history(scope)
+        runtime = self.runtime(agent)
+        first = await runtime.prepare(scope, room, PREFERENCE)
+        await runtime.complete_async(first)
+        latest_text = "정정할게요. 이제는 디카페인 커피를 가장 좋아해요."
+        correction = Appraisal(
+            relevant_memory_ids=[],
+            corrected_memory_ids=[first.source.id],
+            affect=None,
+            remember=False,
+        )
+        with patch.object(runtime, "_appraise", return_value=correction):
+            latest = await runtime.prepare(scope, room, latest_text)
+        await runtime.complete_async(latest)
+
+        new_room = create_new_history(scope)
+        for ids, should_match in (
+            ([first.source.id], True),
+            ([first.source.id, latest.source.id, "unrelated"], True),
+            (["unrelated"], False),
+        ):
+            with self.subTest(ids=ids):
+                selection = Appraisal(
+                    relevant_memory_ids=ids, affect=None, remember=False
+                )
+                with patch.object(runtime, "_appraise", return_value=selection):
+                    query = await runtime.prepare(
+                        scope, new_room, "예전에 무슨 음료를 좋아한다고 했죠?"
+                    )
+                memories = json.loads(query.context)["experience"]
+                self.assertEqual(memories, query.trace["memories"])
+                if should_match:
+                    self.assertEqual(len(memories), 1)
+                    [memory] = memories
+                    self.assertEqual(memory["id"], latest.source.id)
+                    self.assertEqual(memory["text"], latest_text)
+                    self.assertEqual(memory["earlier_versions"][0]["text"], PREFERENCE)
+                else:
+                    self.assertEqual(memories, [])
+
+    async def test_validated_task_updates_are_recalled_across_rooms(
+        self,
+    ) -> None:
+        """Save grounded task updates even when appraisal declines generic recall."""
+        agent = self.registry.create(profile(self.workspace), self.token)
+        scope = agent.history_scope
+        runtime = self.runtime(agent)
+        draft = "발표 준비 중인데 발표 초안을 완성했어요."
+        rehearsal = "발표 리허설은 아직 못 했고 내일 해야 해요."
+
+        for text, title, status, evidence in (
+            (draft, "발표 초안", "completed", "발표 초안을 완성했어요"),
+            (rehearsal, "발표 리허설", "not_started", "아직 못 했고 내일 해야 해요"),
+            (
+                "발표 자료 공유는 어떻게 해요?",
+                "발표 자료 공유",
+                "completed",
+                "자료 공유를 완료했어요",
+            ),
+        ):
+            room = create_new_history(scope)
+            appraisal = Appraisal(
+                relevant_memory_ids=[],
+                affect=None,
+                remember=False,
+                task_update=TaskUpdate(
+                    task_id=None, title=title, status=status, evidence=evidence
+                ),
+            )
+            with patch.object(runtime, "_appraise", return_value=appraisal):
+                update = await runtime.prepare(scope, room, text)
+            await runtime.complete_async(update)
+
+        records = self.registry.memories(agent.agent_id, "fixture", 64)
+        self.assertEqual([record["text"] for record in records], [draft, rehearsal])
+        new_room = create_new_history(scope)
+        query = await self.runtime(agent).prepare(
+            scope, new_room, "발표 준비에서 끝낸 것과 남은 일은 뭐야?"
+        )
+        self.assertCountEqual(
+            [memory["text"] for memory in json.loads(query.context)["experience"]],
+            [draft, rehearsal],
+        )
+        self.assertEqual(query.trace["task_states"], [])
 
     def test_late_index_does_not_replace_ready_or_superseded_memory(self) -> None:
         """Keep the winning embedding and skip stale work for corrected memories."""
