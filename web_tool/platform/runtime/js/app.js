@@ -318,6 +318,17 @@ const studioProfile = await getStudioProfile();
     pendingExpressions.length = 0;
     pendingTextExpressions.length = 0;
   }
+  function resetExpression() {
+    clearPendingExpressions();
+    state.lastExpression = 'neutral';
+    setMascotExpression('neutral');
+  }
+  function responseExpression(text) {
+    return expressionFor(text, {
+      avatar: studioProfile?.avatar,
+      expression: state.studioTurn?.expression,
+    });
+  }
   function controls() {
     const microphoneBusy = microphone.busy;
     const blocked = !state.ready || state.busy || microphoneBusy;
@@ -436,7 +447,7 @@ const studioProfile = await getStudioProfile();
     connection.send({ type: 'interrupt-signal', text: state.assistant?.body.textContent || '' });
     state.discard = true;
     playback.cancelTurn();
-    clearPendingExpressions();
+    resetExpression();
     state.recoverable = Boolean(reason);
     ready();
     if (reason) notice(reason);
@@ -525,13 +536,13 @@ const studioProfile = await getStudioProfile();
     state.assistant = null;
     state.studioTurn = null;
     state.lastQuestion = null;
-    clearPendingExpressions();
+    resetExpression();
     state.recoverable = false;
     ui.timing.textContent = '답변에는 틀린 내용이 있을 수 있어요.';
   }
   function prepareConnection() {
     requestedConfig = false;
-    clearPendingExpressions();
+    resetExpression();
     clearTimeout(state.historyTimer);
     state.historyPending = null;
     microphone.cancel();
@@ -622,7 +633,7 @@ const studioProfile = await getStudioProfile();
       if (state.firstText === null) state.firstText = performance.now() - state.started;
       const text = data.display_text?.text;
       appendAssistant(text);
-      const name = expressionFor(text);
+      const name = responseExpression(text);
       if (name !== null && !state.failed) {
         pendingTextExpressions.push({ text, name, queued: state.muted });
         if (state.muted) queueExpression(name, true);
@@ -634,7 +645,7 @@ const studioProfile = await getStudioProfile();
       const textIndex = pendingTextExpressions.findIndex((entry) => entry.text === text);
       const textExpression = textIndex < 0 ? null : pendingTextExpressions.splice(textIndex, 1)[0];
       // Text may already have queued this expression while sound was muted.
-      const expression = textExpression?.queued ? null : expressionFor(text);
+      const expression = textExpression?.queued ? null : responseExpression(text);
       if (state.muted || !data.audio) queueExpression(expression, true);
       if (data.audio) {
         if (state.firstAudio === null) {
@@ -668,7 +679,7 @@ const studioProfile = await getStudioProfile();
       }
       ready();
     } else if (data.type === 'error') {
-      clearPendingExpressions();
+      resetExpression();
       state.recoverable = Boolean(state.lastQuestion);
       notice('답변을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.', !state.ready, 'error');
       if (state.busy) {
@@ -682,7 +693,7 @@ const studioProfile = await getStudioProfile();
   function handleDisconnect(delay) {
     clearTimeout(state.historyTimer);
     state.historyPending = null;
-    clearPendingExpressions();
+    resetExpression();
     ui.historyDialog.close();
     microphone.cancel();
     state.ready = false;
