@@ -177,6 +177,10 @@ input[type=range] { padding: 0; accent-color: var(--accent); border: 0; }
 .panel .muted { font-size: 13px; }
 .panel-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 27px; }
 .form-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.trait-settings { margin: 20px 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; }
+.trait-settings summary { cursor: pointer; font-size: 13px; font-weight: 600; }
+.trait-control > span { display: flex; justify-content: space-between; gap: 8px; }
+.trait-control > small { color: var(--muted); font-weight: 400; }
 .range-label { display: flex; justify-content: space-between; gap: 10px; font-size: 10px; color: var(--muted); margin-top: 8px; }
 .preview-card { overflow: hidden; border-radius: 4px; border: 1px solid var(--line); background: var(--surface); }
 .preview-art { position: relative; height: 315px; overflow: hidden; background: var(--mao-art); }

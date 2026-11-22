@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f5f3ee" />
     <title>Persona Studio</title>
     <link rel="icon" href="./assets/mark.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./style.css?v=9" />
+    <link rel="stylesheet" href="./style.css?v=10" />
     <script type="module" src="js/main.js"></script>
   </head>
   <body>
@@ -24,7 +24,7 @@
             <p id="loginError" class="login-error" role="alert" hidden></p>
             <button id="loginSubmit" class="button primary login-submit" type="submit" disabled>연결 확인 중…</button>
           </form>
-          <p class="login-note">캐릭터 설정은 이 브라우저에 저장돼요.</p>
+          <p class="login-note">이 브라우저의 작업공간으로 연결해요.</p>
         </div>
         <p class="login-credit">서강대학교 팀 프로젝트</p>
       </main>
@@ -48,7 +48,7 @@
       <div class="workspace-body">
         <header class="topbar"><span id="breadcrumb">스튜디오 / 내 캐릭터</span><button class="text-button" id="aboutButton">이용 안내</button></header>
         <main id="mainContent" tabindex="-1"></main>
-        <footer class="workspace-footer"><span>서강대학교 팀 프로젝트</span><span>설정은 이 브라우저에 저장돼요.</span></footer>
+        <footer class="workspace-footer"><span>서강대학교 팀 프로젝트</span><span>캐릭터 프로필과 기억은 연결된 서버에 저장돼요.</span></footer>
       </div>
     </div>
 
@@ -60,14 +60,15 @@
           <label class="avatar-option"><input type="radio" name="avatar" value="sogangi" /><span class="avatar-option-art sogangi"><img src="../sogangi/assets/sogangi-neutral.svg" alt="" /></span><strong>서강이</strong><small>캠퍼스 동료</small></label>
           <label class="avatar-option"><input type="radio" name="avatar" value="symbol" checked /><span class="avatar-option-art symbol"><span aria-hidden="true">✳</span></span><strong>나만의 캐릭터</strong><small>아이콘 사용</small></label>
         </fieldset>
-        <div class="form-columns"><div><label for="characterName">캐릭터 이름</label><input id="characterName" name="name" maxlength="30" placeholder="어떤 이름으로 부를까요?" required /></div><div><label for="characterTemplate">성격 프리셋</label><select id="characterTemplate" name="template"><option value="warm">다정한 동료</option><option value="curious">호기심 많은 탐험가</option><option value="calm">차분한 전략가</option></select></div></div>
+        <div class="form-columns"><div><label for="characterName">캐릭터 이름</label><input id="characterName" name="name" maxlength="30" placeholder="어떤 이름으로 부를까요?" required /></div><div><label for="characterTemplate">시작 프리셋</label><select id="characterTemplate" name="studioPreset" required></select></div></div>
         <label for="characterDescription">한 줄 소개</label><input id="characterDescription" name="description" maxlength="100" placeholder="예) 복잡한 일을 차근차근 정리해 주는 동료" required />
         <label for="characterGreeting">첫 인사 <span class="optional">선택</span></label><input id="characterGreeting" name="greeting" maxlength="300" placeholder="캐릭터가 건넬 첫마디" />
+        <div id="createTraitSettings"></div>
         <div class="dialog-actions"><button type="button" class="button secondary" data-close-dialog>취소</button><button type="submit" class="button primary">캐릭터 만들기</button></div>
       </form>
     </dialog>
-    <dialog id="deleteDialog" class="form-dialog compact-dialog" aria-labelledby="deleteTitle"><form id="deleteForm"><h2 id="deleteTitle">캐릭터를 삭제할까요?</h2><p class="muted">이 브라우저의 캐릭터 설정과 샘플 대화, 등록한 기억이 함께 삭제돼요.</p><div class="dialog-actions"><button type="button" class="button secondary" data-close-dialog>취소</button><button type="submit" class="button danger">삭제하기</button></div></form></dialog>
-    <dialog id="aboutDialog" class="form-dialog compact-dialog" aria-labelledby="aboutTitle"><div class="dialog-heading"><h2 id="aboutTitle">Persona Studio 안내</h2><button class="icon-button" data-close-dialog aria-label="닫기">×</button></div><p class="muted">캐릭터의 성격을 설정하고 음성과 Live2D로 대화할 수 있어요. 팀 프리셋은 질문과 관련된 기억을 찾아 답변에 참고해요.</p><p class="muted">캐릭터 설정은 이 브라우저에 저장돼요. 방송과 게임 연결은 준비 중이에요.</p><p class="asset-credit">Mao: © Live2D Inc. This content uses sample data owned and copyrighted by Live2D Inc. The sample data are utilized in accordance with terms and conditions set by Live2D Inc. This content itself is created at the author’s sole discretion.</p></dialog>
+    <dialog id="deleteDialog" class="form-dialog compact-dialog" aria-labelledby="deleteTitle"><form id="deleteForm"><h2 id="deleteTitle">캐릭터를 삭제할까요?</h2><p class="muted">목록에서 이 캐릭터를 숨겨요. 서버에 저장된 대화와 기억은 보관돼요.</p><div class="dialog-actions"><button type="button" class="button secondary" data-close-dialog>취소</button><button type="submit" class="button danger">삭제하기</button></div></form></dialog>
+    <dialog id="aboutDialog" class="form-dialog compact-dialog" aria-labelledby="aboutTitle"><div class="dialog-heading"><h2 id="aboutTitle">Persona Studio 안내</h2><button class="icon-button" data-close-dialog aria-label="닫기">×</button></div><p class="muted">캐릭터의 성격을 설정하고 음성과 Live2D로 대화할 수 있어요. 캐릭터마다 질문과 관련된 기억을 찾아 답변에 참고해요.</p><p class="muted">이 브라우저의 작업공간으로 연결해요. 방송과 게임 연결은 준비 중이에요.</p><p class="asset-credit">Mao: © Live2D Inc. This content uses sample data owned and copyrighted by Live2D Inc. The sample data are utilized in accordance with terms and conditions set by Live2D Inc. This content itself is created at the author’s sole discretion.</p></dialog>
     <dialog id="avatarDialog" class="avatar-dialog" aria-labelledby="avatarTitle"><div class="dialog-heading"><h2 id="avatarTitle">캐릭터 미리보기</h2><button class="icon-button" data-close-dialog aria-label="닫기">×</button></div><div id="liveAvatarStage" class="live-avatar-stage"><canvas id="liveAvatarCanvas" aria-label="Live2D 캐릭터 미리보기"></canvas><div id="avatarFallback"></div></div><p id="avatarStatus" class="field-help" role="status"></p><p class="asset-credit" id="avatarCredit"></p></dialog>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   </body>
