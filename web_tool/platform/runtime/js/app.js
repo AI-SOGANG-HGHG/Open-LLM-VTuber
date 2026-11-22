@@ -124,6 +124,11 @@ const studioProfile = await getStudioProfile();
     nextNotice: '',
   };
   let requestedConfig = false;
+  const minimumSilentExpressionMs = 1500;
+  const pendingExpressions = [];
+  const pendingTextExpressions = [];
+  let expressionHoldUntil = 0;
+  let expressionTimer = null;
   const connection = createConversationConnection({
     onConnecting: prepareConnection,
     onMessage: handleServerMessage,
@@ -176,10 +181,11 @@ const studioProfile = await getStudioProfile();
     preferences,
     renderer,
     canPlay: () => !state.muted && !state.failed,
-    onStart(expression) {
+    onStart(change) {
       ui.phase.textContent = '음성을 재생하고 있어요.';
-      state.lastExpression = expression;
-      mascot(expression, 'speaking', '같이 이야기하자!');
+      change.ready = true;
+      applyPendingExpressions();
+      mascot(state.lastExpression, 'speaking', '같이 이야기하자!');
     },
     onComplete: () => connection.send({ type: 'frontend-playback-complete' }),
     onError: notice,
@@ -227,9 +233,16 @@ const studioProfile = await getStudioProfile();
     ui.largeTextInput.checked = preferences.largeText;
     ui.reducedMotionInput.checked = preferences.reducedMotion;
     ui.mutedInput.checked = preferences.muted;
+    renderer.setMuted?.(state.muted);
     playback.updateSettings();
     if (!wasMuted && state.muted) {
       playback.stop();
+      for (const change of pendingExpressions) {
+        change.silent = true;
+        change.ready = true;
+      }
+      applyPendingExpressions();
+      queuePendingTextExpressions();
       playback.completeIfReady();
     }
     if (persist) {
@@ -248,15 +261,62 @@ const studioProfile = await getStudioProfile();
     ui.notice.setAttribute('role', kind === 'error' ? 'alert' : 'status');
     ui.restoreQuestion.hidden = !text || !state.recoverable || !state.lastQuestion;
   }
-  function mascot(frame, phase, text) {
+  function setMascotExpression(frame) {
     renderer.setExpression(frame);
-    renderer.setPhase(phase);
     if (!renderer.ready && (!studioProfile || studioProfile.avatar === 'sogangi'))
       ui.mascot
         .querySelector('image')
         ?.setAttribute('href', new URL(`../../../sogangi/assets/sogangi-${frames[frame] || frames.neutral}.svg`, import.meta.url).href);
+  }
+  function mascot(frame, phase, text) {
+    setMascotExpression(frame);
+    renderer.setPhase(phase);
     ui.mascotWrap.dataset.state = phase;
     ui.mascotNote.textContent = text;
+  }
+  function queueExpression(name, silent) {
+    const change = { name, silent, ready: silent };
+    if (name !== null && !state.failed) {
+      pendingExpressions.push(change);
+      applyPendingExpressions();
+    }
+    return change;
+  }
+  function queuePendingTextExpressions() {
+    for (const entry of pendingTextExpressions) {
+      if (entry.queued) continue;
+      queueExpression(entry.name, true);
+      entry.queued = true;
+    }
+  }
+  function applyPendingExpressions() {
+    if (expressionTimer !== null) return;
+    while (pendingExpressions[0]?.ready) {
+      const change = pendingExpressions[0];
+      if (change.name === state.lastExpression) {
+        pendingExpressions.shift();
+        continue;
+      }
+      const delay = expressionHoldUntil - performance.now();
+      if (delay > 0) {
+        expressionTimer = setTimeout(() => {
+          expressionTimer = null;
+          applyPendingExpressions();
+        }, delay);
+        return;
+      }
+      pendingExpressions.shift();
+      state.lastExpression = change.name;
+      setMascotExpression(change.name);
+      expressionHoldUntil = change.silent ? performance.now() + minimumSilentExpressionMs : 0;
+    }
+  }
+  function clearPendingExpressions() {
+    clearTimeout(expressionTimer);
+    expressionTimer = null;
+    expressionHoldUntil = 0;
+    pendingExpressions.length = 0;
+    pendingTextExpressions.length = 0;
   }
   function controls() {
     const microphoneBusy = microphone.busy;
@@ -376,8 +436,8 @@ const studioProfile = await getStudioProfile();
     connection.send({ type: 'interrupt-signal', text: state.assistant?.body.textContent || '' });
     state.discard = true;
     playback.cancelTurn();
+    clearPendingExpressions();
     state.recoverable = Boolean(reason);
-    state.lastExpression = 'neutral';
     ready();
     if (reason) notice(reason);
   }
@@ -385,6 +445,7 @@ const studioProfile = await getStudioProfile();
     if (!state.ready || state.busy || !text.trim()) return;
     notice('');
     playback.startTurn();
+    clearPendingExpressions();
     state.discard = false;
     state.busy = true;
     state.failed = false;
@@ -464,13 +525,13 @@ const studioProfile = await getStudioProfile();
     state.assistant = null;
     state.studioTurn = null;
     state.lastQuestion = null;
-    state.lastExpression = 'neutral';
+    clearPendingExpressions();
     state.recoverable = false;
     ui.timing.textContent = '답변에는 틀린 내용이 있을 수 있어요.';
   }
   function prepareConnection() {
     requestedConfig = false;
-    state.lastExpression = 'neutral';
+    clearPendingExpressions();
     clearTimeout(state.historyTimer);
     state.historyPending = null;
     microphone.cancel();
@@ -559,25 +620,36 @@ const studioProfile = await getStudioProfile();
     } else if (data.type === 'text-response' && state.busy && !state.discard) {
       state.textStreaming = true;
       if (state.firstText === null) state.firstText = performance.now() - state.started;
-      appendAssistant(data.display_text?.text);
-      if (state.muted) {
-        state.lastExpression = expressionFor(data.display_text?.text);
-        renderer.setExpression(state.lastExpression);
+      const text = data.display_text?.text;
+      appendAssistant(text);
+      const name = expressionFor(text);
+      if (name !== null && !state.failed) {
+        pendingTextExpressions.push({ text, name, queued: state.muted });
+        if (state.muted) queueExpression(name, true);
       }
       ui.timing.textContent = `첫 문장 ${(state.firstText / 1000).toFixed(1)}초`;
     } else if (data.type === 'audio' && state.busy && !state.discard) {
-      if (!state.textStreaming) appendAssistant(data.display_text?.text);
+      const text = data.display_text?.text;
+      if (!state.textStreaming) appendAssistant(text);
+      const textIndex = pendingTextExpressions.findIndex((entry) => entry.text === text);
+      const textExpression = textIndex < 0 ? null : pendingTextExpressions.splice(textIndex, 1)[0];
+      // Text may already have queued this expression while sound was muted.
+      const expression = textExpression?.queued ? null : expressionFor(text);
+      if (state.muted || !data.audio) queueExpression(expression, true);
       if (data.audio) {
         if (state.firstAudio === null) {
           state.firstAudio = performance.now() - state.started;
           ui.timing.textContent = `${state.firstText !== null ? `첫 문장 ${(state.firstText / 1000).toFixed(1)}초 · ` : ''}첫 음성 ${(state.firstAudio / 1000).toFixed(1)}초`;
         }
-        playback.enqueue({
-          audio: data.audio,
-          volumes: data.volumes,
-          slice: data.slice_length,
-          expression: expressionFor(data.display_text?.text),
-        });
+        if (!state.muted && !state.failed) {
+          playback.enqueue({
+            audio: data.audio,
+            volumes: data.volumes,
+            slice: data.slice_length,
+            // Apply the change when playback starts. An empty tag keeps the current face.
+            expression: queueExpression(expression, false),
+          });
+        }
       }
     } else if (data.type === 'backend-synth-complete' && state.busy && !state.discard) {
       playback.finishSynthesis();
@@ -587,6 +659,8 @@ const studioProfile = await getStudioProfile();
       state.busy &&
       !state.discard
     ) {
+      queuePendingTextExpressions();
+      pendingTextExpressions.length = 0;
       if (!state.failed && state.assistant?.body.textContent) studioEvent('turn-complete', { requestId: state.requestId });
       if (!state.failed && !state.assistant?.body.textContent) {
         state.recoverable = true;
@@ -594,8 +668,7 @@ const studioProfile = await getStudioProfile();
       }
       ready();
     } else if (data.type === 'error') {
-      state.lastExpression = 'neutral';
-      renderer.setExpression('neutral');
+      clearPendingExpressions();
       state.recoverable = Boolean(state.lastQuestion);
       notice('답변을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.', !state.ready, 'error');
       if (state.busy) {
@@ -609,7 +682,7 @@ const studioProfile = await getStudioProfile();
   function handleDisconnect(delay) {
     clearTimeout(state.historyTimer);
     state.historyPending = null;
-    state.lastExpression = 'neutral';
+    clearPendingExpressions();
     ui.historyDialog.close();
     microphone.cancel();
     state.ready = false;
@@ -622,7 +695,7 @@ const studioProfile = await getStudioProfile();
     ui.connection.className = 'connection disconnected';
     studioEvent('disconnected');
     ui.phase.textContent = '서버 연결을 확인해 주세요.';
-    mascot('neutral', 'idle', '잠깐 연결을 기다릴게');
+    mascot(state.lastExpression, 'idle', '잠깐 연결을 기다릴게');
     if (delay !== null) {
       notice(
         `연결이 끊겼어요. ${delay / 1000}초 뒤에 다시 연결해 이전 대화를 불러와요.`,
@@ -707,6 +780,7 @@ const studioProfile = await getStudioProfile();
     connection.dispose();
     clearTimeout(state.historyTimer);
     clearTimers();
+    clearPendingExpressions();
     microphone.cancel();
     playback.stop();
     renderer.dispose();

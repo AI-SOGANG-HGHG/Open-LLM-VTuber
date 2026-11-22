@@ -26,5 +26,21 @@
                 "": 1
             }
         }
+    },
+    {
+        "name": "sogangi",
+        "description": "서강이",
+        "url": "/live2d-models/sogangi-expressions/runtime/sogangi.model3.json",
+        "kScale": 1.0,
+        "initialXshift": 0,
+        "initialYshift": 0,
+        "kXOffset": 0,
+        "emotionMap": {
+            "neutral": 0,
+            "joy": 1,
+            "anger": 2,
+            "surprise": 3
+        },
+        "tapMotions": {}
     }
 ]
