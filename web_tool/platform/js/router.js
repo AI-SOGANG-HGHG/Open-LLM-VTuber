@@ -1,4 +1,4 @@
-import { $, charLink, escapeHtml, main, pageHeading } from './dom.js';
+import { $, main, pageHeading } from './dom.js';
 import { disposeRuntime, setConversationFocus } from './runtime-bridge.js';
 import { getCharacter, state } from './state.js';
 import { renderDetail } from './views/character-detail.js';
@@ -7,20 +7,16 @@ import { renderConnections } from './views/connections.js';
 import { renderDiscover } from './views/discover.js';
 import { renderRecords } from './views/records.js';
 
-function renderShell() {
-  $('#profileName').textContent = state.profile;
-  $('#quickChats').innerHTML = state.data.characters.slice(0, 3).map((char) => `<a class="shortcut" href="${charLink(char, 'chat')}">${escapeHtml(char.name)}</a>`).join('');
-}
 export function render() {
   setConversationFocus(false);
   disposeRuntime();
   $('#loginView').hidden = Boolean(state.profile);
   $('#workspaceView').hidden = !state.profile;
   if (!state.profile) return;
-  renderShell();
+  $('#profileName').textContent = state.profile;
   const route = location.hash.slice(1).split('/');
   const section = ['discover', 'connections', 'records'].includes(route[0]) ? route[0] : 'characters';
-  const sectionNames = { characters: '내 캐릭터', discover: '둘러보기', connections: '서비스 연결', records: '활동 기록' };
+  const sectionNames = { characters: '내 캐릭터', discover: '캐릭터 둘러보기', records: '활동 기록', connections: '서비스 연결' };
   document.querySelectorAll('[data-nav]').forEach((link) => { link.classList.toggle('active', link.dataset.nav === section); if (link.dataset.nav === section) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current'); });
   $('#breadcrumb').textContent = `스튜디오 / ${sectionNames[section]}`;
   if (route[0] === 'character') {

@@ -1,3 +1,4 @@
+import { createRandomId } from '../../shared/random-id.js';
 import { agentError, createAgent, ensureAgent, serverProfiles, updateTraitOutput } from './agents.js';
 import { bindAuthEvents, restoreSession } from './auth.js';
 import { bindPreviewEvents, closePreview, openPreview } from './components/avatar-preview.js';
@@ -69,7 +70,7 @@ main.addEventListener('click', async (event) => {
     let copy;
     try {
       await ensureAgent(char);
-      copy = { ...char, id: crypto.randomUUID(), name: `${char.name.slice(0, 25)} 복사본`, favorite: false, messages: [], memories: [], createdAt: now(), updatedAt: now() };
+      copy = { ...char, id: createRandomId(), name: `${char.name.slice(0, 25)} 복사본`, favorite: false, messages: [], memories: [], createdAt: now(), updatedAt: now() };
       delete copy.agentId;
       delete copy.agentVersion;
       delete copy.liveTurns;

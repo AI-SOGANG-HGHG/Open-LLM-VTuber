@@ -1,3 +1,4 @@
+import { createRandomId } from '../../shared/random-id.js';
 import { escapeHtml, now } from './dom.js';
 import { createCharacter, presets } from './presets.js';
 import { state } from './state.js';
@@ -67,7 +68,7 @@ function characterPayload(char) {
 function syncAgent(char, record, previousNotes = char.memories) {
   const profile = record.profile;
   const memories = [...new Set(profile.memories)].map((text) => (
-    previousNotes.find((memory) => memory.text === text) || { id: crypto.randomUUID(), text, at: now() }
+    previousNotes.find((memory) => memory.text === text) || { id: createRandomId(), text, at: now() }
   ));
   Object.assign(char, {
     agentId: record.agent_id, agentVersion: record.version, studioPreset: profile.preset_id || '',

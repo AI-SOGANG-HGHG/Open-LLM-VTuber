@@ -1,3 +1,4 @@
+import { createRandomId } from '../../shared/random-id.js';
 import { agentError, ensureAgent, serverProfiles } from './agents.js';
 import { $, LIVE_CHAT_ACTIVITY } from './dom.js';
 import { getCharacter, state } from './state.js';
@@ -33,7 +34,7 @@ export async function connectRuntime(char) {
     return;
   }
   if (ticket !== connectEpoch || !frame.isConnected) return;
-  const instanceId = crypto.randomUUID();
+  const instanceId = createRandomId();
   const origin = location.origin;
   const payload = {
     workspace_id: state.data.workspaceId, character_id: char.id, name: char.name,

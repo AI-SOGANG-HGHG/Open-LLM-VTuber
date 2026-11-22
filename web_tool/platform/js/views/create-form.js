@@ -1,3 +1,4 @@
+import { createRandomId } from '../../../shared/random-id.js';
 import { agentError, createAgent, loadPresets, readTraits, serverProfiles, traitControls, updateTraitOutput } from '../agents.js';
 import { $, charLink, toast } from '../dom.js';
 import { createCharacter, presets, studioPresets } from '../presets.js';
@@ -46,7 +47,7 @@ export function bindCreateFormEvents() {
     if (!name || !description) { toast('이름과 한 줄 소개를 입력해 주세요.', true); return; }
     const presetId = form.get('studioPreset');
     const template = Object.hasOwn(presets, presetId) ? presetId : 'calm';
-    const char = createCharacter(crypto.randomUUID(), name, description, template, form.get('avatar'));
+    const char = createCharacter(createRandomId(), name, description, template, form.get('avatar'));
     char.studioPreset = presetId;
     char.traits = readTraits(form);
     char.greeting = form.get('greeting').trim() || char.greeting;

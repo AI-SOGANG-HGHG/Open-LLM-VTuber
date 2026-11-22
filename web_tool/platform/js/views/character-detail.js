@@ -1,3 +1,4 @@
+import { createRandomId } from '../../../shared/random-id.js';
 import { agentError, archiveAgent, editAgent, ensureAgent, readTraits, serverProfiles, traitControls } from '../agents.js';
 import { avatar, tags } from '../components/card.js';
 import { $, charLink, escapeHtml, main, now, shortDate, toast } from '../dom.js';
@@ -144,7 +145,7 @@ export function bindCharacterDetailEvents(render) {
       const text = values.get('memory').trim(); if (!text) return;
       if (char.memories.some((memory) => memory.text === text)) { toast('이미 적어 둔 기억이에요.', true); return; }
       if (char.memories.length >= 50) { toast('기억 노트는 50개까지 적을 수 있어요.', true); return; }
-      const memories = [...char.memories, { id: crypto.randomUUID(), text, at: now() }];
+      const memories = [...char.memories, { id: createRandomId(), text, at: now() }];
       await saveEditor(form, char, { ...char, memories }, '기억 직접 등록', '기억을 등록했어요.', render);
     } else if (form.id === 'chatForm') {
       const text = values.get('message').trim(); if (!text) return;

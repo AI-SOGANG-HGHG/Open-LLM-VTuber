@@ -3,10 +3,12 @@
 import base64
 import os
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 import bcrypt
 from fastapi import FastAPI, WebSocket
+from fastapi.staticfiles import StaticFiles
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
@@ -71,6 +73,19 @@ class StudioAuthTests(unittest.TestCase):
             "/private", headers={"Accept": "text/html"}, follow_redirects=False
         )
         self.assertEqual(redirected.headers["location"], LOGIN_PAGE)
+
+    def test_login_assets_are_available_without_a_session(self) -> None:
+        """Serve the login assets while keeping unrelated artwork protected."""
+        web_tool = Path(__file__).resolve().parents[1] / "web_tool"
+        self.app.mount("/web-tool", StaticFiles(directory=web_tool, html=True))
+        artwork = "/web-tool/sogangi/assets"
+        illustration = self.client.get(f"{artwork}/sogangi-cheer.svg")
+        self.assertEqual(illustration.status_code, 200)
+        self.assertEqual(illustration.headers["content-type"], "image/svg+xml")
+        self.assertEqual(
+            self.client.get("/web-tool/shared/random-id.js").status_code, 200
+        )
+        self.assertEqual(self.client.get(f"{artwork}/sogangi-joy.svg").status_code, 401)
 
     def test_correct_login_sets_private_secure_cookie_and_refresh_restores_session(
         self,

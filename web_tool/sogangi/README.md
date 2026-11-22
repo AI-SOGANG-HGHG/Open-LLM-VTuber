@@ -30,7 +30,7 @@ powershell -ExecutionPolicy Bypass -File .\restart-local.ps1 -OpenBrowser
 
 ## 화면과 움직임
 
-- `index.html`, `../platform/runtime/css/style.css`, `../platform/runtime/css/lounge.css`, `../platform/runtime/css/history.css`: 화면과 반응형 구성. `scene.css`는 초기 배경 실험 기록이며 현재 페이지에서 로드하지 않는다.
+- `index.html`, `../platform/runtime/css/style.css`, `../platform/runtime/css/lounge.css`, `../platform/runtime/css/history.css`: 화면과 반응형 구성.
 - `assets/campus-lounge.svg`: 가상의 캠퍼스 라운지. 공식 캐릭터와 어울리는 단순한 벡터 배경으로 교체했다.
 - `../platform/runtime/js/avatars/mascot-renderer.js`: 공식 파츠를 이용한 눈 깜빡임, 음성 크기 기반 입 움직임, 고개 기울기, 작은 시선 이동과 인사 동작. 눈·입의 작은 입력에서는 원화 모양을 연속 전환한다.
 - `../platform/runtime/js/avatars/sogangi-renderer.js`: SVG/실제 Cubism 전환과 수명 관리. Live2D는 실제 Core의 눈·입 값을 구동하며 실패 시 SVG로 복귀한다. 재생 중 전환·지연 로드·컨텍스트 복구가 음성을 다시 재생하지 않는다.
