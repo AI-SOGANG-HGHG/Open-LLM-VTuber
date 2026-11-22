@@ -12,7 +12,20 @@ const REQUIRED = [
   'ParamArmRWave',
   'ParamFaceMood',
 ];
+const expressionPose = {
+  neutral: { mood: 0, mouth: 0, tilt: 0 },
+  joy: { mood: 0, mouth: 0, tilt: 15, smileDelayMs: 100, smileDurationMs: 1000 },
+  anger: { mood: 1, mouth: 0, tilt: -10 },
+  surprise: { mood: 2, mouth: 0.35, tilt: 0 },
+};
+const speechPauseMs = 300;
+const mouthTransitionMs = 200;
+const tiltTransitionMs = 300;
 let libraries;
+function smoothStep(progress) {
+  const fraction = Math.max(0, Math.min(1, progress));
+  return fraction * fraction * (3 - 2 * fraction);
+}
 function bounded(promise, milliseconds) {
   let timer;
   return Promise.race([
@@ -65,8 +78,8 @@ class CubismMascot {
     this.ready = false;
     this.disposed = false;
     this.failed = false;
-    this.phase = 'idle';
-    this.mouth = 0;
+    this.lipMouth = 0;
+    this.speechUntil = -Infinity;
     this.expression = 'neutral';
     this.expressionStart = 0;
     this.nextBlink = performance.now() + 2800;
@@ -76,6 +89,8 @@ class CubismMascot {
     this.lastUpdate = this.started;
     this.head = 0;
     this.targetHead = 0;
+    this.expressionTilt = 0;
+    this.previousExpressionTilt = 0;
     this.greetingStart = null;
     this.preference = matchMedia('(prefers-reduced-motion: reduce)');
     this.lost = (event) => {
@@ -196,23 +211,28 @@ class CubismMascot {
     this.model.scale.set(Math.min(box.width / cropWidth, box.height / cropHeight) * 0.94);
     this.model.position.set(box.width / 2, box.height * 0.53);
   }
-  setMouthOpen(amount) {
-    this.mouth = Math.max(0, Math.min(1, Number(amount) || 0));
-    const displayed = this.mouth.toFixed(2);
+  setMouthOpen(amount, speechUntil) {
+    this.lipMouth = amount;
+    this.speechUntil = speechUntil;
+    this.applyMouth(performance.now(), expressionPose[this.expression].mouth);
+  }
+  applyMouth(now, poseMouth) {
+    const blend = smoothStep((now - this.speechUntil) / mouthTransitionMs);
+    const mouth = this.lipMouth + (poseMouth - this.lipMouth) * blend;
+    const displayed = mouth.toFixed(2);
     if (this.host.dataset.mouthOpen !== displayed) this.host.dataset.mouthOpen = displayed;
     if (this.ready && !this.disposed) {
-      this.core.setParameterValueById(REQUIRED[2], this.mouth);
+      this.core.setParameterValueById(REQUIRED[2], mouth);
       const applied = String(this.parameters.values[this.indices[2]]);
       if (this.canvas.dataset.appliedMouth !== applied) this.canvas.dataset.appliedMouth = applied;
     }
   }
-  setPhase(phase) {
-    this.phase = phase;
-    if (phase !== 'speaking') this.setMouthOpen(0);
-  }
   setExpression(name) {
     const next = normalizeExpression(name);
-    if (this.expression !== next) this.expressionStart = performance.now();
+    if (this.expression !== next) {
+      this.previousExpressionTilt = this.expressionTilt;
+      this.expressionStart = performance.now();
+    }
     this.expression = next;
     this.host.dataset.expression = next;
   }
@@ -245,9 +265,10 @@ class CubismMascot {
   }
   update(now) {
     const reduced = this.reduced || this.preference.matches;
+    const pose = expressionPose[this.expression];
+    const expressionElapsed = now - this.expressionStart;
     // Discrete semantic states must not interpolate through an unrelated mood.
-    const mood = this.expression === 'anger' ? 1 : this.expression === 'surprise' ? 2 : 0;
-    this.core.setParameterValueById(REQUIRED[6], mood);
+    this.core.setParameterValueById(REQUIRED[6], pose.mood);
     this.canvas.dataset.appliedMood = String(this.parameters.values[this.indices[6]]);
     const greetingElapsed = this.greetingStart === null ? 1600 : now - this.greetingStart;
     const greeting = !reduced && greetingElapsed >= 0 && greetingElapsed < 1600;
@@ -263,8 +284,12 @@ class CubismMascot {
       ? 0
       : this.head + (this.targetHead - this.head) * (1 - Math.exp(-elapsedFrame / 160));
     if (Math.abs(this.head) < 0.001 && this.targetHead === 0) this.head = 0;
+    this.expressionTilt =
+      this.previousExpressionTilt +
+      (pose.tilt - this.previousExpressionTilt) * smoothStep(expressionElapsed / tiltTransitionMs);
+    const head = reduced ? 0 : Math.max(-30, Math.min(30, this.head + this.expressionTilt));
     const breath = reduced ? 0 : (1 - Math.cos(((now - this.started) / 4800) * Math.PI * 2)) / 2;
-    this.core.setParameterValueById(REQUIRED[3], this.head);
+    this.core.setParameterValueById(REQUIRED[3], head);
     this.core.setParameterValueById(REQUIRED[4], breath);
     this.canvas.dataset.appliedHead = String(this.parameters.values[this.indices[3]]);
     this.canvas.dataset.appliedBreath = String(this.parameters.values[this.indices[4]]);
@@ -280,11 +305,11 @@ class CubismMascot {
           eyes = 1;
         }
       }
-      const elapsed = now - this.expressionStart;
-      if (this.expression === 'joy' && elapsed > 100 && elapsed < 480) eyes = 0;
+      const smileElapsed = expressionElapsed - pose.smileDelayMs;
+      if (pose.smileDurationMs && smileElapsed >= 0 && smileElapsed < pose.smileDurationMs) eyes = 0;
     }
     for (let index = 0; index < 2; index++) this.core.setParameterValueById(REQUIRED[index], eyes);
-    this.setMouthOpen(this.mouth);
+    this.applyMouth(now, pose.mouth);
     const appliedEyes = this.indices
       .slice(0, 2)
       .map((index) => this.parameters.values[index].toFixed(2))
@@ -337,7 +362,10 @@ export class AvatarRenderer {
     this.onChange = onChange;
     this.epoch = 0;
     this.closed = false;
-    this.state = { phase: 'idle', expression: 'neutral', mouth: 0, reduced: false, gaze: [0, 0] };
+    this.state = {
+      phase: 'idle', expression: 'neutral', mouth: 0, speechUntil: -Infinity,
+      muted: false, reduced: false, gaze: [0, 0],
+    };
     this.requested = null;
     this.active = 'image';
     this.degraded = false;
@@ -380,8 +408,8 @@ export class AvatarRenderer {
     if (!this.engine) return;
     this.engine.setReducedMotion(this.state.reduced);
     this.engine.setExpression(this.state.expression);
-    this.engine.setPhase(this.state.phase);
-    this.engine.setMouthOpen(this.state.mouth);
+    this.engine.setPhase?.(this.state.phase);
+    this.engine.setMouthOpen(this.state.mouth, this.state.speechUntil);
     this.engine.lookAt(...this.state.gaze);
   }
   async switch(mode) {
@@ -456,13 +484,30 @@ export class AvatarRenderer {
     if (this.closed) return;
     this.state.phase = phase;
     if (phase !== 'speaking') this.state.mouth = 0;
-    this.engine?.setPhase(phase);
+    if (phase === 'waiting') this.state.speechUntil = -Infinity;
+    if (phase === 'speaking' && !this.state.muted)
+      this.state.speechUntil = performance.now() + speechPauseMs;
+    this.engine?.setPhase?.(phase);
+    if (this.engine instanceof CubismMascot)
+      this.engine.setMouthOpen(this.state.mouth, this.state.speechUntil);
   }
   setMouthOpen(value) {
     if (this.closed) return;
     this.state.mouth = Math.max(0, Math.min(1, Number(value) || 0));
-    this.host.dataset.mouthOpen = this.state.mouth.toFixed(2);
-    this.engine?.setMouthOpen(this.state.mouth);
+    // Playback sends a sample every frame, including zero levels and the final zero.
+    if (this.state.phase === 'speaking' && !this.state.muted)
+      this.state.speechUntil = performance.now() + speechPauseMs;
+    if (!(this.engine instanceof CubismMascot))
+      this.host.dataset.mouthOpen = this.state.mouth.toFixed(2);
+    this.engine?.setMouthOpen(this.state.mouth, this.state.speechUntil);
+  }
+  setMuted(muted) {
+    if (this.closed || this.state.muted === muted) return;
+    this.state.muted = muted;
+    if (muted) {
+      this.state.speechUntil = -Infinity;
+      this.setMouthOpen(0);
+    }
   }
   setExpression(name) {
     if (this.closed) return;
