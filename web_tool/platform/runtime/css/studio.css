@@ -17,8 +17,6 @@ html[data-studio] .conversation-heading, html[data-studio] .conversation-toolbar
 html[data-studio] .conversation-heading h2 { color: #eee0f3; font-size: 20px; }
 html[data-studio] .eyebrow, html[data-studio] .phase { color: #c6a3d6; }
 html[data-studio] .quiet-button, html[data-studio] .icon-button { color: #d6bddf; background: #37213f; border-color: #684577; }
-html[data-studio] .message.user { background: #59402e; color: #ffe7d0; }
-html[data-studio] .message.assistant { background: #36213f; color: #ecdcf3; border-color: #52305f; }
 html[data-studio] .message.assistant .message-body { background: #26374ad9; border-color: #9fbed044; color: #f0e9f3; }
 html[data-studio] .message.user .message-body { background: #644638df; border-color: #cda18b55; color: #ffeddf; }
 html[data-studio] .message-label { color: #c8a7d6; }
