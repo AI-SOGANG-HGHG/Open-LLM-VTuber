@@ -214,9 +214,11 @@ class CubismMascot {
   setMouthOpen(amount, speechUntil) {
     this.lipMouth = amount;
     this.speechUntil = speechUntil;
-    this.applyMouth(performance.now(), expressionPose[this.expression].mouth);
+    this.applyMouth(performance.now());
   }
-  applyMouth(now, poseMouth) {
+  applyMouth(now) {
+    const reduced = this.reduced || this.preference.matches;
+    const poseMouth = reduced ? 0 : expressionPose[this.expression].mouth;
     const blend = smoothStep((now - this.speechUntil) / mouthTransitionMs);
     const mouth = this.lipMouth + (poseMouth - this.lipMouth) * blend;
     const displayed = mouth.toFixed(2);
@@ -309,7 +311,7 @@ class CubismMascot {
       if (pose.smileDurationMs && smileElapsed >= 0 && smileElapsed < pose.smileDurationMs) eyes = 0;
     }
     for (let index = 0; index < 2; index++) this.core.setParameterValueById(REQUIRED[index], eyes);
-    this.applyMouth(now, pose.mouth);
+    this.applyMouth(now);
     const appliedEyes = this.indices
       .slice(0, 2)
       .map((index) => this.parameters.values[index].toFixed(2))

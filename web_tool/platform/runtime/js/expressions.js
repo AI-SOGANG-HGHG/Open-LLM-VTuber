@@ -15,7 +15,15 @@ const expressionTag = new RegExp(
 export function normalizeExpression(name) {
   return supportedExpressions.includes(name) ? name : 'neutral';
 }
-export function expressionFor(text) {
+
+function resolveAvatarExpression(name, avatar) {
+  if (avatar === 'sogangi') return normalizeExpression(name);
+  if (avatar === 'mao' && ['joy', 'anger'].includes(name)) return name;
+  return 'neutral';
+}
+
+export function expressionFor(text, { avatar, expression } = {}) {
+  if (typeof expression === 'string') return resolveAvatarExpression(expression, avatar);
   const matches = [...String(text || '').matchAll(expressionTag)];
   const name = matches.at(-1)?.[1].toLowerCase();
   return name === undefined ? null : expressionAliases[name] ?? name;
