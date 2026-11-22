@@ -347,6 +347,7 @@ class RecordedStudioLLM:
         self.task_update = None
         self.correct_beverage = False
         self.affect_rating = {"valence": 0.5, "arousal": 0.5, "dominance": 0.75}
+        self.expression_hint = None
 
     async def embed_texts(self, model, texts):
         self.embedding_calls.append((model, texts))
@@ -412,6 +413,7 @@ class RecordedStudioLLM:
                     "affect_evidence": None
                     if neutral_preference or text.endswith("?")
                     else text,
+                    "expression_hint": self.expression_hint,
                     "use_recent_dialogue": text.startswith("그거"),
                     "remember": deadline_disclosure
                     or neutral_preference
@@ -532,6 +534,34 @@ class StudioTurnTests(unittest.IsolatedAsyncioTestCase):
         other_trace = next(e for e in other if e["type"] == "studio-turn-context")
         self.assertEqual(other_trace["memories"], [])
         self.assertEqual(other_trace["previous_affect"]["valence"], 0)
+
+    async def test_expression_requires_grounded_event_and_compatible_vad(self):
+        cases = [
+            ("드디어 합격했어!", "joy", 0.3, 0.4, "joy"),
+            ("나 너무 슬퍼.", "sadness", -0.6, 0.4, "sadness"),
+            ("부당한 판정이 나왔어.", "anger", -0.6, 0.7, "anger"),
+            ("부당한 판정이 나왔어.", "anger", -0.6, 0.2, "neutral"),
+            ("전혀 예상 못 한 소식이 왔어.", "surprise", -0.3, 0.7, "surprise"),
+            ("나 너무 슬퍼.", "joy", -0.6, 0.4, "neutral"),
+            ("결과가 어떻게 됐지?", "surprise", 0.3, 0.8, "neutral"),
+            ("발표가 잘 끝났어.", "unsupported", 0.7, 0.6, "neutral"),
+        ]
+        for text, hint, valence, arousal, expected in cases:
+            with self.subTest(text=text, hint=hint, expected=expected):
+                self.llm.expression_hint = hint
+                self.llm.affect_rating = {
+                    "valence": valence,
+                    "arousal": arousal,
+                    "dominance": 0.5,
+                }
+                events = await self.turn(text)
+                trace = next(e for e in events if e["type"] == "studio-turn-context")
+                self.assertEqual(trace["appraisal"], "ok")
+                self.assertEqual(trace["expression"], expected)
+                first_text = next(
+                    i for i, e in enumerate(events) if e["type"] == "text-response"
+                )
+                self.assertLess(events.index(trace), first_text)
 
     async def test_selected_memory_survives_reconnection_and_follows_history_deletion(
         self,

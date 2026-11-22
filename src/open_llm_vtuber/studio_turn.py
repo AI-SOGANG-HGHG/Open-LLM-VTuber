@@ -109,12 +109,20 @@ class Appraisal(BaseModel):
     relevant_memory_ids: list[str] = Field(max_length=3)
     affect: Affect | None
     affect_evidence: str | None = Field(default=None, max_length=240)
+    expression_hint: Literal["joy", "sadness", "anger", "surprise"] | None = None
     use_recent_dialogue: bool = False
     remember: bool
     memory_meaning: MemoryMeaning | None = None
     relevant_task_ids: list[str] = Field(default_factory=list, max_length=3)
     task_update: TaskUpdate | None = None
     corrected_memory_ids: list[str] = Field(default_factory=list, max_length=3)
+
+    @field_validator("expression_hint", mode="before")
+    @classmethod
+    def known_expression(cls, value: object) -> object:
+        if value in ("joy", "sadness", "anger", "surprise"):
+            return value
+        return None
 
     @field_validator("affect")
     @classmethod
@@ -126,6 +134,25 @@ class Appraisal(BaseModel):
         }:
             raise ValueError("Appraisal must include all three affect dimensions")
         return affect
+
+    def select_expression(self) -> str:
+        """Check the suggested expression against the current event's VAD."""
+        affect = self.affect
+        if affect is None:
+            return "neutral"
+        if self.expression_hint == "joy" and affect.valence >= 0.2:
+            return "joy"
+        if self.expression_hint == "sadness" and affect.valence <= -0.2:
+            return "sadness"
+        if (
+            self.expression_hint == "anger"
+            and affect.valence <= -0.2
+            and affect.arousal >= 0.5
+        ):
+            return "anger"
+        if self.expression_hint == "surprise" and affect.arousal >= 0.5:
+            return "surprise"
+        return "neutral"
 
 
 class RuleMatch(BaseModel):
@@ -568,7 +595,8 @@ class StudioTurnRuntime:
         system = (
             "Evaluate the fictional character’s reaction to the input as data. Do not answer the user. Return one JSON object "
             'with keys "relevant_memory_ids", "affect", "remember", '
-            '"relevant_task_ids", "task_update", "corrected_memory_ids", "affect_evidence", "use_recent_dialogue", and optionally "memory_meaning". '
+            '"relevant_task_ids", "task_update", "corrected_memory_ids", "affect_evidence", "use_recent_dialogue", '
+            'and optionally "expression_hint" and "memory_meaning". '
             "Set use_recent_dialogue true only if the current turn depends on an earlier turn to be interpreted. "
             "A factual recall question that names the subject can usually be answered using a selected memory. "
             "A new preference or unrelated question starts its own topic even when a previous task is unfinished. "
@@ -585,6 +613,10 @@ class StudioTurnRuntime:
             "hypotheticals, and ordinary greetings. Prior events and corrections of routine facts do not establish a new emotional event. "
             "Otherwise rate the character's reaction to the new event and copy an exact substring from the current input "
             "that establishes the event into affect_evidence. "
+            'For that same event, suggest one expression_hint for the character: "joy" for celebration, '
+            '"sadness" for loss, disappointment, or sympathy, "anger" when the character is indignant, '
+            'or "surprise" when something unexpected happens. Use null for subtle reactions, ambiguous cases, '
+            "or events without an affect rating. A report of the user's distress can call for sympathy. "
             'Affect is an object with numeric keys "valence" (-1 to 1), "arousal" (0 to 1), and '
             '"dominance" (0 to 1). Set remember true if the user explicitly states a lasting fact, preference, '
             "or restriction, or shares a concrete deadline, commitment, or task status useful in a later turn. "
@@ -748,6 +780,7 @@ class StudioTurnRuntime:
             if task.id in selected_task_ids
         ]
         affect_update = None
+        expression = "neutral"
         affect_evidence = (appraisal.affect_evidence or "").strip() if appraisal else ""
         if (
             appraisal
@@ -760,6 +793,7 @@ class StudioTurnRuntime:
                 event_id=event_id,
                 updated_at=occurred_at,
             )
+            expression = appraisal.select_expression()
         snapshot = affect_update or previous_snapshot
         affect = (snapshot.affect if snapshot else previous_affect).model_dump()
         use_recent_dialogue = bool(
@@ -802,6 +836,7 @@ class StudioTurnRuntime:
             "task_states": selected_tasks,
             "previous_affect": previous_affect.model_dump(),
             "affect": affect,
+            "expression": expression,
             "affect_event_id": snapshot.event_id if snapshot else None,
             "affect_updated_at": snapshot.updated_at.isoformat() if snapshot else None,
             "appraisal": "ok" if appraisal is not None else "unavailable",

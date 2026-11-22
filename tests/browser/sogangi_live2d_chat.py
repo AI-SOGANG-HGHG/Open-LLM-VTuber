@@ -369,9 +369,9 @@ class Live2DChatTests(SogangiBrowserCase):
         self.wait_mood(0)
         self.submit("준비되지 않은 표정 확인")
         self.finish("[fear] 확인 중이야.", audio=wav_fixture(0.2))
-        self.wait_mood(0)
+        self.wait_mood(2)
         self.assertEqual(
-            self.page.locator("#mascot").get_attribute("data-expression"), "neutral"
+            self.page.locator("#mascot").get_attribute("data-expression"), "surprise"
         )
 
     def test_emotion_survives_renderer_fallback_and_reduction_but_not_interruption(
