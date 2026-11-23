@@ -13,11 +13,19 @@ from starlette.websockets import WebSocketDisconnect
 from .proxy_message_queue import ProxyMessageQueue
 
 try:
-    from .chat_filter import ChatSafetyFilter
+    from .live.chat_filter import ChatSafetyFilter
 except ModuleNotFoundError as error:
-    if error.name != f"{__package__}.chat_filter":
+    if error.name not in (
+        f"{__package__}.live",
+        f"{__package__}.live.chat_filter",
+    ):
         raise
-    ChatSafetyFilter = None
+    try:
+        from .chat_filter import ChatSafetyFilter
+    except ModuleNotFoundError as fallback_error:
+        if fallback_error.name != f"{__package__}.chat_filter":
+            raise
+        ChatSafetyFilter = None
 
 
 # Match the Chzzk collector's threshold for urgent donations.
