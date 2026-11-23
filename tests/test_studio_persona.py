@@ -37,6 +37,7 @@ from src.open_llm_vtuber.studio_profiles import (
     load_behavior_rules,
     studio_presets,
 )
+from src.open_llm_vtuber.studio_registry import StudioRegistry
 from src.open_llm_vtuber.studio_tasks import TASK_METADATA
 from src.open_llm_vtuber.studio_turn import AFFECT_METADATA, RECALL_METADATA
 from src.open_llm_vtuber.websocket_handler import WebSocketHandler
@@ -195,6 +196,36 @@ class StudioPersonaTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(first.history_scope, same.history_scope)
         self.assertNotEqual(first.history_scope, other_character.history_scope)
         self.assertNotEqual(first.history_scope, other_workspace.history_scope)
+
+    async def test_registered_kang_iseo_uses_own_style_and_studio_memory(self):
+        profile = StudioPersona(
+            workspace_id=uuid4(),
+            character_id="kang-iseo",
+            name="강이서",
+            avatar="ivory-crown",
+            preset_id="kang-iseo",
+            memories=["저는 회의 전에 순서를 메모해요."],
+        )
+        context = context_fixture()
+        agent = SimpleNamespace(enable_studio_runtime=Mock())
+        with TemporaryDirectory() as directory:
+            registry = StudioRegistry(Path(directory) / "studio.sqlite3")
+            token = registry.register_workspace(profile.workspace_id, "")
+            record = registry.create(profile, token)
+            with patch(
+                "src.open_llm_vtuber.studio_persona.AgentFactory.create_agent",
+                return_value=agent,
+            ) as factory:
+                await apply_studio_persona(context, record.profile, record, registry)
+
+        system_prompt = factory.call_args.kwargs["system_prompt"]
+        self.assertIn('"name": "강이서"', system_prompt)
+        self.assertIn("지금 실행할 수 있는 다음 행동 하나", system_prompt)
+        runtime = agent.enable_studio_runtime.call_args
+        self.assertEqual(runtime.args[0], record.agent_id)
+        self.assertEqual(runtime.args[2], profile.memories)
+        self.assertIs(runtime.kwargs["registry"], registry)
+        self.assertEqual(context.character_config.conf_uid, record.history_scope)
 
     def test_rejects_engine_overrides_paths_and_excessive_memory(self):
         examples = [
