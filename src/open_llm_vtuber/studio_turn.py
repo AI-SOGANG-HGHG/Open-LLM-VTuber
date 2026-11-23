@@ -11,7 +11,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from random import random
 import re
-from typing import TYPE_CHECKING, Iterable, Literal, Sequence, TypeVar
+from typing import TYPE_CHECKING, Annotated, Iterable, Literal, Sequence, TypeVar
 from uuid import uuid4
 
 import numpy as np
@@ -22,10 +22,12 @@ from pydantic import (
     ConfigDict,
     Field,
     ValidationError,
+    WithJsonSchema,
     field_validator,
 )
 
 from .chat_history_manager import get_metadata, update_metadate
+from .emotions import APPRAISAL_EXPRESSIONS, APPRAISAL_GUIDANCE, EMOTIONS, VAD_AXES
 from .studio_profiles import (
     BehaviorRule,
     BigFive,
@@ -82,15 +84,33 @@ CONTEXTUAL_STARTS = (
 
 class Affect(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False, frozen=True)
-    valence: float = Field(default=0, ge=-1, le=1)
-    arousal: float = Field(default=0, ge=0, le=1)
-    dominance: float = Field(default=0.5, ge=0, le=1)
+    valence: float = Field(
+        default=EMOTIONS.vad["valence"].initial,
+        ge=EMOTIONS.vad["valence"].min,
+        le=EMOTIONS.vad["valence"].max,
+    )
+    arousal: float = Field(
+        default=EMOTIONS.vad["arousal"].initial,
+        ge=EMOTIONS.vad["arousal"].min,
+        le=EMOTIONS.vad["arousal"].max,
+    )
+    dominance: float = Field(
+        default=EMOTIONS.vad["dominance"].initial,
+        ge=EMOTIONS.vad["dominance"].min,
+        le=EMOTIONS.vad["dominance"].max,
+    )
 
     def blend(self, event: "Affect") -> "Affect":
+        policy = EMOTIONS.blend
         return Affect(
-            valence=round(0.6 * self.valence + 0.4 * event.valence, 3),
-            arousal=round(0.6 * self.arousal + 0.4 * event.arousal, 3),
-            dominance=round(0.6 * self.dominance + 0.4 * event.dominance, 3),
+            **{
+                axis: round(
+                    policy.previous * getattr(self, axis)
+                    + policy.event * getattr(event, axis),
+                    policy.round_digits,
+                )
+                for axis in VAD_AXES
+            }
         )
 
 
@@ -109,7 +129,12 @@ class Appraisal(BaseModel):
     relevant_memory_ids: list[str] = Field(max_length=3)
     affect: Affect | None
     affect_evidence: str | None = Field(default=None, max_length=240)
-    expression_hint: Literal["joy", "sadness", "anger", "surprise"] | None = None
+    expression_hint: (
+        Annotated[
+            str, WithJsonSchema({"enum": list(APPRAISAL_EXPRESSIONS), "type": "string"})
+        ]
+        | None
+    ) = None
     use_recent_dialogue: bool = False
     remember: bool
     memory_meaning: MemoryMeaning | None = None
@@ -120,39 +145,31 @@ class Appraisal(BaseModel):
     @field_validator("expression_hint", mode="before")
     @classmethod
     def known_expression(cls, value: object) -> object:
-        if value in ("joy", "sadness", "anger", "surprise"):
+        if isinstance(value, str) and value in APPRAISAL_EXPRESSIONS:
             return value
         return None
 
     @field_validator("affect")
     @classmethod
     def complete_affect(cls, affect: Affect | None) -> Affect | None:
-        if affect is not None and affect.model_fields_set != {
-            "valence",
-            "arousal",
-            "dominance",
-        }:
+        if affect is not None and affect.model_fields_set != set(VAD_AXES):
             raise ValueError("Appraisal must include all three affect dimensions")
         return affect
 
     def select_expression(self) -> str:
         """Check the suggested expression against the current event's VAD."""
         affect = self.affect
-        if affect is None:
-            return "neutral"
-        if self.expression_hint == "joy" and affect.valence >= 0.2:
-            return "joy"
-        if self.expression_hint == "sadness" and affect.valence <= -0.2:
-            return "sadness"
+        expression = APPRAISAL_EXPRESSIONS.get(self.expression_hint)
         if (
-            self.expression_hint == "anger"
-            and affect.valence <= -0.2
-            and affect.arousal >= 0.5
+            affect is not None
+            and expression is not None
+            and all(
+                threshold.accepts(getattr(affect, axis))
+                for axis, threshold in expression.event_vad.items()
+            )
         ):
-            return "anger"
-        if self.expression_hint == "surprise" and affect.arousal >= 0.5:
-            return "surprise"
-        return "neutral"
+            return expression.id
+        return EMOTIONS.default_expression
 
 
 class RuleMatch(BaseModel):
@@ -609,16 +626,8 @@ class StudioTurnRuntime:
             "current question or directly helps interpret the current event. A shared speaker, "
             "generic similarity, or a possible association is insufficient. Return an empty list "
             "when no memory helps (e.g. a tea preference does not answer a presentation status question). "
-            "Set affect and affect_evidence to null for factual questions and status checks, routine preferences, "
-            "hypotheticals, and ordinary greetings. Prior events and corrections of routine facts do not establish a new emotional event. "
-            "Otherwise rate the character's reaction to the new event and copy an exact substring from the current input "
-            "that establishes the event into affect_evidence. "
-            'For that same event, suggest one expression_hint for the character: "joy" for celebration, '
-            '"sadness" for loss, disappointment, or sympathy, "anger" when the character is indignant, '
-            'or "surprise" when something unexpected happens. Use null for subtle reactions, ambiguous cases, '
-            "or events without an affect rating. A report of the user's distress can call for sympathy. "
-            'Affect is an object with numeric keys "valence" (-1 to 1), "arousal" (0 to 1), and '
-            '"dominance" (0 to 1). Set remember true if the user explicitly states a lasting fact, preference, '
+            f"{APPRAISAL_GUIDANCE} "
+            "Set remember true if the user explicitly states a lasting fact, preference, "
             "or restriction, or shares a concrete deadline, commitment, or task status useful in a later turn. "
             "An actionable event can qualify even if it is short-lived: a presentation tomorrow and an "
             "unfinished draft should be remembered, as should a regular drink preference. "
@@ -780,7 +789,7 @@ class StudioTurnRuntime:
             if task.id in selected_task_ids
         ]
         affect_update = None
-        expression = "neutral"
+        expression = EMOTIONS.default_expression
         affect_evidence = (appraisal.affect_evidence or "").strip() if appraisal else ""
         if (
             appraisal

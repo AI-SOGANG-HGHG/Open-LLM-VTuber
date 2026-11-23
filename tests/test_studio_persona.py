@@ -562,6 +562,31 @@ class StudioTurnTests(unittest.IsolatedAsyncioTestCase):
                 )
                 self.assertLess(events.index(trace), first_text)
 
+    async def test_expression_accepts_thresholds_inclusively(self):
+        cases = (
+            ("joy", 0.2, 0.0, "joy"),
+            ("joy", 0.19, 0.0, "neutral"),
+            ("sadness", -0.2, 0.0, "sadness"),
+            ("sadness", -0.19, 0.0, "neutral"),
+            ("anger", -0.2, 0.5, "anger"),
+            ("anger", -0.19, 0.5, "neutral"),
+            ("anger", -0.2, 0.49, "neutral"),
+            ("surprise", -0.2, 0.5, "surprise"),
+            ("surprise", -0.2, 0.49, "neutral"),
+        )
+        for hint, valence, arousal, expected in cases:
+            with self.subTest(hint=hint, valence=valence, arousal=arousal):
+                self.llm.expression_hint = hint
+                self.llm.affect_rating = {
+                    "valence": valence,
+                    "arousal": arousal,
+                    "dominance": 0.5,
+                }
+                events = await self.turn("예상 못 한 소식이 나왔어.")
+                trace = next(e for e in events if e["type"] == "studio-turn-context")
+                self.assertEqual(trace["appraisal"], "ok")
+                self.assertEqual(trace["expression"], expected)
+
     async def test_studio_removes_split_expression_tags_before_display_and_speech(self):
         self.llm.reply_chunks = (
             "[sa",
