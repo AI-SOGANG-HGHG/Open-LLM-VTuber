@@ -1,6 +1,9 @@
 import { createRandomId } from './random-id.js';
 // Loads only the two bundled, approved models. No microphone, audio, WebSocket, or model API.
 let libraries;
+export const maoExpressionIndices = Object.freeze({
+  neutral: 0, sadness: 1, anger: 2, joy: 3, surprise: 3,
+});
 function loadScript(url, ready) {
   if (ready()) return Promise.resolve();
   return new Promise((resolve, reject) => {
@@ -110,7 +113,7 @@ export function createLivePreview(canvas, stage, onFailure = () => {}) {
     setExpression(name) {
       if (pose.expression === name) return;
       pose.expression = name;
-      const index = { neutral: 0, anger: 2, joy: 3, surprise: 3 }[name] ?? 0;
+      const index = Object.hasOwn(maoExpressionIndices, name) ? maoExpressionIndices[name] : 0;
       model?.expression(index).catch(() => {});
     },
     greet() {

@@ -183,6 +183,7 @@ class StudioPersonaTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("약속 준수", system_prompt)
         self.assertNotIn("민트별", system_prompt)
         self.assertNotIn('"traits"', system_prompt)
+        self.assertNotIn("## Expressions", system_prompt)
         self.assertEqual(
             agent.enable_studio_runtime.call_args.args[:2],
             ("calm", studio_presets()["calm"]),
@@ -270,7 +271,7 @@ class StudioPersonaTests(unittest.IsolatedAsyncioTestCase):
         )
         old_agent.close.assert_awaited_once()
 
-    async def test_sogangi_uses_its_own_expressions_on_the_studio_connection(self):
+    async def test_vad_studio_uses_sogangi_model_without_inline_expression_prompt(self):
         context = context_fixture()
         default_model = context.live2d_model
         profile = StudioPersona(
@@ -288,14 +289,10 @@ class StudioPersonaTests(unittest.IsolatedAsyncioTestCase):
                 selected["live2d_model"].emo_map,
                 {"neutral": 0, "joy": 1, "anger": 2, "surprise": 3},
             )
-            self.assertIn("\n## Expressions\n", selected["system_prompt"])
-            self.assertEqual(
-                re.findall(r"\[([a-z]+)\]", selected["system_prompt"]),
-                ["neutral", "joy", "anger", "surprise"],
-            )
+            self.assertNotIn("\n## Expressions\n", selected["system_prompt"])
             self.assertIs(context.live2d_model, default_model)
 
-            mao = profile.model_copy(update={"avatar": "mao"})
+            mao = profile.model_copy(update={"avatar": "mao", "preset_id": None})
             await apply_studio_persona(context, mao)
             selected = factory.call_args.kwargs
             self.assertIs(selected["live2d_model"], default_model)
@@ -379,6 +376,7 @@ class RecordedStudioLLM:
         self.correct_beverage = False
         self.affect_rating = {"valence": 0.5, "arousal": 0.5, "dominance": 0.75}
         self.expression_hint = None
+        self.reply_chunks = ("확인했습니다.",)
 
     async def embed_texts(self, model, texts):
         self.embedding_calls.append((model, texts))
@@ -467,7 +465,8 @@ class RecordedStudioLLM:
             return
         self.request = messages
         self.generation_system = system
-        yield "확인했습니다."
+        for chunk in self.reply_chunks:
+            yield chunk
 
 
 class StudioTurnTests(unittest.IsolatedAsyncioTestCase):
@@ -593,6 +592,47 @@ class StudioTurnTests(unittest.IsolatedAsyncioTestCase):
                     i for i, e in enumerate(events) if e["type"] == "text-response"
                 )
                 self.assertLess(events.index(trace), first_text)
+
+    async def test_studio_removes_split_expression_tags_before_display_and_speech(self):
+        self.llm.reply_chunks = (
+            "[sa",
+            "d] 괜찮아.",
+            " [SAD",
+            "NESS] 천천히 이야기해 줘.",
+        )
+        self.llm.expression_hint = "sadness"
+        self.llm.affect_rating = {"valence": -0.6, "arousal": 0.4, "dominance": 0.5}
+        synthesize = AsyncMock(return_value=None)
+        self.context.tts_engine = SimpleNamespace(async_generate_audio=synthesize)
+
+        events = await self.turn("나 너무 슬퍼.")
+
+        trace = next(
+            event for event in events if event["type"] == "studio-turn-context"
+        )
+        self.assertEqual(trace["expression"], "sadness")
+        expected = ["괜찮아.", "천천히 이야기해 줘."]
+        for event_type in ("text-response", "audio"):
+            self.assertEqual(
+                [
+                    event["display_text"]["text"]
+                    for event in events
+                    if event["type"] == event_type
+                ],
+                expected,
+            )
+        self.assertEqual(
+            [call.kwargs["text"] for call in synthesize.await_args_list], expected
+        )
+        self.assertFalse(
+            any(
+                (event.get("actions") or {}).get("expressions")
+                for event in events
+                if event["type"] == "audio"
+            )
+        )
+        history = get_history(self.scope, self.context.history_uid)
+        self.assertEqual(history[-1]["content"], " ".join(expected))
 
     async def test_selected_memory_survives_reconnection_and_follows_history_deletion(
         self,

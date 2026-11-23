@@ -130,7 +130,9 @@ async def apply_studio_persona(
         Live2dModel("sogangi") if profile.avatar == "sogangi" else context.live2d_model
     )
     system_prompt = await context.construct_system_prompt(
-        character.persona_prompt, live2d_model=live2d_model
+        character.persona_prompt,
+        live2d_model=live2d_model,
+        use_inline_expressions=preset is None,
     )
     agent = AgentFactory.create_agent(
         conversation_agent_choice=agent_config.conversation_agent_choice,

@@ -2,7 +2,7 @@ import { createRandomId } from '../../../shared/random-id.js';
 import { AvatarRenderer } from './avatars/sogangi-renderer.js';
 import { expressionFor } from './expressions.js';
 import { loadPreferences, savePreferences, loadSession, saveSession, studioScenes, loadStudioScene, saveStudioScene } from './local-state.js?studio=6';
-import { getStudioProfile, studioEvent, onStudioShutdown } from './studio-bridge.js';
+import { getStudioProfile, studioEvent, onStudioShutdown } from './studio-bridge.js?studio=8';
 import { StudioAvatarRenderer } from './avatars/live2d-avatar.js';
 import { createHistoryView } from './history-view.js';
 import { createAudioPlayback } from './audio-playback.js';
@@ -90,6 +90,7 @@ const studioProfile = await getStudioProfile();
     description.textContent = studioProfile.description || '';
     description.hidden = !studioProfile.description;
     document.querySelector('.conversation-heading h2').textContent = conversationTitle;
+    ui.messages.tabIndex = 0;
     document.querySelector('#welcome p').textContent = studioProfile.greeting || '편하게 이야기해 주세요.';
     document.querySelector('#historyTitle').textContent = historyTitle;
     document.querySelector('.settings-about strong').textContent = `${characterName} · Persona Studio`;
@@ -120,6 +121,7 @@ const studioProfile = await getStudioProfile();
     historyTimer: null,
     lastQuestion: null,
     lastExpression: 'neutral',
+    studioExpression: null,
     recoverable: false,
     nextNotice: '',
   };
@@ -324,10 +326,12 @@ const studioProfile = await getStudioProfile();
     setMascotExpression('neutral');
   }
   function responseExpression(text) {
-    return expressionFor(text, {
-      avatar: studioProfile?.avatar,
-      expression: state.studioTurn?.expression,
-    });
+    if (!studioProfile) return expressionFor(text);
+    state.studioExpression ??= expressionFor('', {
+      avatar: studioProfile.avatar,
+      expression: state.studioTurn?.expression ?? 'neutral',
+    }) ?? 'neutral';
+    return state.studioExpression;
   }
   function controls() {
     const microphoneBusy = microphone.busy;
@@ -348,8 +352,8 @@ const studioProfile = await getStudioProfile();
   }
   function clean(text) {
     return String(text || '')
-      .replace(/\[(neutral|anger|disgust|fear|joy|smirk|sadness|surprise)\]/gi, '')
-      .replace(/\[(neutral|anger|disgust|fear|joy|smirk|sadness|surprise)$/gi, '')
+      .replace(/\[(neutral|anger|disgust|fear|joy|smirk|sad(?:ness)?|surprise)\]/gi, '')
+      .replace(/\[(neutral|anger|disgust|fear|joy|smirk|sad(?:ness)?|surprise)$/gi, '')
       .trim();
   }
   function message(role, text = '') {
@@ -364,26 +368,34 @@ const studioProfile = await getStudioProfile();
     body.textContent = role === 'user' ? String(text || '') : clean(text);
     node.append(label, body);
     ui.messages.append(node);
-    ui.messages.scrollTop = ui.messages.scrollHeight;
     return { node, body };
+  }
+  function scrollMessagesToEnd() {
+    ui.messages.scrollTop = ui.messages.scrollHeight;
   }
   function appendAssistant(text) {
     text = clean(text);
     if (!text) return;
+    const { scrollHeight, scrollTop, clientHeight } = ui.messages;
+    const followResponse = !studioProfile || scrollHeight - scrollTop - clientHeight <= 24;
     if (!state.assistant) {
       state.assistant = message('assistant');
       if (state.studioTurn) state.assistant.node.append(studioTurnDetails(state.studioTurn));
     }
     state.assistant.body.textContent += (state.assistant.body.textContent ? ' ' : '') + text;
-    ui.messages.scrollTop = ui.messages.scrollHeight;
+    if (followResponse) scrollMessagesToEnd();
   }
   function studioTurnDetails({ preset, affect, previous_affect, appraisal, retrieval, rule_selection, rules, memories, unverified_memories = [], task_states = [] }) {
     const details = document.createElement('details');
     details.className = 'studio-turn-context';
     const summary = document.createElement('summary');
     summary.textContent = unverified_memories.length
-      ? `${preset.label} · 기억 후보 ${unverified_memories.length}개`
-      : `${preset.label} · 불러온 기억 ${memories.length}개`;
+      ? `응답 정보 · 기억 후보 ${unverified_memories.length}개`
+      : `응답 정보 · 기억 ${memories.length}개`;
+    const content = document.createElement('div');
+    content.className = 'studio-turn-context-content';
+    const persona = document.createElement('p');
+    persona.textContent = `페르소나 · ${preset.label}`;
     const mood = document.createElement('p');
     const transition = (axis) => previous_affect
       ? `${previous_affect[axis].toFixed(2)} → ${affect[axis].toFixed(2)}`
@@ -391,18 +403,18 @@ const studioProfile = await getStudioProfile();
     const affectChanged = !previous_affect || Object.keys(affect).some(axis => affect[axis] !== previous_affect[axis]);
     const moodLabel = appraisal === 'ok' && affectChanged ? '캐릭터 감정 변화' : '이전 감정 유지';
     mood.textContent = `${moodLabel} · 쾌·불쾌 ${transition('valence')} · 각성 ${transition('arousal')} · 통제감 ${transition('dominance')}`;
-    details.append(summary, mood);
+    content.append(persona, mood);
     const taskStatuses = { not_started: '시작 전', in_progress: '진행 중', completed: '완료' };
     for (const task of task_states) {
       const item = document.createElement('p');
       item.textContent = `현재 과제 · ${task.title} · ${taskStatuses[task.status]}`;
-      details.append(item);
+      content.append(item);
     }
     const evidence = document.createElement('p');
     evidence.textContent = unverified_memories.length ? '답변에 전달한 기억 후보 · 답변 모델이 관련성을 판단해요.'
       : retrieval !== 'ok' ? '기억 검색을 사용할 수 없었어요.'
       : appraisal !== 'ok' ? '기억의 관련성을 확인하지 못했어요.' : '답변에 전달된 기억';
-    details.append(evidence);
+    content.append(evidence);
     const list = document.createElement('ul');
     for (const memory of [...memories, ...unverified_memories]) {
       const item = document.createElement('li');
@@ -410,7 +422,7 @@ const studioProfile = await getStudioProfile();
       item.textContent = `${source} · ${memory.text}`;
       list.append(item);
     }
-    if (list.childElementCount) details.append(list);
+    if (list.childElementCount) content.append(list);
     else if (retrieval === 'ok' && appraisal === 'ok') evidence.textContent += ' 없음';
     const traitLabels = {
       openness: '개방성', conscientiousness: '성실성', extraversion: '외향성',
@@ -425,8 +437,9 @@ const studioProfile = await getStudioProfile();
     for (const behavior of appliedRules) {
       const item = document.createElement('p');
       item.textContent = `행동 규칙 · ${behavior}`;
-      details.append(item);
+      content.append(item);
     }
+    details.append(summary, content);
     return details;
   }
   function clearTimers() {
@@ -463,6 +476,7 @@ const studioProfile = await getStudioProfile();
     state.recoverable = false;
     state.lastQuestion = text;
     state.lastExpression = 'neutral';
+    state.studioExpression = null;
     state.assistant = null;
     state.studioTurn = null;
     state.firstAudio = null;
@@ -471,6 +485,7 @@ const studioProfile = await getStudioProfile();
     state.requestId = createRandomId();
     state.started = performance.now();
     message('user', text);
+    scrollMessagesToEnd();
     ui.messageInput.value = '';
     persistSession();
     controls();
@@ -608,6 +623,7 @@ const studioProfile = await getStudioProfile();
       }
       historyReady(data.history_uid || pending.uid);
       notice('이전 대화를 불러왔어요.');
+      scrollMessagesToEnd();
     } else if (data.type === 'history-error') {
       const pending = state.historyPending;
       if (!pending || (data.history_uid && pending.uid !== data.history_uid)) return;
@@ -627,7 +643,7 @@ const studioProfile = await getStudioProfile();
         connection.restartAfterFailure('History unavailable');
       }
     } else if (data.type === 'studio-turn-context' && studioProfile && state.busy && !state.discard) {
-      state.studioTurn = data;
+      state.studioTurn ??= data;
     } else if (data.type === 'text-response' && state.busy && !state.discard) {
       state.textStreaming = true;
       if (state.firstText === null) state.firstText = performance.now() - state.started;
