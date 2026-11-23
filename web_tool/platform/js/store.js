@@ -1,10 +1,10 @@
 import { createRandomId } from '../../shared/random-id.js';
 import { $, now, toast } from './dom.js';
-import { avatarAssets, catalogCharacters, catalogProfiles, defaultGreeting, demoCharacters, presets, studioPresets } from './presets.js';
+import { avatarAssets, catalogCharacters, catalogProfiles, createCharacter, defaultGreeting, demoCharacters, presets, studioPresets } from './presets.js';
 import { state } from './state.js';
 
 const DATA_KEY = 'persona-studio.demo.v1';
-const CATALOG_VERSION = 4;
+const CATALOG_VERSION = 5;
 
 function initialData() {
   return {
@@ -32,6 +32,16 @@ function updateDefaultCopy(char) {
     state.needsMigration = true;
   }
 }
+
+function updateKangIseoPreset(char, current) {
+  if (!char || char.agentId || char.studioPreset || char.traits) return;
+  const previous = createCharacter(current.id, current.name, current.description, 'calm', current.avatar);
+  const fields = ['name', 'description', 'template', 'avatar', 'tone', 'persona', 'exploration', 'greeting'];
+  if (!fields.every((field) => char[field] === previous[field])) return;
+  const { template, studioPreset, persona, exploration, greeting } = current;
+  Object.assign(char, { template, studioPreset, persona, exploration, greeting });
+}
+
 export function loadData() {
   try {
     const raw = localStorage.getItem(DATA_KEY);
@@ -66,8 +76,11 @@ export function loadData() {
       if (catalogVersion < 3) {
         data.characters.unshift(...demoCharacters().filter((char) => !ids.has(char.id)));
       }
-      if (catalogVersion < 4 && !ids.has('kang-iseo')) {
-        data.characters.push(catalog.find(({ id }) => id === 'kang-iseo'));
+      const kangIseo = catalog.find(({ id }) => id === 'kang-iseo');
+      if (catalogVersion < 4 && !ids.has(kangIseo.id)) {
+        data.characters.push(kangIseo);
+      } else if (catalogVersion < 5) {
+        updateKangIseoPreset(data.characters.find(({ id }) => id === kangIseo.id), kangIseo);
       }
       data.catalogVersion = CATALOG_VERSION;
       state.needsMigration = true;

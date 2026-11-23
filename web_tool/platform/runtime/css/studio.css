@@ -12,29 +12,8 @@ html[data-studio] .mascot-wrap { height: 79%; max-height: none; bottom: 5%; widt
 html[data-studio] .mascot-halo { background: #b58fba0b; }
 html[data-studio] .mascot-shadow { background: #10071842; }
 html[data-studio] .stage-location { color: #d2dce4; font-size: 8px; text-shadow: 0 1px 8px #000; }
-html[data-studio] .conversation { background: #101823de; border-color: #9aacc744; border-radius: 16px; backdrop-filter: blur(15px); box-shadow: 0 14px 55px #0003; }
-html[data-studio] .conversation-heading, html[data-studio] .conversation-toolbar { border-color: #4a3156; }
-html[data-studio] .conversation-heading h2 { color: #eee0f3; font-size: 20px; }
 html[data-studio] .eyebrow, html[data-studio] .phase { color: #c6a3d6; }
 html[data-studio] .quiet-button, html[data-studio] .icon-button { color: #d6bddf; background: #37213f; border-color: #684577; }
-html[data-studio] .message.user { background: #59402e; color: #ffe7d0; }
-html[data-studio] .message.assistant { background: #36213f; color: #ecdcf3; border-color: #52305f; }
-html[data-studio] .message.assistant .message-body { background: #26374ad9; border-color: #9fbed044; color: #f0e9f3; }
-html[data-studio] .message.user .message-body { background: #644638df; border-color: #cda18b55; color: #ffeddf; }
-html[data-studio] .message-label { color: #c8a7d6; }
-html[data-studio] .studio-turn-context { margin-top: 8px; color: #ead3f2; font-size: 13px; overflow-wrap: anywhere; }
-html[data-studio] .studio-turn-context summary { cursor: pointer; min-height: 24px; }
-html[data-studio] .studio-turn-context p, html[data-studio] .studio-turn-context ul { margin: 6px 0; }
-html[data-studio] .studio-turn-context ul { padding-inline-start: 20px; }
-html[data-studio] .welcome h3 { color: #f2e5f7; }
-html[data-studio] .welcome p { color: #c7adD4; white-space: pre-wrap; }
-html[data-studio] .welcome-spark { color: #ff9873; }
-html[data-studio] .suggestions button { background: #392342; border-color: #694577; color: #dec4e9; }
-html[data-studio] .composer { background: #1b1320; border-color: #644271; }
-html[data-studio] .composer textarea { color: #f1e0f7; background: transparent; }
-html[data-studio] .send-button { background: #ff9873; color: #261a17; }
-html[data-studio] .conversation-footnote { color: #ae92bd; }
-html[data-studio] .notice { background: #52313e; border-color: #985b6d; color: #ffe2e9; }
 html[data-studio] dialog { color: #eee2f4; background: #281a31; border-color: #684274; }
 html[data-studio] .history-item { background: #34213e; color: #dfc6eb; border-color: #6a4578; }
 html[data-studio] input, html[data-studio] select { background: #211627; color: #efdef7; border-color: #61406e; }
@@ -50,8 +29,243 @@ html[data-studio-avatar=ivory-crown] .mascot-shadow { display: none; }
 html[data-studio-scene=campus] .stage-copy h1 { color: #243d33; text-shadow: 0 1px 8px #fff8; }
 html[data-studio-scene=campus] .stage-copy > p:last-child { color: #385447; text-shadow: 0 1px 8px #fffa; }
 html[data-studio-scene=plain] .workspace { background-image: none; }
+
+html[data-studio] .conversation {
+  --chat-surface: #20252f;
+  --chat-border: #373e4c;
+  --chat-text: #f0eff5;
+  --chat-muted: #b1bacb;
+  --bubble-width: min(90%, 60ch);
+  min-width: 0;
+  border-color: #ffffff25;
+  border-radius: 18px;
+  padding: 18px 20px 12px;
+  background: #151922f5;
+  backdrop-filter: blur(15px);
+  box-shadow: 0 14px 48px #0003;
+  color: var(--chat-text);
+}
+
+html[data-studio] .conversation-heading {
+  gap: 12px;
+}
+
+html[data-studio] .conversation-heading > div:first-child {
+  min-width: 0;
+}
+
+html[data-studio] .conversation-heading h2 {
+  overflow: hidden;
+  color: var(--chat-text);
+  font-size: 19px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[data-studio] .conversation-toolbar {
+  gap: 8px;
+  min-height: 0;
+  padding: 8px 0;
+  border-color: var(--chat-border);
+  color: var(--chat-muted);
+  font-size: 12px;
+}
+
+html[data-studio] .conversation :is(.quiet-button, .icon-button, .suggestions button) {
+  border: 1px solid var(--chat-border);
+  background: var(--chat-surface);
+  color: var(--chat-text);
+}
+
+html[data-studio] .conversation :is(.quiet-button, .icon-button, .suggestions button):hover:not(:disabled) {
+  border-color: #7d879b;
+  background: #2a303c;
+}
+
+html[data-studio] .conversation .quiet-button {
+  min-height: 32px;
+  padding: 5px 10px;
+  border-radius: 9px;
+  white-space: nowrap;
+}
+
+html[data-studio] .conversation .icon-button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  border-radius: 10px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+html[data-studio] .conversation .quiet-button[aria-pressed='true'],
+html[data-studio] .conversation .stop:not(:disabled) {
+  color: #ffba9f;
+}
+
+html[data-studio] .conversation :focus-visible {
+  outline: 2px solid #ffad8e;
+  outline-offset: 2px;
+}
+
+html[data-studio] .messages {
+  margin-block: 4px 10px;
+  padding: 10px 8px 10px 4px;
+  scroll-behavior: auto;
+  scrollbar-color: #5e687a transparent;
+}
+
+html[data-studio] .messages:focus-visible {
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+html[data-studio] .message {
+  margin-bottom: 16px;
+  line-height: 1.65;
+}
+
+html[data-studio] .message:last-child {
+  margin-bottom: 0;
+}
+
+html[data-studio] .message-label {
+  margin: 0 3px 4px;
+  color: var(--chat-muted);
+  font-size: 11px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+html[data-studio] .message-body {
+  max-width: var(--bubble-width);
+  padding: 10px 13px;
+  border-color: var(--chat-border);
+  border-radius: 5px 14px 14px;
+  background: #252c38;
+  color: var(--chat-text);
+}
+
+html[data-studio] .message.user .message-body {
+  border-color: #78564b;
+  border-radius: 14px 5px 14px 14px;
+  background: #50392f;
+  color: #fff0e9;
+}
+
+html[data-studio] .studio-turn-context {
+  max-width: var(--bubble-width);
+  margin: 4px 0 0 3px;
+  color: var(--chat-muted);
+  font-size: 0.85em;
+  overflow-wrap: anywhere;
+}
+
+html[data-studio] .studio-turn-context summary {
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+html[data-studio] .studio-turn-context summary:hover,
+html[data-studio] .studio-turn-context[open] summary {
+  color: var(--chat-text);
+}
+
+html[data-studio] .studio-turn-context-content {
+  display: grid;
+  gap: 6px;
+  padding: 9px 12px;
+  border: 1px solid var(--chat-border);
+  border-radius: 10px;
+  background: var(--chat-surface);
+}
+
+html[data-studio] .studio-turn-context-content :is(p, ul) {
+  margin: 0;
+}
+
+html[data-studio] .studio-turn-context-content ul {
+  padding-inline-start: 18px;
+}
+
+html[data-studio] .welcome {
+  min-height: min-content;
+}
+
+html[data-studio] .welcome p {
+  color: var(--chat-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+html[data-studio] .welcome-spark {
+  color: #ff9873;
+}
+
+html[data-studio] .composer {
+  padding: 8px 10px;
+  border-color: var(--chat-border);
+  border-radius: 13px;
+  background: var(--chat-surface);
+}
+
+html[data-studio] .composer:focus-within {
+  border-color: #c38b77;
+  box-shadow: 0 0 0 2px #ff987325;
+}
+
+html[data-studio] .composer textarea {
+  min-height: 0;
+  padding: 3px 4px;
+  color: var(--chat-text);
+}
+
+html[data-studio] .composer textarea:focus-visible {
+  outline: none;
+}
+
+html[data-studio] .composer textarea::placeholder {
+  color: var(--chat-muted);
+}
+
+html[data-studio] .composer-bottom {
+  margin-top: 2px;
+}
+
+html[data-studio] .send-button {
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 12px;
+  background: #ff9873;
+  color: #261a17;
+  font-weight: 700;
+}
+
+html[data-studio] .send-button:hover:not(:disabled) {
+  background: #ffb298;
+}
+
+html[data-studio] .conversation-footnote {
+  color: var(--chat-muted);
+}
+
+html[data-studio] .notice {
+  background: var(--chat-surface);
+  color: var(--chat-text);
+}
+
+html[data-studio] .notice[data-kind='error'] {
+  background: #52313e;
+  color: #ffe2e9;
+}
+
 @media (max-width: 740px) {
-  html[data-studio] .workspace { height: 100dvh; min-height: 0; display: grid; grid-template-columns: 1fr; grid-template-rows: minmax(235px, .43fr) minmax(0, .57fr); padding: 10px; gap: 10px; }
+  html[data-studio] body { min-height: 0; }
+  html[data-studio] .workspace { flex: none; grid-template-columns: minmax(0, 1fr); grid-template-rows: clamp(100px, 28dvh, 240px) minmax(0, 1fr); min-height: 340px; padding: 8px; gap: 8px; }
   html[data-studio] .stage { padding: 18px; }
   html[data-studio] .stage-copy h1 { font-size: 26px; }
   html[data-studio] .stage-copy > p:last-child { max-width: 160px; font-size: 10px; }
@@ -60,12 +274,11 @@ html[data-studio-scene=plain] .workspace { background-image: none; }
   html[data-studio] .stage-location { display: none; }
   html[data-studio] .stage-actions { margin-left: auto; flex-wrap: wrap; }
   html[data-studio] .mascot-note { font-size: 10px; max-width: 170px; }
-  html[data-studio] .conversation { min-height: 0; padding: 16px 16px 10px; }
-  html[data-studio] .conversation-heading h2 { font-size: 18px; }
-  html[data-studio] .welcome { min-height: 160px; padding: 10px 0; }
-  html[data-studio] .welcome h3 { font-size: 17px; }
-  html[data-studio] .welcome p { font-size: 11px; }
+  html[data-studio] .conversation { --bubble-width: 92%; padding: 10px 12px 8px; }
+  html[data-studio] .conversation-heading h2 { font-size: 16px; }
+  html[data-studio] .conversation-toolbar { padding: 4px 0; }
+  html[data-studio] .welcome { padding: 10px 0; }
   html[data-studio] .suggestions { gap: 5px; }
-  html[data-studio] .suggestions button { padding: 7px 9px; font-size: 10px; }
-  html[data-studio] .composer textarea { min-height: 36px; }
+  html[data-studio] .suggestions button { padding: 7px 9px; font-size: 11px; }
+  html[data-studio] .composer textarea { height: 2.7em; font-size: 16px; }
 }

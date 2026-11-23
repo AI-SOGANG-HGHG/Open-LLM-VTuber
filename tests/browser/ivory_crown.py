@@ -103,7 +103,10 @@ class IvoryCrownTests(unittest.TestCase):
             self.assertEqual(profile["character_id"], "kang-iseo")
             self.assertEqual(profile["name"], "강이서")
             self.assertEqual(profile["avatar"], "ivory-crown")
-            self.assertEqual(profile["tone"], "차분한 존댓말")
+            self.assertEqual(profile["preset_id"], "kang-iseo")
+            self.assertIn(
+                "차분한 한국어 존댓말", fixture.registration["personality"]["style"]
+            )
             expect(page.locator('#settingsForm [value="ivory-crown"]')).to_be_checked()
             expect(
                 page.locator(
@@ -127,7 +130,7 @@ class IvoryCrownTests(unittest.TestCase):
             frame = page.frame_locator("#studioFrame")
             canvas = frame.locator("#avatarCanvas")
             expect(canvas).to_be_visible()
-            expect(frame.locator("#welcome p")).to_contain_text("강이서입니다.")
+            expect(frame.locator("#welcome p")).to_contain_text(profile["greeting"])
             expect(frame.locator("#mascot")).to_have_attribute(
                 "data-renderer", "canvas2d"
             )
@@ -329,6 +332,16 @@ class IvoryCrownTests(unittest.TestCase):
             expect(page.get_by_text("내가 작성한 소개", exact=True)).to_be_visible()
             page.reload()
             expect(heading).to_have_count(1)
+            card = page.locator("#characterGrid .character-card").filter(has=heading)
+            with page.expect_response(
+                lambda response: response.url == f"{base}/studio/agents/import"
+                and response.request.method == "POST"
+            ) as registration:
+                card.get_by_role("link", name="설정", exact=True).click()
+            self.assertTrue(registration.value.ok, registration.value.status)
+            seeded = registration.value.json()
+            expect(page.locator("#settingsForm")).to_be_visible()
+            page.locator('[data-nav="characters"]').click()
             page.get_by_role("button", name="강이서 삭제", exact=True).click()
             page.get_by_role("button", name="삭제하기", exact=True).click()
             expect(heading).to_have_count(0)
@@ -341,7 +354,7 @@ class IvoryCrownTests(unittest.TestCase):
             card.get_by_role("button", name="이 캐릭터로 시작").click()
             form = page.locator("#characterForm")
             expect(form.locator('[name="name"]')).to_have_value("강이서")
-            expect(form.locator('[name="studioPreset"]')).to_have_value("calm")
+            expect(form.locator('[name="studioPreset"]')).to_have_value("kang-iseo")
             expect(form.locator('[value="ivory-crown"]')).to_be_checked()
             expect(
                 form.locator('.avatar-option:has([value="ivory-crown"]) strong')
@@ -352,11 +365,71 @@ class IvoryCrownTests(unittest.TestCase):
             ) as creation:
                 form.locator('button[type="submit"]').click()
             self.assertTrue(creation.value.ok, creation.value.status)
-            profile = creation.value.json()["profile"]
+            created = creation.value.json()
+            profile = created["profile"]
             self.assertEqual(profile["name"], "강이서")
             self.assertEqual(profile["avatar"], "ivory-crown")
-            self.assertEqual(profile["preset_id"], "calm")
+            for field in ("preset_id", "description", "greeting", "exploration"):
+                self.assertEqual(profile[field], seeded["profile"][field], field)
+            self.assertEqual(created["personality"], seeded["personality"])
             self.assertNotEqual(profile["character_id"], "kang-iseo")
+            browser.close()
+
+    def test_upgrade_preserves_edited_profiles_and_updates_untouched_default(self):
+        base = os.environ.get("SOGANGI_BASE_URL", "http://localhost:12393").rstrip("/")
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(
+                executable_path=os.environ.get("SOGANGI_BROWSER")
+            )
+            for variant in ("untouched", "edited", "registered", "deleted"):
+                with self.subTest(variant=variant):
+                    page = browser.new_page()
+                    page.route(
+                        "**/auth/session",
+                        lambda route: route.fulfill(json={"enabled": False}),
+                    )
+                    page.goto(f"{base}/web-tool/platform/")
+                    previous = page.evaluate(
+                        """async (variant) => {
+                        const { createCharacter } = await import('./js/presets.js');
+                        const char = createCharacter('kang-iseo', '강이서', '복잡한 고민을 들어주고 다음에 할 일을 차근차근 정리해 줘요.', 'calm', 'ivory-crown');
+                        char.favorite = true;
+                        char.messages.push({ role: 'user', content: '샘플 대화 기록' });
+                        char.memories.push({ id: 'example', text: '기억 노트', at: char.createdAt });
+                        if (variant === 'edited') char.greeting = '내가 남긴 인사';
+                        if (variant === 'registered') char.agentId = crypto.randomUUID();
+                        localStorage.setItem('persona-studio.demo.v1', JSON.stringify({
+                            version: 1, catalogVersion: 4, workspaceId: crypto.randomUUID(),
+                            characters: variant === 'deleted' ? [] : [char], activities: [],
+                        }));
+                        return char;
+                    }""",
+                        variant,
+                    )
+                    page.reload()
+                    page.locator("#loginUsername").fill("테스트 사용자")
+                    page.locator("#loginSubmit").click()
+                    expect(page.locator("#workspaceView")).to_be_visible()
+                    stored = page.evaluate(
+                        "JSON.parse(localStorage.getItem('persona-studio.demo.v1'))"
+                    )
+                    self.assertEqual(stored["catalogVersion"], 5)
+                    if variant == "deleted":
+                        self.assertEqual(stored["characters"], [])
+                    else:
+                        (char,) = stored["characters"]
+                        for field in ("favorite", "messages", "memories", "createdAt"):
+                            self.assertEqual(char[field], previous[field], field)
+                        if variant == "untouched":
+                            self.assertEqual(char["studioPreset"], "kang-iseo")
+                            self.assertNotEqual(char["greeting"], previous["greeting"])
+                        else:
+                            self.assertFalse(char.get("studioPreset"))
+                            self.assertEqual(char["greeting"], previous["greeting"])
+                            self.assertEqual(
+                                char.get("agentId"), previous.get("agentId")
+                            )
+                    page.close()
             browser.close()
 
 
