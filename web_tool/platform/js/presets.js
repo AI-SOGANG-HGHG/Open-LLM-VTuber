@@ -22,7 +22,7 @@ export const demoPersonas = [
 export const avatarAssets = {
   mao: { name: 'Mao', label: 'Open-LLM-VTuber 기본 캐릭터', image: './assets/mao.png', model: '/live2d-models/mao_pro/runtime/mao_pro.model3.json', credit: '© Live2D Inc.' },
   sogangi: { name: '서강이', label: '서강대학교 캐릭터', image: '../sogangi/assets/sogangi-neutral.svg', model: '/live2d-models/sogangi-expressions/runtime/sogangi.model3.json', credit: '' },
-  'ivory-crown': { name: 'Ivory Crown', label: '2D 동작 초안', image: new URL('../assets/ivory-crown.webp', import.meta.url).href, model: '', credit: '' },
+  'ivory-crown': { name: '강이서', label: '2D 아바타', image: new URL('../assets/ivory-crown.webp', import.meta.url).href, model: '', credit: '' },
   symbol: { name: '아이콘', label: '아이콘으로 표시', image: '', model: '', credit: '' },
 };
 export const catalogProfiles = [
@@ -39,6 +39,10 @@ export const catalogProfiles = [
     greeting: '반가워! 오늘은 어떤 얘기부터 해 볼까?',
     previousDescription: '공부도 프로젝트도, 언제나 네 편인 캠퍼스 동료.',
     previousGreeting: '반가워, 학우야! 오늘도 같이 한 걸음씩 해보자.',
+  },
+  {
+    id: 'kang-iseo', name: '강이서', template: 'calm', avatar: 'ivory-crown',
+    description: '복잡한 고민을 들어주고 다음에 할 일을 차근차근 정리해 줘요.',
   },
   {
     id: 'moa', name: '모아', template: 'curious', avatar: 'symbol',

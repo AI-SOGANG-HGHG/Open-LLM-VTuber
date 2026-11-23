@@ -4,7 +4,7 @@ import { avatarAssets, catalogCharacters, catalogProfiles, defaultGreeting, demo
 import { state } from './state.js';
 
 const DATA_KEY = 'persona-studio.demo.v1';
-const CATALOG_VERSION = 3;
+const CATALOG_VERSION = 4;
 
 function initialData() {
   return {
@@ -59,8 +59,16 @@ export function loadData() {
     const catalogVersion = Number.isSafeInteger(data.catalogVersion) ? data.catalogVersion : 0;
     // Add defaults once per catalog release so edits and deletions survive reloads.
     if (catalogVersion < CATALOG_VERSION) {
-      if (catalogVersion < 2 && !ids.has('mao')) data.characters.unshift(catalogCharacters()[0]);
-      data.characters.unshift(...demoCharacters().filter((char) => !ids.has(char.id)));
+      const catalog = catalogCharacters();
+      if (catalogVersion < 2 && !ids.has('mao')) {
+        data.characters.unshift(catalog.find(({ id }) => id === 'mao'));
+      }
+      if (catalogVersion < 3) {
+        data.characters.unshift(...demoCharacters().filter((char) => !ids.has(char.id)));
+      }
+      if (catalogVersion < 4 && !ids.has('kang-iseo')) {
+        data.characters.push(catalog.find(({ id }) => id === 'kang-iseo'));
+      }
       data.catalogVersion = CATALOG_VERSION;
       state.needsMigration = true;
     }

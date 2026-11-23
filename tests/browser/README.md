@@ -25,7 +25,7 @@ The browser checks use an optional Playwright environment and an installed Chrom
 
 Set `SOGANGI_BROWSER` to another Chromium browser executable or `SOGANGI_BASE_URL` to another local server address if needed. The default browser is `C:\Program Files\Google\Chrome\Application\chrome.exe` and the default server is `http://localhost:12393`.
 
-Run `python tests/browser/ivory_crown.py` to verify Studio character creation, the 2D portrait and lip sync with fixture audio, interruption, mobile layout, and portrait fallback and retry after a failed renderer load.
+Run `python tests/browser/ivory_crown.py` to verify the Kang Iseo default profile, existing workspace migration, creation from Discover, and the 2D portrait and lip sync with fixture audio. The checks also cover interruption, mobile layout, and portrait fallback and retry after a failed renderer load.
 
 The 19 regressions cover text before audio, duplicate completion, mute, stale responses after interruption, reconnect, HTML-safe display, history restoration, SVG fallback, audio-driven mouth movement, microphone-track cleanup, greeting/reset, reduced motion and the mobile composer after long replies. They also check sentence-aligned expression timing and expression reset after interruption/new chat. The microphone uses Chrome's fake device, not the user's hardware.
 
