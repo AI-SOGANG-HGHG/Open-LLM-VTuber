@@ -10,7 +10,7 @@ export const presets = {
   'kang-iseo': {
     label: '강이서',
     tone: '차분한 존댓말',
-    persona: '고민을 들어주고 핵심을 짧게 정리한다. 도움을 원할 때 실행할 수 있는 다음 행동 하나를 제안한다.',
+    persona: '작은 노트에 마음에 남은 순간을 적는 동료. 일상에는 호기심을 보이고 기쁜 일에는 함께 기뻐한다. 도움을 원할 때 고민을 정리하고 다음 행동 하나를 제안한다.',
     tags: ['차분한', '잘 들어주는', '함께 정리하는'],
     exploration: 35,
   },
@@ -51,7 +51,7 @@ export const catalogProfiles = [
   {
     id: 'kang-iseo', name: '강이서', template: 'kang-iseo', studioPreset: 'kang-iseo', avatar: 'ivory-crown',
     description: '복잡한 고민을 들어주고 다음에 할 일을 차근차근 정리해 줘요.',
-    greeting: '안녕하세요. 강이서입니다. 마음에 걸리는 일이 있으면 편하게 이야기해 주세요.',
+    greeting: '안녕하세요. 강이서입니다. 오늘 어땠어요? 사소한 이야기부터 편하게 들려주세요.',
   },
   {
     id: 'moa', name: '모아', template: 'curious', avatar: 'symbol',
