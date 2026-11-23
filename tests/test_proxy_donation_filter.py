@@ -58,6 +58,8 @@ class ProxyDonationFilterTests(unittest.IsolatedAsyncioTestCase):
 
     def setUp(self) -> None:
         self.handler = ProxyHandler()
+        # Rule-based only, so tests never call the second-stage AI model.
+        self.handler.safety_filter = ChatSafetyFilter()
         self.handler.forward_to_server = mock.AsyncMock()
         self.handler.broadcast_to_clients = mock.AsyncMock()
 

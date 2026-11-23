@@ -590,5 +590,88 @@ class ValidateTests(unittest.TestCase):
                 )
 
 
+class AISafetyClassifierTests(unittest.TestCase):
+    """Tests for the second-stage SmallModelSafetyClassifier integration."""
+
+    def test_verdict_parsing(self) -> None:
+        """Model verdicts map to None for SAFE and text:ai:<cat> for BLOCK."""
+        from src.open_llm_vtuber.live.ai_chat_classifier import (
+            SmallModelSafetyClassifier,
+        )
+
+        self.assertIsNone(SmallModelSafetyClassifier._parse_verdict("SAFE"))
+        self.assertIsNone(SmallModelSafetyClassifier._parse_verdict("safe\n"))
+        self.assertEqual(
+            SmallModelSafetyClassifier._parse_verdict("BLOCK:profanity"),
+            "text:ai:profanity",
+        )
+        self.assertEqual(
+            SmallModelSafetyClassifier._parse_verdict("BLOCK:harassment"),
+            "text:ai:harassment",
+        )
+        self.assertEqual(
+            SmallModelSafetyClassifier._parse_verdict("BLOCK:unknown_category"),
+            "text:ai:unsafe",
+        )
+
+    def test_two_stage_filter_blocks_subtle_toxic_chat(self) -> None:
+        """Disguised toxic chat passing stage-1 rules is caught by stage-2 AI."""
+        import asyncio
+        from src.open_llm_vtuber.live.ai_chat_classifier import (
+            SmallModelSafetyClassifier,
+        )
+
+        classifier = SmallModelSafetyClassifier(
+            api_key="test-key",
+            base_url="http://localhost:9999/v1",
+            model="test-small-model",
+        )
+        with (
+            mock.patch.object(
+                classifier,
+                "_call_openai_compatible_sync",
+                return_value="text:ai:harassment",
+            ) as sync_mock,
+            mock.patch.object(
+                classifier,
+                "_call_openai_compatible_async",
+                return_value="text:ai:harassment",
+            ) as async_mock,
+        ):
+            two_stage = ChatSafetyFilter(ai_classifier=classifier)
+
+            # 1. Stage-1 rule hit does not invoke stage-2 AI model
+            self.assertEqual(
+                two_stage.validate("김철수", "병신아"),
+                (False, "text:banned:profanity"),
+            )
+            sync_mock.assert_not_called()
+
+            # 2. Disguised family insult caught by stage-2 semantic context analyzer
+            self.assertEqual(
+                two_stage.validate("김철수", "너 부모님이 그렇게 가르치던?"),
+                (False, "text:ai:harassment"),
+            )
+
+            # 3. Suspicious insult triggers remote small-LLM check and caches verdict
+            self.assertEqual(
+                two_stage.validate("김철수", "솔직하게 말하는 게 진짜 역겹고 토나와"),
+                (False, "text:ai:harassment"),
+            )
+            self.assertEqual(sync_mock.call_count, 1)
+            self.assertEqual(
+                two_stage.validate("김철수", "솔직하게 말하는 게 진짜 역겹고 토나와"),
+                (False, "text:ai:harassment"),
+            )
+            self.assertEqual(sync_mock.call_count, 1)
+
+            # 4. Async avalidate works with stage-2 AI classifier
+            res = asyncio.run(
+                two_stage.avalidate("김철수", "방송 보는데 진짜 토나와 꺼져")
+            )
+            self.assertEqual(res, (False, "text:ai:harassment"))
+            self.assertEqual(async_mock.call_count, 1)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -10,6 +10,8 @@ import unicodedata
 
 from loguru import logger
 
+from .ai_chat_classifier import SmallModelSafetyClassifier
+
 ANONYMOUS_NAME = "익명시청자"
 MAX_TEXT_LENGTH = 300
 MAX_AUTHOR_LENGTH = 20
@@ -443,8 +445,11 @@ class ChatSafetyFilter:
         self,
         extra_banned_words: Mapping[str, Iterable[str]] | None = None,
         extra_patterns: Mapping[str, Iterable[str]] | None = None,
+        *,
+        ai_classifier: SmallModelSafetyClassifier | None = None,
+        enable_ai_classifier: bool = False,
     ) -> None:
-        """Pre-compile detection patterns.
+        """Pre-compile detection patterns and optional second-stage AI classifier.
 
         Args:
             extra_banned_words: Additional literal banned words per category.
@@ -453,6 +458,10 @@ class ChatSafetyFilter:
             extra_patterns: Additional injection regexes per group, matched
                 against normalized text. Unknown group names become new
                 groups checked after the built-in ones.
+            ai_classifier: Custom ``SmallModelSafetyClassifier`` instance for
+                second-stage semantic moderation.
+            enable_ai_classifier: If True and ``ai_classifier`` is None,
+                automatically initialize a default ``SmallModelSafetyClassifier``.
         """
         self._injection_patterns = _compile_groups(INJECTION_PATTERNS, extra_patterns)
         self._compact_injection_patterns = _compile_groups(COMPACT_INJECTION_PATTERNS)
@@ -468,6 +477,12 @@ class ChatSafetyFilter:
             if pattern is not None:
                 self._banned_patterns[category] = pattern
         self._exception_pattern = _word_regex(ALLOWED_EXCEPTIONS)
+        if ai_classifier is not None:
+            self._ai_classifier: SmallModelSafetyClassifier | None = ai_classifier
+        elif enable_ai_classifier:
+            self._ai_classifier = SmallModelSafetyClassifier()
+        else:
+            self._ai_classifier = None
 
     def validate(self, author: str | None, text: str | None) -> tuple[bool, str]:
         """Decide whether a chat message may be forwarded to the LLM.
@@ -487,10 +502,45 @@ class ChatSafetyFilter:
             reason = self.check_text(text)
             if reason is not None:
                 return False, reason
+            if self._ai_classifier is not None:
+                ai_reason = self._ai_classifier.check_text(_normalize(text))
+                if ai_reason is not None:
+                    return False, ai_reason
             return True, self.sanitize_author(author)
         except Exception:
             logger.exception(
                 f"[ChatSafetyFilter] unexpected error, message dropped: "
+                f"text={_preview(text)}"
+            )
+            return False, "filter:error"
+
+    async def avalidate(self, author: str | None, text: str | None) -> tuple[bool, str]:
+        """Asynchronously validate a chat message using rule + small AI checks.
+
+        First runs the fast rule-based filter synchronously. Only if the
+        message passes the rule check does it invoke the asynchronous
+        second-stage ``SmallModelSafetyClassifier``.
+
+        Args:
+            author: Viewer nickname from the payload.
+            text: Chat or donation message body.
+
+        Returns:
+            ``(True, safe_author)`` when safe, or ``(False, reason_code)`` when
+            blocked by either stage.
+        """
+        try:
+            reason = self.check_text(text)
+            if reason is not None:
+                return False, reason
+            if self._ai_classifier is not None:
+                ai_reason = await self._ai_classifier.acheck_text(_normalize(text))
+                if ai_reason is not None:
+                    return False, ai_reason
+            return True, self.sanitize_author(author)
+        except Exception:
+            logger.exception(
+                f"[ChatSafetyFilter] unexpected error in avalidate, message dropped: "
                 f"text={_preview(text)}"
             )
             return False, "filter:error"
