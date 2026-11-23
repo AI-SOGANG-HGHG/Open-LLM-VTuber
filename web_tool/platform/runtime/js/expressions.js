@@ -1,4 +1,6 @@
-// Semantic names are independent of the fallback Mao model's numeric indices.
+import { maoExpressionIndices } from '../../../shared/live2d-loader.js';
+
+// Sogangi's semantic names are independent of Mao's numeric indices.
 // Native Cubism supports four states; the SVG engine keeps its neutral/joy fallback.
 export const supportedExpressions = ['neutral', 'joy', 'anger', 'surprise'];
 const expressionAliases = {
@@ -18,7 +20,7 @@ export function normalizeExpression(name) {
 
 function resolveAvatarExpression(name, avatar) {
   if (avatar === 'sogangi') return normalizeExpression(name);
-  if (avatar === 'mao' && ['joy', 'anger'].includes(name)) return name;
+  if (avatar === 'mao' && Object.hasOwn(maoExpressionIndices, name)) return name;
   return 'neutral';
 }
 

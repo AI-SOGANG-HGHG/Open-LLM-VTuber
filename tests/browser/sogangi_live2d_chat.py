@@ -4,11 +4,14 @@ No model/TTS service calls. Tests isolate the renderer while retaining the app's
 actual audio queue, request correlation, persistence and interruption handlers.
 """
 
+import json
 import os
 from pathlib import Path
 import unittest
+from urllib.parse import urlencode
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
+from ivory_crown import StudioChatFixture
 from sogangi_smoke import SogangiBrowserCase, wav_fixture
 
 
@@ -368,11 +371,100 @@ class Live2DChatTests(SogangiBrowserCase):
         self.wait_ready()
         self.wait_mood(0)
         self.submit("준비되지 않은 표정 확인")
-        self.finish("[fear] 확인 중이야.", audio=wav_fixture(0.2))
+        self.finish("[sad] [fear] 확인 중이야.", audio=wav_fixture(0.2))
         self.wait_mood(2)
+        self.assertEqual(
+            self.page.locator(".message.assistant .message-body").last.inner_text(),
+            "확인 중이야.",
+        )
         self.assertEqual(
             self.page.locator("#mascot").get_attribute("data-expression"), "surprise"
         )
+
+    def test_studio_mao_keeps_one_expression_and_falls_back_to_neutral(self):
+        base = os.environ.get("SOGANGI_BASE_URL", "http://localhost:12393").rstrip("/")
+        page = self.browser.new_page()
+        self.addCleanup(page.close)
+        fixture = StudioChatFixture()
+        profile = {
+            "workspace_id": "fixture-workspace",
+            "agent_id": "fixture-agent",
+            "character_id": "fixture-mao",
+            "name": "마오",
+            "avatar": "mao",
+        }
+        fixture.registration = {"agent_id": profile["agent_id"], "profile": profile}
+        params = urlencode(
+            {"studio": "1", "parentOrigin": base, "instanceId": "mao-expression-test"}
+        )
+        page.route(
+            "**/mao-expression-test",
+            lambda route: route.fulfill(
+                content_type="text/html",
+                body=f"""<script>
+                    addEventListener('message', (event) => {{
+                        if (event.data?.type !== 'ready') return;
+                        event.source.postMessage({{
+                            ...event.data, type: 'configure', profile: {json.dumps(profile)}
+                        }}, event.origin);
+                    }});
+                </script><iframe src="/web-tool/platform/runtime/?{params}"></iframe>""",
+            ),
+        )
+        page.route_web_socket("**/client-ws", fixture.connect)
+        page.goto(f"{base}/mao-expression-test")
+        frame = page.frame_locator("iframe")
+        expect(frame.locator("#sendButton")).to_be_enabled()
+        expect(frame.locator("#mascot")).to_have_attribute("data-renderer", "live2d")
+        frame.locator("#mascot").evaluate("""async () => {
+            const { StudioAvatarRenderer } = await import('/web-tool/platform/runtime/js/avatars/live2d-avatar.js');
+            const render = StudioAvatarRenderer.prototype.setExpression;
+            window.observedExpressions = [];
+            StudioAvatarRenderer.prototype.setExpression = function(name) {
+                if (name !== 'thinking') window.observedExpressions.push(name);
+                return render.call(this, name);
+            };
+        }""")
+        turn_context = {
+            "preset": {"label": "마오"},
+            "affect": {"valence": -0.4, "arousal": 0.3, "dominance": 0.5},
+            "memories": [],
+            "rules": [],
+        }
+        for expression, expected in (
+            ("sadness", "sadness"),
+            ("unknown", "neutral"),
+            (None, "neutral"),
+        ):
+            with self.subTest(expression=expression):
+                frame.locator("#mascot").evaluate(
+                    "() => { window.observedExpressions.length = 0; }"
+                )
+                frame.locator("#messageInput").fill("표정을 확인해 줘.")
+                frame.locator("#sendButton").click()
+                expect(frame.locator("#stopButton")).to_be_enabled()
+                if expression is not None:
+                    fixture.turn_message(
+                        "studio-turn-context", expression=expression, **turn_context
+                    )
+                for text in ("[sad] 괜찮아.", "[anger] 천천히 이야기해 줘."):
+                    fixture.turn_message("text-response", display_text={"text": text})
+                    fixture.turn_message(
+                        "audio", display_text={"text": text}, audio=wav_fixture()
+                    )
+                    if expression is not None:
+                        fixture.turn_message(
+                            "studio-turn-context", expression="joy", **turn_context
+                        )
+                fixture.turn_message("backend-synth-complete")
+                expect(frame.locator("#sendButton")).to_be_enabled()
+                expect(
+                    frame.locator(".message.assistant .message-body").last
+                ).to_have_text("괜찮아. 천천히 이야기해 줘.")
+                applied = frame.locator("#mascot").evaluate(
+                    "() => window.observedExpressions"
+                )
+                self.assertEqual(set(applied), {expected})
 
     def test_emotion_survives_renderer_fallback_and_reduction_but_not_interruption(
         self,

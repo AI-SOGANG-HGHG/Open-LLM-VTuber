@@ -40,6 +40,19 @@ if TYPE_CHECKING:
     from ...studio_registry import StudioRegistry
 
 
+STUDIO_EXPRESSION_TAGS = {
+    "neutral",
+    "joy",
+    "anger",
+    "surprise",
+    "sadness",
+    "sad",
+    "fear",
+    "disgust",
+    "smirk",
+}
+
+
 class BasicMemoryAgent(AgentInterface):
     """Agent with basic chat memory and tool calling support."""
 
@@ -353,13 +366,16 @@ class BasicMemoryAgent(AgentInterface):
         return messages
 
     async def _studio_reply(self, messages, system_prompt) -> AsyncIterator[str]:
-        emotion_names = set(getattr(self._live2d_model, "emo_map", {}))
-        emotion_names.update(("neutral", "joy", "anger", "surprise", "think"))
+        emotion_names = STUDIO_EXPRESSION_TAGS.union(
+            getattr(self._live2d_model, "emo_map", {})
+        )
         tags = "|".join(re.escape(name) for name in emotion_names)
-        non_speech = re.compile(rf"\[(?:{tags})\]|\[[^\[\]]*$", re.IGNORECASE)
+        expression_tag = re.compile(rf"\[(?:{tags})\]", re.IGNORECASE)
+        non_speech = re.compile(r"\[think\]|\[[^\[\]]*$", re.IGNORECASE)
 
         for attempt in range(2):
             prefix = ""
+            partial_tag = ""
             emitted = False
             try:
                 async with aclosing(
@@ -375,6 +391,19 @@ class BasicMemoryAgent(AgentInterface):
                             else event
                         )
                         if not isinstance(chunk, str) or not chunk:
+                            continue
+                        chunk = partial_tag + chunk
+                        partial_tag = ""
+                        start = chunk.rfind("[")
+                        # The next token may finish a tag, so withhold its prefix.
+                        if start != -1 and any(
+                            name.startswith(chunk[start + 1 :].lower())
+                            for name in emotion_names
+                        ):
+                            partial_tag = chunk[start:]
+                            chunk = chunk[:start]
+                        chunk = expression_tag.sub("", chunk)
+                        if not chunk:
                             continue
                         if emitted:
                             yield chunk
