@@ -383,7 +383,7 @@ class ChzzkLivePlatform(LivePlatformInterface):
                         logger.info(
                             "[ChzzkLive] Successfully joined Chzzk live chat room!"
                         )
-                    elif cmd in (CHZZK_CMD_CHAT, CHZZK_CMD_DONATION):
+                    elif cmd == CHZZK_CMD_DONATION:
                         body = packet.get("bdy")
                         if isinstance(body, list):
                             await self._parse_and_forward_event(int(cmd), body)
