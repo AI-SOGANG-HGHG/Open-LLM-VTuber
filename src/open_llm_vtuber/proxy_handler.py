@@ -31,6 +31,29 @@ except ModuleNotFoundError as error:
 # Match the Chzzk collector's threshold for urgent donations.
 URGENT_DONATION_AMOUNT = 10_000
 
+# Shown in place of a donation message that the safety filter blocked.
+BLOCKED_DONATION_NOTICE = "후원 메시지는 필터링되어 표시되지 않습니다"
+
+
+def blocked_donation_text(author: str, amount: object) -> str:
+    """Build the text that replaces a blocked donation message.
+
+    The conversation server only reads ``text``, so the sanitized nickname
+    and amount are written into it to keep the donation acknowledgeable.
+
+    Args:
+        author: Nickname that already passed ``sanitize_author``.
+        amount: Donation amount from the payload; ignored unless a positive int.
+
+    Returns:
+        A notice such as ``"홍길동님이 1,000치즈를 후원했습니다. (...)"``.
+    """
+    if type(amount) is int and amount > 0:
+        return (
+            f"{author}님이 {amount:,}치즈를 후원했습니다. ({BLOCKED_DONATION_NOTICE})"
+        )
+    return f"{author}님이 후원했습니다. ({BLOCKED_DONATION_NOTICE})"
+
 
 class ProxyHandler:
     """
@@ -183,12 +206,28 @@ class ProxyHandler:
         except Exception:
             logger.warning("Discarding Chzzk input because chat validation failed")
             return
-        if not is_safe:
+        is_donation = source == "chzzk_donation"
+        if is_safe:
+            message = {**message, "author": result}
+        elif not is_donation:
             logger.warning("Chat safety filter blocked Chzzk input")
             return
+        else:
+            # Keep the donation, but never forward the blocked body.
+            try:
+                safe_author = self.safety_filter.sanitize_author(author)
+            except Exception:
+                logger.warning("Discarding Chzzk donation because sanitizing failed")
+                return
+            logger.warning(
+                f"Chat safety filter replaced Chzzk donation message ({result})"
+            )
+            message = {
+                **message,
+                "author": safe_author,
+                "text": blocked_donation_text(safe_author, message.get("amount")),
+            }
 
-        message = {**message, "author": result}
-        is_donation = source == "chzzk_donation"
         amount = message.get("amount")
         if is_donation and type(amount) is int and amount >= URGENT_DONATION_AMOUNT:
             async with self.message_queue.lock:
