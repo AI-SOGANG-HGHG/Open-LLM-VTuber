@@ -49,15 +49,28 @@
     <Key name="default" value="0" />
     <Key name="key" value="1" />
     <Key name="key" value="2" />
+    <Key name="key" value="3" />
+    <Key name="key" value="4" />
     <Target relativeDrawablePath="Eye L/EyeL_Open" mode="affine-transform">
-      <State keyValue="0" stateName="default" scaleY="1" pivotX="440.5" pivotY="479" />
-      <State keyValue="1" stateName="key" scaleY="0.72" pivotX="440.5" pivotY="479" />
-      <State keyValue="2" stateName="key" scaleY="1.1" pivotX="440.5" pivotY="479" />
+      <State keyValue="0" stateName="default" scaleY="1" rotationDeg="0" pivotX="440.5" pivotY="479" />
+      <State keyValue="1" stateName="key" scaleY="0.72" rotationDeg="0" pivotX="440.5" pivotY="479" />
+      <State keyValue="2" stateName="key" scaleY="1.1" rotationDeg="0" pivotX="440.5" pivotY="479" />
+      <State keyValue="3" stateName="key" scaleY="0.81" rotationDeg="13" pivotX="440.5" pivotY="479" />
+      <State keyValue="4" stateName="key" scaleY="0.62" rotationDeg="-11" pivotX="440.5" pivotY="479" />
     </Target>
     <Target relativeDrawablePath="Eye R/EyeR_Open" mode="affine-transform">
-      <State keyValue="0" stateName="default" scaleY="1" pivotX="596.5" pivotY="479" />
-      <State keyValue="1" stateName="key" scaleY="0.72" pivotX="596.5" pivotY="479" />
-      <State keyValue="2" stateName="key" scaleY="1.1" pivotX="596.5" pivotY="479" />
+      <State keyValue="0" stateName="default" scaleY="1" rotationDeg="0" pivotX="596.5" pivotY="479" />
+      <State keyValue="1" stateName="key" scaleY="0.72" rotationDeg="0" pivotX="596.5" pivotY="479" />
+      <State keyValue="2" stateName="key" scaleY="1.1" rotationDeg="0" pivotX="596.5" pivotY="479" />
+      <State keyValue="3" stateName="key" scaleY="0.81" rotationDeg="-13" pivotX="596.5" pivotY="479" />
+      <State keyValue="4" stateName="key" scaleY="0.62" rotationDeg="11" pivotX="596.5" pivotY="479" />
+    </Target>
+    <Target relativeDrawablePath="Mouth/Mouth_Open" mode="affine-transform">
+      <State keyValue="0" stateName="default" scaleX="1" scaleY="1" pivotX="517.5" pivotY="563.5" />
+      <State keyValue="1" stateName="key" scaleX="1" scaleY="1" pivotX="517.5" pivotY="563.5" />
+      <State keyValue="2" stateName="key" scaleX="1" scaleY="1" pivotX="517.5" pivotY="563.5" />
+      <State keyValue="3" stateName="key" scaleX="1.15" scaleY="0.82" pivotX="517.5" pivotY="563.5" />
+      <State keyValue="4" stateName="key" scaleX="0.84" scaleY="0.9" pivotX="517.5" pivotY="563.5" />
     </Target>
   </Parameter>
   <Parameter id="ParamAngleZ" kind="angle" defaultValue="0">

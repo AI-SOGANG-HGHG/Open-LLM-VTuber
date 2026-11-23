@@ -59,7 +59,11 @@ class StudioChatFixture(ChatFixture):
         self.turn_message(
             "studio-turn-context",
             preset={"label": "강이서"},
-            affect={"valence": 0.5, "arousal": 0.7, "dominance": 0.5},
+            affect={
+                "valence": -0.5 if name in ("anger", "sadness") else 0.5,
+                "arousal": 0.3 if name == "sadness" else 0.7,
+                "dominance": 0.5,
+            },
             appraisal="ok",
             retrieval="ok",
             rules=[],
@@ -274,25 +278,29 @@ class IvoryCrownTests(unittest.TestCase):
             expect(canvas).to_have_attribute("data-applied-mouth", "0.75")
             speaking = canvas.screenshot()
             self.assertNotEqual(speaking, neutral)
-            page.evaluate("testAvatar.setExpression('joy')")
-            expect(canvas).to_have_attribute("data-expression", "joy")
-            joy = canvas.screenshot()
-            self.assertNotEqual(joy, speaking)
-            expect(canvas).to_have_attribute("data-applied-mouth", "0.75")
-            page.evaluate("testAvatar.setExpression('surprise')")
-            expect(canvas).to_have_attribute("data-expression", "surprise")
-            surprise = canvas.screenshot()
-            self.assertNotEqual(surprise, speaking)
-            self.assertNotEqual(surprise, joy)
-            expect(canvas).to_have_attribute("data-applied-mouth", "0.75")
+            faces = {speaking}
+            for expression in ("joy", "surprise", "anger", "sadness"):
+                page.evaluate("name => testAvatar.setExpression(name)", expression)
+                expect(canvas).to_have_attribute("data-expression", expression)
+                pixels = canvas.screenshot()
+                self.assertNotIn(pixels, faces, expression)
+                faces.add(pixels)
+                expect(canvas).to_have_attribute("data-applied-mouth", "0.75")
+                if expression in ("anger", "sadness"):
+                    page.evaluate("testAvatar.setReducedMotion(false)")
+                    wait_for_blink(canvas)
+                    expect(canvas).to_have_attribute("data-applied-mouth", "0.75")
+                    page.evaluate("testAvatar.setReducedMotion(true)")
             canvas.evaluate(
                 "canvas => canvas.dispatchEvent(new Event('webglcontextlost', {cancelable: true}))"
             )
             expect(host).to_have_attribute("data-renderer", "canvas2d")
-            expect(canvas).to_have_attribute("data-expression", "surprise")
+            expect(canvas).to_have_attribute("data-expression", "sadness")
             expect(canvas).to_have_attribute("data-applied-mouth", "0.75")
-            page.evaluate("testAvatar.setExpression('joy')")
-            expect(canvas).to_have_attribute("data-expression", "joy")
+            fallback_sadness = canvas.screenshot()
+            page.evaluate("testAvatar.setExpression('anger')")
+            expect(canvas).to_have_attribute("data-expression", "anger")
+            self.assertNotEqual(canvas.screenshot(), fallback_sadness)
             expect(canvas).to_have_attribute("data-applied-mouth", "0.75")
             page.evaluate("testAvatar.setMouthOpen(0)")
             expect(canvas).to_have_attribute("data-applied-mouth", "0")
@@ -359,23 +367,31 @@ class IvoryCrownTests(unittest.TestCase):
             output.mkdir(parents=True, exist_ok=True)
             neutral = canvas.screenshot(path=output / "studio-neutral.png")
 
-            frame.locator("#messageInput").fill("놀라는 표정을 확인해 줘.")
-            frame.locator("#sendButton").click()
-            expect(frame.locator("#stopButton")).to_be_enabled()
-            fixture.expression("surprise")
-            fixture.turn_message("text-response", display_text={"text": "뜻밖이네요."})
-            fixture.turn_message(
-                "audio", audio=wav_fixture(3), volumes=[0.75] * 150, slice_length=20
-            )
-            expect(canvas).to_have_attribute("data-expression", "surprise")
-            expect(canvas).to_have_attribute("data-applied-mouth", "0.75")
-            self.assertNotEqual(
-                canvas.screenshot(path=output / "studio-surprise.png"), neutral
-            )
-            frame.locator("#stopButton").click()
-            expect(canvas).to_have_attribute("data-expression", "neutral")
-            expect(canvas).to_have_attribute("data-applied-mouth", "0")
-            self.assertEqual(canvas.screenshot(), neutral)
+            for expression, prompt, response in (
+                ("anger", "또 부당한 판정이 나왔어.", "그 판정은 부당하네요."),
+                (
+                    "sadness",
+                    "오래 키우던 강아지를 떠나보냈어.",
+                    "마음이 많이 무겁겠어요.",
+                ),
+            ):
+                frame.locator("#messageInput").fill(prompt)
+                frame.locator("#sendButton").click()
+                expect(frame.locator("#stopButton")).to_be_enabled()
+                fixture.expression(expression)
+                fixture.turn_message("text-response", display_text={"text": response})
+                fixture.turn_message(
+                    "audio", audio=wav_fixture(3), volumes=[0.75] * 150, slice_length=20
+                )
+                expect(canvas).to_have_attribute("data-expression", expression)
+                expect(canvas).to_have_attribute("data-applied-mouth", "0.75")
+                self.assertNotEqual(
+                    canvas.screenshot(path=output / f"studio-{expression}.png"), neutral
+                )
+                frame.locator("#stopButton").click()
+                expect(canvas).to_have_attribute("data-expression", "neutral")
+                expect(canvas).to_have_attribute("data-applied-mouth", "0")
+                self.assertEqual(canvas.screenshot(), neutral)
             browser.close()
 
     def test_existing_workspace_adds_default_once_and_can_start_from_discover(self):

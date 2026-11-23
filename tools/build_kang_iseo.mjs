@@ -5,6 +5,7 @@ import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { expressionBridgeSource } from './sogangi-expression-bridge.mjs';
+import { kangIseoFaces } from '../web_tool/shared/kang-iseo-expressions.js';
 
 const root = path.resolve('.');
 const tmp = path.join(root, 'tmp');
@@ -34,7 +35,8 @@ const parts = [
 ];
 const eyeIds = ['ParamEyeLOpen', 'ParamEyeROpen'];
 const mouthId = 'ParamMouthOpenY';
-const expressions = [['neutral', 0], ['joy', 1], ['surprise', 2]];
+const expressions = Object.keys(kangIseoFaces);
+const faceValues = expressions.map((_, index) => index);
 
 function parameter(id, defaultValue, values, drawables, stateFor, kind = 'openness') {
   const keyName = (value) => value === defaultValue ? 'default' : 'key';
@@ -63,9 +65,14 @@ parameters.push(parameter(mouthId, 0, [0, 0.25, 1], parts.filter(([group]) => gr
     transform: { scaleY: 0.45 + value * 0.55, pivotX: 517.5, pivotY: 563.5 },
   }
 )));
-parameters.push(parameter('ParamFaceMood', 0, [0, 1, 2], parts.filter((part) => /^Eye[LR]_Open$/.test(part.at(-1))), (name, value) => ({
-  transform: { scaleY: [1, 0.72, 1.1][value], pivotX: name.startsWith('EyeL') ? 440.5 : 596.5, pivotY: 479 },
-})));
+parameters.push(parameter('ParamFaceMood', 0, faceValues, parts.filter((part) => part.at(-1).endsWith('_Open')), (name, value) => {
+  const { eyeScale, eyeTilt = 0, mouthWidth = 1, mouthHeight = 1 } = kangIseoFaces[expressions[value]];
+  if (name === 'Mouth_Open') {
+    return { transform: { scaleX: mouthWidth, scaleY: mouthHeight, pivotX: 517.5, pivotY: 563.5 } };
+  }
+  const left = name.startsWith('EyeL');
+  return { transform: { scaleY: eyeScale, rotationDeg: left ? eyeTilt : -eyeTilt, pivotX: left ? 440.5 : 596.5, pivotY: 479 } };
+}));
 parameters.push(parameter('ParamAngleZ', 0, [-3, 0, 3], parts, (_name, value) => ({
   transform: { rotationDeg: value, pivotX: 512, pivotY: 1106 },
 }), 'angle'));
@@ -88,7 +95,8 @@ const { serializeBindingManifestXml } = await tsImport(pathToFileURL(path.join(c
 const bindingXml = path.join(output, 'kang-iseo.binding.xml');
 await writeFile(bindingXml, serializeBindingManifestXml({ profile: 'infer-sample', parameters }));
 const adapter = path.join(output, 'expression-export-adapter.mts');
-await writeFile(adapter, expressionBridgeSource(bridge, converter).replace('Face mood: neutral / anger / surprise', 'Face mood: neutral / joy / surprise'));
+// The open eyes and mouth each compose 3 openness × 5 moods × 3 tilt × 2 breath forms.
+await writeFile(adapter, expressionBridgeSource(bridge, converter, { faceMoods: expressions, maxForms: 90 }));
 const { exportOfficialMoc3FromPsd } = await tsImport(pathToFileURL(adapter).href, import.meta.url);
 const mocFile = 'kang-iseo.moc3';
 const cmoFile = 'from-psd.cmo3';
@@ -110,14 +118,14 @@ if (moc.subarray(0, 4).toString() !== 'MOC3' || cmo.subarray(0, 4).toString() !=
   throw Error('Cubism project, MOC or texture failed its file check');
 }
 
-const expressionFiles = expressions.map(([Name]) => ({ Name, File: `expressions/${Name}.exp3.json` }));
+const expressionFiles = expressions.map((Name) => ({ Name, File: `expressions/${Name}.exp3.json` }));
 await mkdir(path.join(output, 'expressions'));
-for (const [index, [, mood]] of expressions.entries()) {
+for (const [index, { File }] of expressionFiles.entries()) {
   const expression = {
     Type: 'Live2D Expression', FadeInTime: 0, FadeOutTime: 0,
-    Parameters: [{ Id: 'ParamFaceMood', Value: mood, Blend: 'Overwrite' }],
+    Parameters: [{ Id: 'ParamFaceMood', Value: index, Blend: 'Overwrite' }],
   };
-  await writeFile(path.join(output, expressionFiles[index].File), JSON.stringify(expression, null, 2) + '\n');
+  await writeFile(path.join(output, File), JSON.stringify(expression, null, 2) + '\n');
 }
 const manifest = 'kang-iseo.model3.json';
 await writeFile(path.join(output, manifest), JSON.stringify({

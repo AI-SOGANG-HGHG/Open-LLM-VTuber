@@ -17,6 +17,14 @@
       {
         "Name": "surprise",
         "File": "expressions/surprise.exp3.json"
+      },
+      {
+        "Name": "anger",
+        "File": "expressions/anger.exp3.json"
+      },
+      {
+        "Name": "sadness",
+        "File": "expressions/sadness.exp3.json"
       }
     ]
   },
