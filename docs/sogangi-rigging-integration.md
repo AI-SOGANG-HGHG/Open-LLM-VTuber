@@ -4,7 +4,7 @@
 
 현재 모델: <http://localhost:12393/web-tool/sogangi/live2d-preview.html?model=sogangi-minimum>. 눈·입 슬라이더와 입 왕복 시험을 사용할 수 있다. 27개 표준 파라미터 중 연결한 것은 눈 2개·입 1개다. 미연결 기울기는 조작을 비활성화했다. 파일과 정확한 검증 범위는 `live2d-models/sogangi-minimum/`에 있다.
 
-대화 연결: <http://localhost:12393/web-tool/sogangi/?avatar=live2d>, 또는 설정에서 Live2D를 선택한다. `avatar-renderer.js`가 실제 Core의 눈/입에 깜빡임·짧은 기쁨 반응·오디오 크기를 적용한다. 음소거·중단·새 대화는 입을 닫고, 늦은 로드가 끝난 발화를 다시 재생하지 않는다. 모드 전환은 현재 오디오 시계와 요청 ID를 유지하며 실패/컨텍스트 상실은 SVG로 복구한다. 8개 실제 Core 브라우저 회귀와 실제 Gemini/TTS 요청 한 번을 확인했다. 기존 backend fallback은 유지한다.
+대화 연결: <http://localhost:12393/web-tool/sogangi/?avatar=live2d>, 또는 설정에서 Live2D를 선택한다. `web_tool/platform/runtime/js/avatars/sogangi-renderer.js`가 실제 Core의 눈/입에 깜빡임·짧은 기쁨 반응·오디오 크기를 적용한다. 음소거·중단·새 대화는 입을 닫고, 늦은 로드가 끝난 발화를 다시 재생하지 않는다. 모드 전환은 현재 오디오 시계와 요청 ID를 유지하며 실패/컨텍스트 상실은 SVG로 복구한다. 8개 실제 Core 브라우저 회귀와 실제 Gemini/TTS 요청 한 번을 확인했다. 기존 backend fallback은 유지한다.
 
 ## 원화 좌표도
 
@@ -20,7 +20,7 @@
 .\tmp\art-tools\Scripts\python.exe tools/prepare_sogangi_rigging.py
 ```
 
-`rigging-map.json`에서 좌상단이 (0,0)이고 L/R은 화면 기준이다. 현재 SVG 인사와 맞춰 커스텀 인사 파라미터는 **ParamArmRWave**로 정리했다. 기존 초안의 ParamArmLWave 이름을 그대로 혼용하지 않는다. 실제 모델에서 캐릭터 기준 좌우로 바꾸려면 PSD·명세·동작 파일의 대응표도 함께 변경한다.
+`web_tool/sogangi/workshop/rigging-map/rigging-map.json`에서 좌상단이 (0,0)이고 L/R은 화면 기준이다. 현재 SVG 인사와 맞춰 커스텀 인사 파라미터는 **ParamArmRWave**로 정리했다. 기존 초안의 ParamArmLWave 이름을 그대로 혼용하지 않는다. 실제 모델에서 캐릭터 기준 좌우로 바꾸려면 PSD·명세·동작 파일의 대응표도 함께 변경한다.
 
 ## 실제 Cubism 모델 검수실
 
@@ -61,7 +61,7 @@
 
 음성이 켜져 있으면 실제 재생하는 문장의 표정을 적용한다. 다음 문장이 먼저 도착해도 재생 중인 표정을 덮지 않는다. 음소거 중에는 글에 맞춰 표정을 적용하고 입은 닫는다. 중단·새 대화·연결 끊김에서는 중립으로 복귀하며 이전 요청의 오디오/태그를 재적용하지 않는다. 기쁨은 기존 감은 눈 후보를 짧게 사용하며 동작 줄이기 설정에서는 부차 동작을 생략한다.
 
-렌더링 라이브러리는 버전을 고정해 로컬에 보관했고 무결성과 고지를 기록했다. [의존성 출처](../web_tool/sogangi/vendor/README.md)를 참고한다. SVG 모드만 사용하면 이 의존성을 읽지 않으며 Live2D 선택 시 지연 로드한다.
+렌더링 라이브러리는 버전을 고정해 로컬에 보관했고 무결성과 고지를 기록했다. [의존성 출처](../web_tool/shared/vendor/README.md)를 참고한다. SVG 모드만 사용하면 이 의존성을 읽지 않으며 Live2D 선택 시 지연 로드한다.
 
 ## 자동 변환 도구의 소스 검토
 

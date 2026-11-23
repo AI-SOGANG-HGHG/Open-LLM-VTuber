@@ -7,8 +7,12 @@ from typing import (
     Literal,
     Union,
     Optional,
+    Sequence,
+    TYPE_CHECKING,
 )
 from loguru import logger
+from contextlib import aclosing
+import asyncio
 import re
 import inspect
 from .agent_interface import AgentInterface
@@ -30,6 +34,23 @@ from ...mcpp.tool_manager import ToolManager
 from ...mcpp.json_detector import StreamJSONDetector
 from ...mcpp.types import ToolCallObject
 from ...mcpp.tool_executor import ToolExecutor
+
+if TYPE_CHECKING:
+    from ...studio_profiles import PersonaPreset
+    from ...studio_registry import StudioRegistry
+
+
+STUDIO_EXPRESSION_TAGS = {
+    "neutral",
+    "joy",
+    "anger",
+    "surprise",
+    "sadness",
+    "sad",
+    "fear",
+    "disgust",
+    "smirk",
+}
 
 
 class BasicMemoryAgent(AgentInterface):
@@ -55,6 +76,7 @@ class BasicMemoryAgent(AgentInterface):
         """Initialize agent with LLM and configuration."""
         super().__init__()
         self._memory = []
+        self.studio_runtime = None
         self._live2d_model = live2d_model
         self._tts_preprocessor_config = tts_preprocessor_config
         self._faster_first_response = faster_first_response
@@ -126,6 +148,31 @@ class BasicMemoryAgent(AgentInterface):
         """Set the LLM for chat completion."""
         self._llm = llm
         self.chat = self._chat_function_factory()
+
+    def enable_studio_runtime(
+        self,
+        preset_id: str,
+        preset: "PersonaPreset",
+        notes: Sequence[str],
+        embedding_model: str | None,
+        *,
+        registry: "StudioRegistry | None" = None,
+        legacy_affect_id: str | None = None,
+        persona_instructions: str | None = None,
+    ) -> None:
+        """Attach recall and appraisal to this Studio conversation engine."""
+        from ...studio_turn import StudioTurnRuntime
+
+        self.studio_runtime = StudioTurnRuntime(
+            preset_id,
+            preset,
+            notes,
+            self._llm,
+            embedding_model,
+            registry=registry,
+            legacy_affect_id=legacy_affect_id,
+            persona_instructions=persona_instructions,
+        )
 
     def set_system(self, system: str):
         """Set the system prompt."""
@@ -250,11 +297,31 @@ class BasicMemoryAgent(AgentInterface):
 
         return "\n".join(message_parts).strip()
 
+    def recent_studio_messages(self, limit: int = 12) -> List[Dict[str, Any]]:
+        messages = self._memory[-limit:]
+        if messages and messages[0]["role"] == "assistant":
+            return messages[1:]
+        return messages
+
     def _to_messages(self, input_data: BatchInput) -> List[Dict[str, Any]]:
         """Prepare messages for LLM API call."""
-        messages = self._memory.copy()
+        if input_data.studio_context is not None:
+            messages = (
+                self.recent_studio_messages(limit=4)
+                if input_data.studio_use_recent_dialogue
+                else []
+            )
+        else:
+            messages = self._memory.copy()
         user_content = []
         text_prompt = self._to_text_prompt(input_data)
+        if input_data.studio_context is not None:
+            user_content.append(
+                {
+                    "type": "text",
+                    "text": f"서버가 선택한 대화 문맥:\n{input_data.studio_context}",
+                }
+            )
         if text_prompt:
             user_content.append({"type": "text", "text": text_prompt})
 
@@ -298,10 +365,72 @@ class BasicMemoryAgent(AgentInterface):
 
         return messages
 
+    async def _studio_reply(self, messages, system_prompt) -> AsyncIterator[str]:
+        emotion_names = STUDIO_EXPRESSION_TAGS.union(
+            getattr(self._live2d_model, "emo_map", {})
+        )
+        tags = "|".join(re.escape(name) for name in emotion_names)
+        expression_tag = re.compile(rf"\[(?:{tags})\]", re.IGNORECASE)
+        non_speech = re.compile(r"\[think\]|\[[^\[\]]*$", re.IGNORECASE)
+
+        for attempt in range(2):
+            prefix = ""
+            partial_tag = ""
+            emitted = False
+            try:
+                async with aclosing(
+                    self._llm.chat_completion(messages, system_prompt)
+                ) as stream:
+                    async for event in stream:
+                        chunk = (
+                            event.get("text", "")
+                            if (
+                                isinstance(event, dict)
+                                and event.get("type") == "text_delta"
+                            )
+                            else event
+                        )
+                        if not isinstance(chunk, str) or not chunk:
+                            continue
+                        chunk = partial_tag + chunk
+                        partial_tag = ""
+                        start = chunk.rfind("[")
+                        # The next token may finish a tag, so withhold its prefix.
+                        if start != -1 and any(
+                            name.startswith(chunk[start + 1 :].lower())
+                            for name in emotion_names
+                        ):
+                            partial_tag = chunk[start:]
+                            chunk = chunk[:start]
+                        chunk = expression_tag.sub("", chunk)
+                        if not chunk:
+                            continue
+                        if emitted:
+                            yield chunk
+                            continue
+                        prefix += chunk
+                        if any(char.isalnum() for char in non_speech.sub("", prefix)):
+                            emitted = True
+                            yield prefix
+            except Exception as error:
+                status = getattr(error, "status_code", None) or getattr(
+                    error.__context__, "status_code", None
+                )
+                if emitted or attempt or status not in (502, 503, 504):
+                    raise
+                await asyncio.sleep(0.25)
+                continue
+            if emitted:
+                return
+            if attempt:
+                raise ValueError("The model returned no spoken text")
+            system_prompt += "\n이번 답변은 반드시 의미 있는 한국어 문장으로 말한다."
+
     async def _claude_tool_interaction_loop(
         self,
         initial_messages: List[Dict[str, Any]],
         tools: List[Dict[str, Any]],
+        system_prompt: str,
     ) -> AsyncIterator[Union[str, Dict[str, Any]]]:
         """Handle Claude interaction loop with tool support."""
         messages = initial_messages.copy()
@@ -310,7 +439,7 @@ class BasicMemoryAgent(AgentInterface):
         current_assistant_message_content = []
 
         while True:
-            stream = self._llm.chat_completion(messages, self._system, tools=tools)
+            stream = self._llm.chat_completion(messages, system_prompt, tools=tools)
             pending_tool_calls.clear()
             current_assistant_message_content.clear()
 
@@ -415,25 +544,25 @@ class BasicMemoryAgent(AgentInterface):
         self,
         initial_messages: List[Dict[str, Any]],
         tools: List[Dict[str, Any]],
+        system_prompt: str,
     ) -> AsyncIterator[Union[str, Dict[str, Any]]]:
         """Handle OpenAI interaction with tool support."""
         messages = initial_messages.copy()
         current_turn_text = ""
         pending_tool_calls: Union[List[ToolCallObject], List[Dict[str, Any]]] = []
-        current_system_prompt = self._system
 
         while True:
             if self.prompt_mode_flag:
                 if self._mcp_prompt_string:
                     current_system_prompt = (
-                        f"{self._system}\n\n{self._mcp_prompt_string}"
+                        f"{system_prompt}\n\n{self._mcp_prompt_string}"
                     )
                 else:
                     logger.warning("Prompt mode active but mcp_prompt_string is empty!")
-                    current_system_prompt = self._system
+                    current_system_prompt = system_prompt
                 tools_for_api = None
             else:
-                current_system_prompt = self._system
+                current_system_prompt = system_prompt
                 tools_for_api = tools
 
             stream = self._llm.chat_completion(
@@ -610,6 +739,9 @@ class BasicMemoryAgent(AgentInterface):
             self.prompt_mode_flag = False
 
             messages = self._to_messages(input_data)
+            system_prompt = self._system
+            if input_data.studio_rule_prompt:
+                system_prompt = f"{system_prompt}\n\n{input_data.studio_rule_prompt}"
             tools = None
             tool_mode = None
             llm_supports_native_tools = False
@@ -639,7 +771,7 @@ class BasicMemoryAgent(AgentInterface):
                     f"Starting Claude tool interaction loop with {len(tools)} tools."
                 )
                 async for output in self._claude_tool_interaction_loop(
-                    messages, tools if tools else []
+                    messages, tools if tools else [], system_prompt
                 ):
                     yield output
                 return
@@ -648,13 +780,17 @@ class BasicMemoryAgent(AgentInterface):
                     f"Starting OpenAI tool interaction loop with {len(tools)} tools."
                 )
                 async for output in self._openai_tool_interaction_loop(
-                    messages, tools if tools else []
+                    messages, tools if tools else [], system_prompt
                 ):
                     yield output
                 return
             else:
                 logger.info("Starting simple chat completion.")
-                token_stream = self._llm.chat_completion(messages, self._system)
+                token_stream = (
+                    self._studio_reply(messages, system_prompt)
+                    if input_data.studio_context is not None
+                    else self._llm.chat_completion(messages, system_prompt)
+                )
                 complete_response = ""
                 async for event in token_stream:
                     text_chunk = ""

@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "defaultExpression": "neutral",
+  "vad": {
+    "valence": {"min": -1, "max": 1, "initial": 0},
+    "arousal": {"min": 0, "max": 1, "initial": 0},
+    "dominance": {"min": 0, "max": 1, "initial": 0.5}
+  },
+  "blend": {"previous": 0.6, "event": 0.4, "roundDigits": 3},
+  "expressions": [
+    {"id": "neutral"},
+    {
+      "id": "joy",
+      "hintGuidance": "for celebration",
+      "eventVad": {"valence": {"min": 0.2}}
+    },
+    {
+      "id": "sadness",
+      "hintGuidance": "for loss, disappointment, or sympathy",
+      "eventVad": {"valence": {"max": -0.2}}
+    },
+    {
+      "id": "anger",
+      "hintGuidance": "when the character is indignant",
+      "eventVad": {"valence": {"max": -0.2}, "arousal": {"min": 0.5}}
+    },
+    {
+      "id": "surprise",
+      "hintGuidance": "when something unexpected happens",
+      "eventVad": {"arousal": {"min": 0.5}}
+    }
+  ],
+  "appraisalPrompt": {
+    "affectAndEvidence": [
+      "Set affect and affect_evidence to null for factual questions and status checks, routine preferences, hypotheticals, and ordinary greetings.",
+      "Prior events and corrections of routine facts do not establish a new emotional event.",
+      "Otherwise rate the character's reaction to the new event and copy an exact substring from the current input that establishes the event into affect_evidence."
+    ],
+    "expressionHint": "For that same event, suggest one expression_hint for the character: {hints}. Use null for subtle reactions, ambiguous cases, or events without an affect rating. A report of the user's distress can call for sympathy.",
+    "vadShape": "Affect is an object with numeric keys {vad_axes}."
+  },
+  "inlineTags": {
+    "aliases": {
+      "smirk": "joy",
+      "fear": "surprise",
+      "disgust": "anger"
+    },
+    "extraStripTags": ["sad"]
+  }
+}

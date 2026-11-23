@@ -104,7 +104,7 @@ class Live2DPreviewTests(unittest.TestCase):
             os.environ.get("SOGANGI_BASE_URL", "http://localhost:12393")
             + "/web-tool/sogangi/"
         )
-        mapping = self.page.request.get(root + "rigging-map.json").json()
+        mapping = self.page.request.get(root + "workshop/rigging-map/rigging-map.json").json()
         artifact = self.page.request.get(
             root + "assets/production/handoff-manifest.json"
         ).json()

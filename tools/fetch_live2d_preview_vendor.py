@@ -20,7 +20,7 @@ def download(url):
 
 
 def main():
-    output = Path("web_tool/sogangi/vendor")
+    output = Path("web_tool/shared/vendor")
     output.mkdir(parents=True, exist_ok=True)
     records = []
     for name, version, member, target in [

@@ -1,0 +1,585 @@
+/* Character-first composition. Scenery is a native, lightweight SVG. */
+:root {
+  background: #f2f3ee;
+  color: #293b36;
+  --muted: #737e73;
+  --line: #e2e6dc;
+}
+.topbar {
+  height: 72px;
+  max-width: 1800px;
+  padding: 0 28px;
+}
+.brand {
+  font-size: 18px;
+}
+.brand-mark {
+  width: 30px;
+  height: 34px;
+  font-size: 23px;
+}
+.workspace {
+  max-width: 1800px;
+  height: calc(100dvh - 112px);
+  min-height: 620px;
+  padding: 20px 28px 12px;
+  grid-template-columns: minmax(0, 1.48fr) minmax(350px, 1fr);
+  gap: 20px;
+}
+.stage {
+  min-height: 0;
+  padding: 30px;
+  border-radius: 24px;
+  isolation: isolate;
+  background: #e6eadf url('../../../sogangi/assets/campus-lounge.svg') center / cover no-repeat;
+  border: 1px solid #d9e0d1;
+}
+.stage-copy {
+  pointer-events: none;
+}
+.stage-copy .eyebrow {
+  color: #6e8476;
+  font-size: 9px;
+  letter-spacing: 1.6px;
+  margin-bottom: 9px;
+}
+.stage h1 {
+  color: #30473d;
+  font-size: 29px;
+  font-weight: 700;
+  letter-spacing: -1.5px;
+  margin: 0;
+  line-height: 1.3;
+}
+.stage-copy > p:last-child {
+  color: #637b69;
+  margin-top: 8px;
+  font-size: 12px;
+}
+.mascot-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 13%;
+  transform: translateX(-50%);
+  width: auto;
+  height: 66%;
+  max-height: 540px;
+  aspect-ratio: 270 / 337;
+  max-width: 86%;
+  margin: 0;
+  z-index: 1;
+}
+.mascot {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  filter: drop-shadow(0 3px 0 #52654c0c);
+  animation: grounded-breathe 4.8s ease-in-out infinite;
+  transform-origin: 50% 98%;
+  overflow: visible;
+}
+.mascot-wrap[data-state='speaking'] .mascot {
+  animation: grounded-breathe 3s ease-in-out infinite;
+}
+.mascot-halo {
+  display: none;
+}
+.mascot-shadow {
+  z-index: -1;
+  bottom: 0;
+  left: 25%;
+  width: 50%;
+  height: 4%;
+  background: #6d806444;
+  filter: blur(4px);
+}
+.mascot-note {
+  top: -42px;
+  right: -24px;
+  max-width: 210px;
+  color: #415e4d;
+  background: #fffffff0;
+  border: 1px solid #d6e0d0;
+  border-radius: 16px 16px 16px 4px;
+  padding: 11px 15px;
+  font-size: 12px;
+  transform: none;
+  box-shadow: 0 4px 14px #3e523209;
+}
+.stage-bottom {
+  position: absolute;
+  bottom: 18px;
+  left: 22px;
+  right: 22px;
+  margin: 0;
+  padding: 0;
+  background: none;
+}
+.stage-location {
+  color: #596f5b;
+  font-size: 10px;
+  letter-spacing: 0.3px;
+}
+.stage-location > span {
+  color: #819b7b;
+  font-size: 7px;
+  margin-right: 6px;
+}
+.stage-actions {
+  display: flex;
+  gap: 5px;
+}
+.stage-actions .quiet-button {
+  background: #f9fbf2b8;
+  border: 1px solid #bfcbb37a;
+  padding: 8px 11px;
+  border-radius: 20px;
+  color: #50664e;
+}
+.stage-actions .quiet-button:hover:not(:disabled) {
+  background: #fff;
+}
+.conversation {
+  background: #fffefa;
+  border: 1px solid #e1e5db;
+  border-radius: 24px;
+  padding: 25px 24px 16px;
+  min-height: 0;
+  max-height: none;
+  overflow: hidden;
+}
+.conversation-heading .eyebrow {
+  font-size: 8px;
+  letter-spacing: 1.7px;
+  color: #8a9787;
+}
+.conversation h2 {
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -1px;
+}
+.conversation-toolbar {
+  margin-bottom: 0;
+  padding-top: 14px;
+  flex-shrink: 0;
+}
+.conversation-heading,
+.composer,
+.conversation-footnote,
+.notice {
+  flex-shrink: 0;
+}
+.messages {
+  min-height: 0;
+  padding-top: 18px;
+}
+.welcome {
+  min-height: 240px;
+  padding: 16px 0;
+}
+.welcome-spark {
+  color: #b51f38;
+  font-size: 29px;
+}
+.welcome h3 {
+  font-weight: 600;
+}
+.suggestions button {
+  background: #f4f6ee;
+  border-color: #e0e6d7;
+  color: #56644e;
+  font-size: 11px;
+}
+.message {
+  font-size: 14px;
+  line-height: 1.8;
+}
+.message-body {
+  border: 1px solid #e3e7dc;
+  background: #f4f6ee;
+}
+.message.user .message-body {
+  background: #f5e6e8;
+  color: #6f3540;
+}
+.composer {
+  background: #fff;
+  border-color: #d9dfd1;
+  padding: 12px 14px 9px;
+  border-radius: 16px;
+}
+.composer textarea {
+  resize: none;
+  min-height: 44px;
+  font-size: 14px;
+}
+.composer:focus-within {
+  border-color: #a8b49d;
+  box-shadow: 0 0 0 3px #a8b49d16;
+}
+.quiet-button {
+  font-size: 12px;
+}
+.send-button {
+  border-radius: 11px;
+  font-size: 12px;
+  padding: 10px 14px;
+}
+.conversation-footnote {
+  font-size: 10px;
+  margin-top: 9px;
+}
+.page-footer {
+  max-width: 1800px;
+  padding: 0 30px 10px;
+  gap: 16px;
+  font-size: 10px;
+}
+@keyframes grounded-breathe {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(1.003, 1.009);
+  }
+}
+@media (max-width: 1050px) and (min-width: 681px) {
+  .workspace {
+    padding-left: 16px;
+    padding-right: 16px;
+    gap: 14px;
+    grid-template-columns: minmax(0, 1fr) minmax(330px, 1fr);
+  }
+  .stage {
+    padding: 23px;
+  }
+  .mascot-wrap {
+    height: auto;
+    width: 84%;
+    max-width: 360px;
+    bottom: 16%;
+  }
+  .mascot-note {
+    font-size: 11px;
+    right: 0;
+  }
+  .stage-bottom {
+    left: 16px;
+    right: 16px;
+  }
+  .stage-location {
+    display: none;
+  }
+  .stage-actions {
+    margin-left: auto;
+  }
+  .conversation {
+    padding: 22px 18px 14px;
+  }
+  .conversation h2 {
+    font-size: 18px;
+  }
+  .prototype-tag {
+    display: none;
+  }
+}
+@media (max-width: 680px) {
+  body {
+    height: 100dvh;
+    min-height: 600px;
+    display: flex;
+    flex-direction: column;
+  }
+  .topbar {
+    height: 58px;
+    min-height: 58px;
+    width: 100%;
+    padding: 0 16px;
+  }
+  .brand {
+    font-size: 15px;
+  }
+  .brand-mark {
+    width: 26px;
+    height: 29px;
+    font-size: 20px;
+  }
+  .workspace {
+    display: grid;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    height: auto;
+    padding: 10px 10px 8px;
+    gap: 10px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: clamp(180px, 31dvh, 285px) minmax(0, 1fr);
+  }
+  .stage {
+    height: auto;
+    min-height: 0;
+    border-radius: 18px;
+    padding: 17px;
+    background-position: center 68%;
+  }
+  .stage-copy {
+    max-width: 40%;
+  }
+  .stage-copy .eyebrow {
+    font-size: 6px;
+    letter-spacing: 0.6px;
+    margin-bottom: 5px;
+  }
+  .stage h1 {
+    font-size: 22px;
+    letter-spacing: -1px;
+  }
+  .stage-copy > p:last-child {
+    font-size: 10px;
+    margin-top: 5px;
+  }
+  .mascot-wrap {
+    height: 85%;
+    width: auto;
+    max-width: 62%;
+    bottom: 6%;
+    left: 57%;
+    right: auto;
+  }
+  .mascot-note {
+    right: -12px;
+    top: -23px;
+    font-size: 9px;
+    padding: 7px 9px;
+    max-width: 150px;
+  }
+  .mascot-shadow {
+    filter: blur(2px);
+  }
+  .stage-bottom {
+    left: 13px;
+    right: 10px;
+    bottom: 9px;
+  }
+  .stage-location {
+    display: none;
+  }
+  .stage-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .stage-actions .quiet-button {
+    font-size: 9px;
+    padding: 6px 8px;
+    min-height: 30px;
+  }
+  .conversation {
+    height: auto;
+    max-height: none;
+    min-height: 0;
+    border-radius: 18px;
+    padding: 13px 14px 10px;
+  }
+  .conversation-heading .eyebrow {
+    display: none;
+  }
+  .conversation h2 {
+    font-size: 17px;
+    letter-spacing: -0.7px;
+  }
+  .conversation-heading .icon-button {
+    width: 30px;
+    height: 30px;
+    font-size: 21px;
+  }
+  .conversation-toolbar {
+    min-height: 36px;
+    padding: 5px 0;
+    font-size: 10px;
+  }
+  .conversation .quiet-button {
+    font-size: 11px;
+    padding: 6px;
+    min-height: 34px;
+  }
+  .messages {
+    padding: 10px 0;
+  }
+  .welcome {
+    min-height: 0;
+    padding: 8px 0;
+  }
+  .welcome-spark,
+  .welcome p {
+    display: none;
+  }
+  .welcome h3 {
+    font-size: 16px;
+    margin: 0 0 10px;
+  }
+  .suggestions {
+    margin: 0;
+    gap: 5px;
+  }
+  .suggestions button {
+    font-size: 10px;
+    padding: 7px 9px;
+  }
+  .composer {
+    padding: 9px 10px 7px;
+    border-radius: 12px;
+  }
+  .composer textarea {
+    min-height: 34px;
+    height: 34px;
+    font-size: 13px;
+  }
+  .composer-bottom {
+    margin-top: 1px;
+  }
+  .send-button {
+    font-size: 11px;
+    padding: 7px 11px;
+    gap: 12px;
+    min-height: 36px;
+  }
+  .message {
+    font-size: 13px;
+    margin-bottom: 14px;
+  }
+  .message-body {
+    padding: 10px 12px;
+  }
+  .conversation-footnote {
+    font-size: 8px;
+    margin: 5px 0 0;
+  }
+  .page-footer {
+    flex-shrink: 0;
+    width: 100%;
+    padding: 0 15px 7px;
+    gap: 9px;
+    font-size: 8px;
+    justify-content: flex-end;
+  }
+  .page-footer > span {
+    display: none;
+  }
+}
+@media (max-height: 720px) and (max-width: 680px) {
+  .workspace {
+    grid-template-rows: 180px minmax(0, 1fr);
+  }
+  .welcome h3 {
+    display: none;
+  }
+  .mascot-note {
+    top: -13px;
+    font-size: 8px;
+    padding: 5px 8px;
+  }
+}
+@media (max-height: 520px) and (min-width: 681px) {
+  .topbar {
+    height: 54px;
+  }
+  .workspace {
+    height: calc(100dvh - 82px);
+    min-height: 0;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .stage {
+    padding: 14px;
+    border-radius: 18px;
+  }
+  .stage-copy .eyebrow,
+  .stage-copy > p:last-child {
+    display: none;
+  }
+  .stage h1 {
+    font-size: 21px;
+  }
+  .mascot-wrap {
+    width: auto;
+    height: 80%;
+    bottom: 10%;
+  }
+  .mascot-note {
+    top: -25px;
+    font-size: 9px;
+    padding: 6px 8px;
+  }
+  .stage-bottom {
+    bottom: 7px;
+    left: 9px;
+    right: 9px;
+  }
+  .stage-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .stage-actions .quiet-button {
+    font-size: 9px;
+    padding: 6px 8px;
+  }
+  .conversation {
+    padding: 10px 12px 8px;
+    border-radius: 18px;
+  }
+  .conversation-heading .eyebrow,
+  .welcome-spark,
+  .welcome p {
+    display: none;
+  }
+  .conversation h2 {
+    font-size: 16px;
+  }
+  .conversation-heading .icon-button {
+    width: 28px;
+    height: 28px;
+    font-size: 20px;
+  }
+  .conversation-toolbar {
+    min-height: 30px;
+    padding: 2px 0;
+  }
+  .welcome {
+    min-height: 0;
+    padding: 5px 0;
+  }
+  .welcome h3 {
+    display: none;
+  }
+  .suggestions {
+    margin: 0;
+    gap: 4px;
+  }
+  .suggestions button {
+    padding: 5px 7px;
+    font-size: 9px;
+  }
+  .composer {
+    padding: 7px 9px;
+  }
+  .composer textarea {
+    min-height: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+  .composer-bottom {
+    margin-top: 0;
+  }
+  .send-button {
+    padding: 6px 10px;
+  }
+  .conversation-footnote {
+    font-size: 8px;
+    margin-top: 3px;
+  }
+  .page-footer {
+    padding-bottom: 4px;
+    font-size: 8px;
+  }
+}
