@@ -54,7 +54,9 @@ class ProxyHandler:
 
         # Initialize message queue manager
         self.message_queue = ProxyMessageQueue()
-        self.safety_filter = ChatSafetyFilter() if ChatSafetyFilter else None
+        self.safety_filter = (
+            ChatSafetyFilter(enable_ai_classifier=True) if ChatSafetyFilter else None
+        )
         self._heartbeat_task: asyncio.Task[None] | None = None
         self._running = True
         self._session: aiohttp.ClientSession | None = None
@@ -179,7 +181,10 @@ class ProxyHandler:
             return
 
         try:
-            is_safe, result = self.safety_filter.validate(author, text)
+            if hasattr(self.safety_filter, "avalidate"):
+                is_safe, result = await self.safety_filter.avalidate(author, text)
+            else:
+                is_safe, result = self.safety_filter.validate(author, text)
         except Exception:
             logger.warning("Discarding Chzzk input because chat validation failed")
             return
@@ -334,12 +339,12 @@ class ProxyHandler:
             if "audio" not in message
             else {
                 **{k: v for k, v in message.items() if k != "audio"},
-                "audio": f"[Audio data, {len(message.get('audio', ''))} bytes truncated]",
+                "audio": f"[Audio data, {len(message.get('audio') or '')} bytes truncated]",
             }
         )
 
-        if "volumes" in log_msg and len(log_msg.get("volumes", [])) > 10:
-            log_msg["volumes"] = f"[{len(message.get('volumes', []))} volume values]"
+        if "volumes" in log_msg and len(log_msg.get("volumes") or []) > 10:
+            log_msg["volumes"] = f"[{len(message.get('volumes') or [])} volume values]"
 
         logger.debug(f"Broadcasting to clients (excluding {exclude_client}): {log_msg}")
 
