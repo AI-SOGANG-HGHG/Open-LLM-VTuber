@@ -431,7 +431,11 @@ class ServiceContext:
     # ==== utils
 
     async def construct_system_prompt(
-        self, persona_prompt: str, *, live2d_model: Live2dModel | None = None
+        self,
+        persona_prompt: str,
+        *,
+        live2d_model: Live2dModel | None = None,
+        use_inline_expressions: bool = True,
     ) -> str:
         """
         Append tool prompts to persona prompt.
@@ -439,6 +443,7 @@ class ServiceContext:
         Parameters:
         - persona_prompt (str): The persona prompt.
         - live2d_model: Optional model supplying the expression keywords.
+        - use_inline_expressions: Whether the agent should emit expression tags.
 
         Returns:
         - str: The system prompt with all tool prompts appended.
@@ -449,6 +454,10 @@ class ServiceContext:
             if (
                 prompt_name == "group_conversation_prompt"
                 or prompt_name == "proactive_speak_prompt"
+                or (
+                    prompt_name == "live2d_expression_prompt"
+                    and not use_inline_expressions
+                )
             ):
                 continue
 

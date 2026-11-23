@@ -121,6 +121,7 @@ const studioProfile = await getStudioProfile();
     historyTimer: null,
     lastQuestion: null,
     lastExpression: 'neutral',
+    studioExpression: null,
     recoverable: false,
     nextNotice: '',
   };
@@ -325,10 +326,12 @@ const studioProfile = await getStudioProfile();
     setMascotExpression('neutral');
   }
   function responseExpression(text) {
-    return expressionFor(text, {
-      avatar: studioProfile?.avatar,
-      expression: state.studioTurn?.expression,
-    });
+    if (!studioProfile) return expressionFor(text);
+    state.studioExpression ??= expressionFor('', {
+      avatar: studioProfile.avatar,
+      expression: state.studioTurn?.expression ?? 'neutral',
+    }) ?? 'neutral';
+    return state.studioExpression;
   }
   function controls() {
     const microphoneBusy = microphone.busy;
@@ -349,8 +352,8 @@ const studioProfile = await getStudioProfile();
   }
   function clean(text) {
     return String(text || '')
-      .replace(/\[(neutral|anger|disgust|fear|joy|smirk|sadness|surprise)\]/gi, '')
-      .replace(/\[(neutral|anger|disgust|fear|joy|smirk|sadness|surprise)$/gi, '')
+      .replace(/\[(neutral|anger|disgust|fear|joy|smirk|sad(?:ness)?|surprise)\]/gi, '')
+      .replace(/\[(neutral|anger|disgust|fear|joy|smirk|sad(?:ness)?|surprise)$/gi, '')
       .trim();
   }
   function message(role, text = '') {
@@ -473,6 +476,7 @@ const studioProfile = await getStudioProfile();
     state.recoverable = false;
     state.lastQuestion = text;
     state.lastExpression = 'neutral';
+    state.studioExpression = null;
     state.assistant = null;
     state.studioTurn = null;
     state.firstAudio = null;
@@ -639,7 +643,7 @@ const studioProfile = await getStudioProfile();
         connection.restartAfterFailure('History unavailable');
       }
     } else if (data.type === 'studio-turn-context' && studioProfile && state.busy && !state.discard) {
-      state.studioTurn = data;
+      state.studioTurn ??= data;
     } else if (data.type === 'text-response' && state.busy && !state.discard) {
       state.textStreaming = true;
       if (state.firstText === null) state.firstText = performance.now() - state.started;
