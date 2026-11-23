@@ -120,16 +120,20 @@ globalThis.makeIvoryCrownRig = (() => {
           continue;
         }
 
-        // Narrow the open eye around its lower lash line. Fade to the closed
-        // crease only at the end of the blink, after the iris has flattened.
+        // Scale the iris around the lower lash line. Near a closed blink,
+        // crossfade to the closed crease once the iris has flattened.
         const lashLine = 46;
         const openWeight = Math.min(1, amount / 0.18);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x, y, original.width, original.height);
+        ctx.clip();
         ctx.drawImage(underpaint, x, y);
         ctx.globalAlpha = 1 - openWeight;
         ctx.drawImage(alternate, x, y);
         ctx.globalAlpha = openWeight;
         ctx.drawImage(original, x, y + lashLine * (1 - amount), original.width, original.height * amount);
-        ctx.globalAlpha = 1;
+        ctx.restore();
       }
       if (mouth !== previous?.mouth) {
         if (previous) restoreRegion(ctx, 'Mouth');

@@ -41,7 +41,7 @@ class EmptyResponseTests(unittest.IsolatedAsyncioTestCase):
         outputs = [item async for item in agent.chat(batch)]
         self.assertEqual(llm.attempts, 2)
         self.assertEqual(len(outputs), 1)
-        self.assertEqual(outputs[0].display_text.text, "[neutral] 짧게 답하겠습니다.")
+        self.assertEqual(outputs[0].display_text.text, "짧게 답하겠습니다.")
 
     async def test_studio_retries_an_upstream_failure_before_text(self):
         class TemporarilyUnavailable(RuntimeError):

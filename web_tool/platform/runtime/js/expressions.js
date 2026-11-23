@@ -1,4 +1,4 @@
-import { maoExpressionIndices } from '../../../shared/live2d-loader.js';
+import { kangIseoExpressions, maoExpressionIndices } from '../../../shared/live2d-loader.js';
 
 // Sogangi's semantic names are independent of Mao's numeric indices.
 // Native Cubism supports four states; the SVG engine keeps its neutral/joy fallback.
@@ -21,6 +21,7 @@ export function normalizeExpression(name) {
 function resolveAvatarExpression(name, avatar) {
   if (avatar === 'sogangi') return normalizeExpression(name);
   if (avatar === 'mao' && Object.hasOwn(maoExpressionIndices, name)) return name;
+  if (avatar === 'ivory-crown' && kangIseoExpressions.includes(name)) return name;
   return 'neutral';
 }
 

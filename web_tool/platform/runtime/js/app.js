@@ -168,9 +168,9 @@ const studioProfile = await getStudioProfile();
       ui.greetButton.textContent = '모션 재생';
       ui.greetButton.title = '기본 Live2D 모션을 재생해요.';
       ui.greetButton.hidden = studioProfile.avatar !== 'mao';
-      if (studioProfile.avatar === 'ivory-crown') ui.avatarRetry.textContent = '2D 움직임 다시 불러오기';
+      if (studioProfile.avatar === 'ivory-crown') ui.avatarRetry.textContent = 'Live2D 다시 불러오기';
       if (renderer.active === 'canvas2d') {
-        ui.avatarStatus.textContent = '눈을 깜빡이고 음성에 맞춰 입을 움직여요.';
+        ui.avatarStatus.textContent = '2D 모드에서 표정과 음성에 맞춰 움직여요.';
       } else if (studioProfile.avatar === 'ivory-crown' && renderer.degraded) {
         ui.avatarStatus.textContent = '2D 움직임을 불러오지 못해 외형 이미지를 표시해요.';
       }

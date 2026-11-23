@@ -1,9 +1,20 @@
 import { createRandomId } from './random-id.js';
-// Loads only the two bundled, approved models. No microphone, audio, WebSocket, or model API.
+// Loads only the approved local model paths.
 let libraries;
 export const maoExpressionIndices = Object.freeze({
   neutral: 0, sadness: 1, anger: 2, joy: 3, surprise: 3,
 });
+export const kangIseoModel = '/live2d-models/kang-iseo/runtime/kang-iseo.model3.json';
+export const kangIseoExpressions = Object.freeze(['neutral', 'joy', 'surprise']);
+
+const approvedModels = [
+  '/live2d-models/mao_pro/runtime/mao_pro.model3.json',
+  '/live2d-models/sogangi-expressions/runtime/sogangi.model3.json',
+  kangIseoModel,
+];
+const eyeParameters = ['ParamEyeLOpen', 'ParamEyeROpen'];
+const mouthParameter = 'ParamMouthOpenY';
+
 function loadScript(url, ready) {
   if (ready()) return Promise.resolve();
   return new Promise((resolve, reject) => {
@@ -30,7 +41,8 @@ function loadLibraries() {
   return libraries;
 }
 export function createLivePreview(canvas, stage, onFailure = () => {}) {
-  let app, model, disposed = false;
+  let app, model, disposed = false, kangIseo = false;
+  let expressionIndices = maoExpressionIndices;
   const pose = { mouth: 0, gaze: 0, reduced: false, expression: 'neutral' };
   const started = performance.now();
   const request = new AbortController();
@@ -58,10 +70,9 @@ export function createLivePreview(canvas, stage, onFailure = () => {}) {
   }
   return {
     async load(path) {
-      if (!['/live2d-models/mao_pro/runtime/mao_pro.model3.json', '/live2d-models/sogangi-expressions/runtime/sogangi.model3.json'].includes(path)) throw Error('Unknown model');
-      await loadLibraries();
-      if (disposed) throw Error('Preview closed');
-      const response = await fetch(path, { signal: request.signal });
+      if (!approvedModels.includes(path)) throw Error('Unknown model');
+      kangIseo = path === kangIseoModel;
+      const response = await fetch(path, { signal: request.signal, cache: 'no-cache' });
       if (!response.ok) throw Error('Model unavailable');
       const settings = await response.json();
       const url = new URL(path, location.origin);
@@ -79,6 +90,17 @@ export function createLivePreview(canvas, stage, onFailure = () => {}) {
       for (const key of ['Physics', 'Pose', 'DisplayInfo', 'UserData']) if (refs[key]) refs[key] = fresh(refs[key]);
       for (const item of refs.Expressions || []) item.File = fresh(item.File);
       for (const entries of Object.values(refs.Motions || {})) for (const item of entries) { item.File = fresh(item.File); delete item.Sound; }
+      if (kangIseo) {
+        expressionIndices = Object.fromEntries((refs.Expressions || []).map((item, index) => [item.Name, index]));
+        const hasParameters = (name, ids) => settings.Groups?.some((group) =>
+          group.Target === 'Parameter' && group.Name === name && ids.every((id) => group.Ids?.includes(id)),
+        );
+        if (!hasParameters('EyeBlink', eyeParameters) || !hasParameters('LipSync', [mouthParameter]) ||
+            !kangIseoExpressions.every((name) => Object.hasOwn(expressionIndices, name))) {
+          throw Error('Kang Iseo model is missing eye, lip sync, or expression bindings');
+        }
+      }
+      await loadLibraries();
       if (disposed) throw Error('Preview closed');
       app = new PIXI.Application({ view: canvas, width: stage.clientWidth, height: stage.clientHeight, backgroundAlpha: 0, antialias: true, powerPreference: 'low-power', resolution: Math.min(devicePixelRatio, 1.5), autoDensity: true });
       const loaded = await PIXI.live2d.Live2DModel.from({ ...settings, url: url.href }, { autoInteract: false, idleMotionGroup: '__preview__', motionPreload: PIXI.live2d.MotionPreloadStrategy.NONE });
@@ -87,6 +109,20 @@ export function createLivePreview(canvas, stage, onFailure = () => {}) {
       model.anchor.set(.5, .5);
       const core = model.internalModel.coreModel;
       const ids = new Set(Array.from(core.getModel().parameters.ids));
+      if (kangIseo) {
+        if (![...eyeParameters, mouthParameter].every((id) => ids.has(id))) {
+          throw Error('Kang Iseo MOC is missing eye or lip sync parameters');
+        }
+        const manager = model.internalModel.motionManager.expressionManager;
+        const expressions = await Promise.all(
+          kangIseoExpressions.map((name) => manager.loadExpression(expressionIndices[name])),
+        );
+        if (disposed) throw Error('Preview closed');
+        if (expressions.some((expression) => !expression)) throw Error('Kang Iseo expression unavailable');
+        await model.expression(expressionIndices.neutral);
+        if (disposed) throw Error('Preview closed');
+        canvas.dataset.expression = 'neutral';
+      }
       const set = (id, value) => { if (ids.has(id)) core.setParameterValueById(id, value); };
       model.internalModel.on('beforeModelUpdate', () => {
         if (disposed) return;
@@ -94,11 +130,12 @@ export function createLivePreview(canvas, stage, onFailure = () => {}) {
         const reduced = pose.reduced || matchMedia('(prefers-reduced-motion: reduce)').matches;
         const blink = elapsed % 4300;
         const eyes = reduced || blink > 180 ? 1 : Math.min(1, Math.abs(blink - 90) / 90);
-        set('ParamEyeLOpen', eyes); set('ParamEyeROpen', eyes);
-        set('ParamMouthOpenY', pose.mouth);
+        for (const id of eyeParameters) set(id, eyes);
+        set(mouthParameter, pose.mouth);
         set('ParamBreath', reduced ? 0 : (1 - Math.cos(elapsed / 4800 * Math.PI * 2)) / 2);
-        set('ParamAngleZ', reduced ? 0 : pose.gaze * 8);
-        canvas.dataset.appliedMouth = String(pose.mouth);
+        set('ParamAngleZ', reduced ? 0 : pose.gaze * (kangIseo ? 3 : 8));
+        canvas.dataset.appliedMouth = String(kangIseo ? core.getParameterValueById(mouthParameter) : pose.mouth);
+        if (kangIseo) canvas.dataset.eyeOpen = String(core.getParameterValueById(eyeParameters[0]));
         canvas.dataset.frames = String(Number(canvas.dataset.frames || 0) + 1);
       });
       app.stage.addChild(model);
@@ -111,10 +148,12 @@ export function createLivePreview(canvas, stage, onFailure = () => {}) {
     setReducedMotion(reduced) { pose.reduced = reduced; },
     lookAt(x) { pose.gaze = Math.max(-1, Math.min(1, Number(x) || 0)); },
     setExpression(name) {
-      if (pose.expression === name) return;
-      pose.expression = name;
-      const index = Object.hasOwn(maoExpressionIndices, name) ? maoExpressionIndices[name] : 0;
-      model?.expression(index).catch(() => {});
+      const expression = Object.hasOwn(expressionIndices, name) ? name : 'neutral';
+      if (pose.expression === expression) return;
+      pose.expression = expression;
+      model?.expression(expressionIndices[expression]).then((applied) => {
+        if (kangIseo && applied && !disposed && pose.expression === expression) canvas.dataset.expression = expression;
+      }).catch((error) => { if (kangIseo) fail(error); });
     },
     greet() {
       if (!model || disposed || pose.reduced) return false;
