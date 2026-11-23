@@ -189,7 +189,10 @@ class ProxyHandler:
             logger.warning("Discarding Chzzk input because chat validation failed")
             return
         if not is_safe:
-            logger.warning("Chat safety filter blocked Chzzk input")
+            logger.warning(
+                f"🛑 Chat safety filter blocked Chzzk input "
+                f"(reason={result}) | author={author!r} | text={text!r}"
+            )
             return
 
         message = {**message, "author": result}

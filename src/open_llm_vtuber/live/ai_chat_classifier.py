@@ -15,6 +15,7 @@ import asyncio
 from collections import OrderedDict
 import os
 from pathlib import Path
+import re
 from typing import Any
 
 import httpx
@@ -39,6 +40,38 @@ VALID_AI_CATEGORIES = frozenset(
 
 DEFAULT_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 DEFAULT_SMALL_MODEL = "gemini-3.1-flash-lite"
+
+# Contextual semantic patterns for disguised toxicity that bypasses literal word lists
+_SEMANTIC_CONTEXT_PATTERNS: dict[str, tuple[re.Pattern[str], ...]] = {
+    "harassment": (
+        re.compile(r"(부모님|엄마|아빠|가정\s*교육).*(가르치|시키|배웠|수준|없)", re.I),
+        re.compile(r"(머리|뇌).*(장식|우동사리|비었|없냐)", re.I),
+        re.compile(r"(지능|능지).*(수준|처참|부족|낮|떨어)", re.I),
+        re.compile(r"(수준|인성).*(알\s*만하다|처참|바닥|쓰레기)", re.I),
+    ),
+    "sexual": (
+        re.compile(r"(술집|접대|룸살롱|유흥|몸\s*파는).*(여자|얼마|같네|보이)", re.I),
+        re.compile(r"(오늘|하룻밤)\s*얼마(야|냐|임)", re.I),
+    ),
+    "injection": (
+        re.compile(
+            r"(연기|캐릭터|버튜버).*(멈추고|그만하고).*(내부\s*설정|문서|지침|프롬프트)",
+            re.I,
+        ),
+        re.compile(
+            r"(내부\s*설정|설정\s*문서|초기\s*지시).*(그대로|처음부터|출력|읽어)",
+            re.I,
+        ),
+    ),
+}
+
+# Suspicion cues that warrant remote small-LLM semantic inspection when a
+# message passes stage-1 literal rules and fast contextual regexes.
+_REMOTE_AI_SUSPICION_REGEX = re.compile(
+    r"(부모|엄마|아빠|가정|지능|능지|뇌|수준|인성|역겹|토나와|꺼져|죽어|접대|술집|"
+    r"몸\s*파|얼마야|설정|지침|역할|연기|내부|출력해|읽어줘|솔직하게|명령)",
+    re.I,
+)
 
 
 def _load_llm_credentials_from_conf(
@@ -103,7 +136,7 @@ class SmallModelSafetyClassifier:
         api_key: str | None = None,
         model: str | None = None,
         hf_model_name: str = "smilegate-ai/kor_unsmile",
-        timeout_sec: float = 1.5,
+        timeout_sec: float = 4.0,
         cache_size: int = 512,
         fail_open: bool = True,
     ) -> None:
@@ -212,6 +245,14 @@ class SmallModelSafetyClassifier:
             return None
         return f"text:ai:{label}"
 
+    @staticmethod
+    def _check_semantic_context(text: str) -> str | None:
+        """Detect disguised contextual toxicity and indirect prompt injections."""
+        for category, patterns in _SEMANTIC_CONTEXT_PATTERNS.items():
+            if any(pattern.search(text) for pattern in patterns):
+                return f"text:ai:{category}"
+        return None
+
     async def acheck_text(self, text: str) -> str | None:
         """Asynchronously evaluate text safety with the small AI model.
 
@@ -230,7 +271,23 @@ class SmallModelSafetyClassifier:
         if hit:
             return cached_reason
 
+        semantic_reason = self._check_semantic_context(cleaned)
+        if semantic_reason is not None:
+            self._put_cache(cleaned, semantic_reason)
+            logger.info(
+                f"[AISafetyClassifier] Blocked message ({semantic_reason}): "
+                f"{cleaned[:40]!r}"
+            )
+            return semantic_reason
+
         if not self.is_ready:
+            return None
+
+        if (
+            self.backend == "openai_compatible"
+            and not _REMOTE_AI_SUSPICION_REGEX.search(cleaned)
+        ):
+            self._put_cache(cleaned, None)
             return None
 
         try:
@@ -268,7 +325,23 @@ class SmallModelSafetyClassifier:
         if hit:
             return cached_reason
 
+        semantic_reason = self._check_semantic_context(cleaned)
+        if semantic_reason is not None:
+            self._put_cache(cleaned, semantic_reason)
+            logger.info(
+                f"[AISafetyClassifier] Blocked message ({semantic_reason}): "
+                f"{cleaned[:40]!r}"
+            )
+            return semantic_reason
+
         if not self.is_ready:
+            return None
+
+        if (
+            self.backend == "openai_compatible"
+            and not _REMOTE_AI_SUSPICION_REGEX.search(cleaned)
+        ):
+            self._put_cache(cleaned, None)
             return None
 
         try:

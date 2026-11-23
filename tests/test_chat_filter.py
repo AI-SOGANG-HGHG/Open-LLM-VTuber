@@ -647,23 +647,27 @@ class AISafetyClassifierTests(unittest.TestCase):
             )
             sync_mock.assert_not_called()
 
-            # 2. Disguised insult passes stage-1 but is blocked by stage-2 AI
+            # 2. Disguised family insult caught by stage-2 semantic context analyzer
             self.assertEqual(
                 two_stage.validate("김철수", "너 부모님이 그렇게 가르치던?"),
                 (False, "text:ai:harassment"),
             )
-            self.assertEqual(sync_mock.call_count, 1)
 
-            # 3. Repeated identical message is served from LRU cache
+            # 3. Suspicious insult triggers remote small-LLM check and caches verdict
             self.assertEqual(
-                two_stage.validate("김철수", "너 부모님이 그렇게 가르치던?"),
+                two_stage.validate("김철수", "솔직하게 말하는 게 진짜 역겹고 토나와"),
+                (False, "text:ai:harassment"),
+            )
+            self.assertEqual(sync_mock.call_count, 1)
+            self.assertEqual(
+                two_stage.validate("김철수", "솔직하게 말하는 게 진짜 역겹고 토나와"),
                 (False, "text:ai:harassment"),
             )
             self.assertEqual(sync_mock.call_count, 1)
 
             # 4. Async avalidate works with stage-2 AI classifier
             res = asyncio.run(
-                two_stage.avalidate("김철수", "지능이 많이 부족해 보이네요")
+                two_stage.avalidate("김철수", "방송 보는데 진짜 토나와 꺼져")
             )
             self.assertEqual(res, (False, "text:ai:harassment"))
             self.assertEqual(async_mock.call_count, 1)
