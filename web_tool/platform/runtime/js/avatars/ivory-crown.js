@@ -1,7 +1,7 @@
+import { kangIseoFaces } from '../../../../shared/kang-iseo-expressions.js';
+
 let rigImport;
 let rigAttempt = 0;
-
-const eyeOpenness = Object.freeze({ neutral: 1, joy: 0.72, surprise: 1.10 });
 
 function loadRig() {
   if (!rigImport) {
@@ -38,8 +38,9 @@ export async function createIvoryCrownAvatar(canvas, imageUrl) {
   let reduced = false;
 
   function draw() {
-    pose.eyeL = pose.eyeR = Math.round(eyeOpenness[expression] * blinkOpenness * 100) / 100;
-    rig.draw(context, pose);
+    const face = kangIseoFaces[expression];
+    pose.eyeL = pose.eyeR = Math.round(face.eyeScale * blinkOpenness * 100) / 100;
+    rig.draw(context, pose, face);
     canvas.dataset.appliedMouth = String(pose.mouth);
     canvas.dataset.eyeOpen = String(pose.eyeL);
     canvas.dataset.expression = expression;
@@ -98,7 +99,7 @@ export async function createIvoryCrownAvatar(canvas, imageUrl) {
       draw();
     },
     setExpression(name) {
-      const next = Object.hasOwn(eyeOpenness, name) ? name : 'neutral';
+      const next = Object.hasOwn(kangIseoFaces, name) ? name : 'neutral';
       if (next === expression) return;
       expression = next;
       draw();

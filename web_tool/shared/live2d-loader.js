@@ -1,11 +1,12 @@
 import { createRandomId } from './random-id.js';
+import { kangIseoFaces } from './kang-iseo-expressions.js';
 // Loads only the approved local model paths.
 let libraries;
 export const maoExpressionIndices = Object.freeze({
   neutral: 0, sadness: 1, anger: 2, joy: 3, surprise: 3,
 });
 export const kangIseoModel = '/live2d-models/kang-iseo/runtime/kang-iseo.model3.json';
-export const kangIseoExpressions = Object.freeze(['neutral', 'joy', 'surprise']);
+export const kangIseoExpressions = Object.freeze(Object.keys(kangIseoFaces));
 
 const approvedModels = [
   '/live2d-models/mao_pro/runtime/mao_pro.model3.json',

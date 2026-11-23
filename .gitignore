@@ -13,6 +13,7 @@ conf.yaml
 !/live2d-models/sogangi-motion
 !/live2d-models/sogangi-greeting
 !/live2d-models/sogangi-expressions
+!/live2d-models/kang-iseo
 
 # ignore non-default character configs
 /characters/*
