@@ -225,6 +225,7 @@ class StudioPersonaTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("기쁜 소식에는", system_prompt)
         self.assertIn("위로나 경청을 원할 때는", system_prompt)
         self.assertIn("지금 실행할 수 있는 다음 행동 하나", system_prompt)
+        self.assertIn("이미 했다고 말한 일은 완료된 단계로 반영", system_prompt)
         runtime = agent.enable_studio_runtime.call_args
         self.assertEqual(runtime.args[0], record.agent_id)
         self.assertEqual(runtime.args[2], profile.memories)
