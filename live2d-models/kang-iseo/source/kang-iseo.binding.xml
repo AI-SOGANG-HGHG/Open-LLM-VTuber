@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<StrictBinding profile="infer-sample">
+  <Parameter id="ParamEyeLOpen" kind="openness" defaultValue="1">
+    <Key name="key" value="0" />
+    <Key name="key" value="0.2" />
+    <Key name="default" value="1" />
+    <Target relativeDrawablePath="Eye L/EyeL_Open" mode="affine-transform">
+      <State keyValue="0" stateName="key" scaleY="0.2" pivotX="440.5" pivotY="479" opacity="0" />
+      <State keyValue="0.2" stateName="key" scaleY="0.2" pivotX="440.5" pivotY="479" opacity="1" />
+      <State keyValue="1" stateName="default" scaleY="1" pivotX="440.5" pivotY="479" opacity="1" />
+    </Target>
+    <Target relativeDrawablePath="Eye L/EyeL_Closed" mode="affine-transform">
+      <State keyValue="0" stateName="key" opacity="1" />
+      <State keyValue="0.2" stateName="key" opacity="0" />
+      <State keyValue="1" stateName="default" opacity="0" />
+    </Target>
+  </Parameter>
+  <Parameter id="ParamEyeROpen" kind="openness" defaultValue="1">
+    <Key name="key" value="0" />
+    <Key name="key" value="0.2" />
+    <Key name="default" value="1" />
+    <Target relativeDrawablePath="Eye R/EyeR_Open" mode="affine-transform">
+      <State keyValue="0" stateName="key" scaleY="0.2" pivotX="596.5" pivotY="479" opacity="0" />
+      <State keyValue="0.2" stateName="key" scaleY="0.2" pivotX="596.5" pivotY="479" opacity="1" />
+      <State keyValue="1" stateName="default" scaleY="1" pivotX="596.5" pivotY="479" opacity="1" />
+    </Target>
+    <Target relativeDrawablePath="Eye R/EyeR_Closed" mode="affine-transform">
+      <State keyValue="0" stateName="key" opacity="1" />
+      <State keyValue="0.2" stateName="key" opacity="0" />
+      <State keyValue="1" stateName="default" opacity="0" />
+    </Target>
+  </Parameter>
+  <Parameter id="ParamMouthOpenY" kind="openness" defaultValue="0">
+    <Key name="default" value="0" />
+    <Key name="key" value="0.25" />
+    <Key name="key" value="1" />
+    <Target relativeDrawablePath="Mouth/Mouth_Closed" mode="affine-transform">
+      <State keyValue="0" stateName="default" opacity="1" />
+      <State keyValue="0.25" stateName="key" opacity="0" />
+      <State keyValue="1" stateName="key" opacity="0" />
+    </Target>
+    <Target relativeDrawablePath="Mouth/Mouth_Open" mode="affine-transform">
+      <State keyValue="0" stateName="default" scaleY="0.45" pivotX="517.5" pivotY="563.5" opacity="0" />
+      <State keyValue="0.25" stateName="key" scaleY="0.5875" pivotX="517.5" pivotY="563.5" opacity="1" />
+      <State keyValue="1" stateName="key" scaleY="1" pivotX="517.5" pivotY="563.5" opacity="1" />
+    </Target>
+  </Parameter>
+  <Parameter id="ParamFaceMood" kind="openness" defaultValue="0">
+    <Key name="default" value="0" />
+    <Key name="key" value="1" />
+    <Key name="key" value="2" />
+    <Target relativeDrawablePath="Eye L/EyeL_Open" mode="affine-transform">
+      <State keyValue="0" stateName="default" scaleY="1" pivotX="440.5" pivotY="479" />
+      <State keyValue="1" stateName="key" scaleY="0.72" pivotX="440.5" pivotY="479" />
+      <State keyValue="2" stateName="key" scaleY="1.1" pivotX="440.5" pivotY="479" />
+    </Target>
+    <Target relativeDrawablePath="Eye R/EyeR_Open" mode="affine-transform">
+      <State keyValue="0" stateName="default" scaleY="1" pivotX="596.5" pivotY="479" />
+      <State keyValue="1" stateName="key" scaleY="0.72" pivotX="596.5" pivotY="479" />
+      <State keyValue="2" stateName="key" scaleY="1.1" pivotX="596.5" pivotY="479" />
+    </Target>
+  </Parameter>
+  <Parameter id="ParamAngleZ" kind="angle" defaultValue="0">
+    <Key name="key" value="-3" />
+    <Key name="default" value="0" />
+    <Key name="key" value="3" />
+    <Target relativeDrawablePath="Base_HeadBody" mode="affine-transform">
+      <State keyValue="-3" stateName="key" rotationDeg="-3" pivotX="512" pivotY="1106" />
+      <State keyValue="0" stateName="default" rotationDeg="0" pivotX="512" pivotY="1106" />
+      <State keyValue="3" stateName="key" rotationDeg="3" pivotX="512" pivotY="1106" />
+    </Target>
+    <Target relativeDrawablePath="Eye L/EyeL_Open" mode="affine-transform">
+      <State keyValue="-3" stateName="key" rotationDeg="-3" pivotX="512" pivotY="1106" />
+      <State keyValue="0" stateName="default" rotationDeg="0" pivotX="512" pivotY="1106" />
+      <State keyValue="3" stateName="key" rotationDeg="3" pivotX="512" pivotY="1106" />
+    </Target>
+    <Target relativeDrawablePath="Eye L/EyeL_Closed" mode="affine-transform">
+      <State keyValue="-3" stateName="key" rotationDeg="-3" pivotX="512" pivotY="1106" />
+      <State keyValue="0" stateName="default" rotationDeg="0" pivotX="512" pivotY="1106" />
+      <State keyValue="3" stateName="key" rotationDeg="3" pivotX="512" pivotY="1106" />
+    </Target>
+    <Target relativeDrawablePath="Eye R/EyeR_Open" mode="affine-transform">
+      <State keyValue="-3" stateName="key" rotationDeg="-3" pivotX="512" pivotY="1106" />
+      <State keyValue="0" stateName="default" rotationDeg="0" pivotX="512" pivotY="1106" />
+      <State keyValue="3" stateName="key" rotationDeg="3" pivotX="512" pivotY="1106" />
+    </Target>
+    <Target relativeDrawablePath="Eye R/EyeR_Closed" mode="affine-transform">
+      <State keyValue="-3" stateName="key" rotationDeg="-3" pivotX="512" pivotY="1106" />
+      <State keyValue="0" stateName="default" rotationDeg="0" pivotX="512" pivotY="1106" />
+      <State keyValue="3" stateName="key" rotationDeg="3" pivotX="512" pivotY="1106" />
+    </Target>
+    <Target relativeDrawablePath="Mouth/Mouth_Closed" mode="affine-transform">
+      <State keyValue="-3" stateName="key" rotationDeg="-3" pivotX="512" pivotY="1106" />
+      <State keyValue="0" stateName="default" rotationDeg="0" pivotX="512" pivotY="1106" />
+      <State keyValue="3" stateName="key" rotationDeg="3" pivotX="512" pivotY="1106" />
+    </Target>
+    <Target relativeDrawablePath="Mouth/Mouth_Open" mode="affine-transform">
+      <State keyValue="-3" stateName="key" rotationDeg="-3" pivotX="512" pivotY="1106" />
+      <State keyValue="0" stateName="default" rotationDeg="0" pivotX="512" pivotY="1106" />
+      <State keyValue="3" stateName="key" rotationDeg="3" pivotX="512" pivotY="1106" />
+    </Target>
+  </Parameter>
+  <Parameter id="ParamBreath" kind="openness" defaultValue="0">
+    <Key name="default" value="0" />
+    <Key name="key" value="1" />
+    <Target relativeDrawablePath="Base_HeadBody" mode="affine-transform">
+      <State keyValue="0" stateName="default" scaleX="1" scaleY="1" pivotX="512" pivotY="1106" />
+      <State keyValue="1" stateName="key" scaleX="1.008" scaleY="1.012" pivotX="512" pivotY="1106" />
+    </Target>
+    <Target relativeDrawablePath="Eye L/EyeL_Open" mode="affine-transform">
+      <State keyValue="0" stateName="default" scaleX="1" scaleY="1" pivotX="512" pivotY="1106" />
+      <State keyValue="1" stateName="key" scaleX="1.008" scaleY="1.012" pivotX="512" pivotY="1106" />
+    </Target>
+    <Target relativeDrawablePath="Eye L/EyeL_Closed" mode="affine-transform">
+      <State keyValue="0" stateName="default" scaleX="1" scaleY="1" pivotX="512" pivotY="1106" />
+      <State keyValue="1" stateName="key" scaleX="1.008" scaleY="1.012" pivotX="512" pivotY="1106" />
+    </Target>
+    <Target relativeDrawablePath="Eye R/EyeR_Open" mode="affine-transform">
+      <State keyValue="0" stateName="default" scaleX="1" scaleY="1" pivotX="512" pivotY="1106" />
+      <State keyValue="1" stateName="key" scaleX="1.008" scaleY="1.012" pivotX="512" pivotY="1106" />
+    </Target>
+    <Target relativeDrawablePath="Eye R/EyeR_Closed" mode="affine-transform">
+      <State keyValue="0" stateName="default" scaleX="1" scaleY="1" pivotX="512" pivotY="1106" />
+      <State keyValue="1" stateName="key" scaleX="1.008" scaleY="1.012" pivotX="512" pivotY="1106" />
+    </Target>
+    <Target relativeDrawablePath="Mouth/Mouth_Closed" mode="affine-transform">
+      <State keyValue="0" stateName="default" scaleX="1" scaleY="1" pivotX="512" pivotY="1106" />
+      <State keyValue="1" stateName="key" scaleX="1.008" scaleY="1.012" pivotX="512" pivotY="1106" />
+    </Target>
+    <Target relativeDrawablePath="Mouth/Mouth_Open" mode="affine-transform">
+      <State keyValue="0" stateName="default" scaleX="1" scaleY="1" pivotX="512" pivotY="1106" />
+      <State keyValue="1" stateName="key" scaleX="1.008" scaleY="1.012" pivotX="512" pivotY="1106" />
+    </Target>
+  </Parameter>
+</StrictBinding>
