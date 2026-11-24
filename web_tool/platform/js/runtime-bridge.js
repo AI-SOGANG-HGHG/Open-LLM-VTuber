@@ -19,7 +19,7 @@ export function setConversationFocus(enabled) {
   const button = document.querySelector('[data-action="runtime-layout"]');
   if (button) { button.textContent = enabled ? '스튜디오 보기' : '대화에 집중'; button.setAttribute('aria-pressed', String(enabled)); }
 }
-export async function connectRuntime(char) {
+export async function connectRuntime(char, mode = 'chat') {
   disposeRuntime();
   const ticket = connectEpoch;
   const frame = $('#studioFrame');
@@ -47,6 +47,7 @@ export async function connectRuntime(char) {
   const url = new URL('/web-tool/platform/runtime/', origin);
   url.searchParams.set('studio', '1'); url.searchParams.set('parentOrigin', location.origin); url.searchParams.set('instanceId', instanceId);
   url.searchParams.set('characterId', char.id); url.searchParams.set('avatar', char.avatar);
+  if (mode === 'broadcast') url.searchParams.set('broadcast', '1');
   frame.src = url.href;
   activeRuntime.timeout = setTimeout(() => {
     if (activeRuntime?.instanceId === instanceId) $('#runtimeStatus').textContent = '대화 서버 연결을 확인해 주세요. 서버 실행 후 다시 연결할 수 있어요.';

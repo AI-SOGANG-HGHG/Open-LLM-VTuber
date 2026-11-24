@@ -51,7 +51,7 @@ main.addEventListener('click', async (event) => {
   const action = button.dataset.action;
   if (action === 'create') openCreate();
   if (action === 'runtime-layout') setConversationFocus(!document.body.classList.contains('conversation-focus'));
-  if (action === 'runtime-connect' && char) connectRuntime(char);
+  if (action === 'runtime-connect' && char) connectRuntime(char, button.dataset.mode);
   if (action === 'runtime-disconnect') {
     disposeRuntime(); $('#studioFrame').removeAttribute('src'); $('#runtimeStatus').textContent = '연결을 해제했어요. 다시 연결하면 이어서 대화할 수 있어요.';
   }
