@@ -102,19 +102,36 @@ globalThis.makeIvoryCrownRig = (() => {
       ctx.drawImage(image, x, y, width, height, x, y, width, height);
     }
 
-    function draw(ctx, { eyeL, eyeR, mouth }, { eyeTilt = 0, mouthWidth = 1, mouthHeight = 1 } = {}) {
+    function draw(ctx, { eyeL, eyeR, mouth }, {
+      eyeTilt = 0, mouthWidth = 1, mouthHeight = 1,
+      expression = 'neutral', faceArea, paintDetails, paintEmotionMouth, paintEye,
+    } = {}) {
       const previous = previousPoses.get(ctx);
-      previousPoses.set(ctx, { eyeL, eyeR, mouth, eyeTilt, mouthWidth, mouthHeight });
+      previousPoses.set(ctx, { eyeL, eyeR, mouth, eyeTilt, mouthWidth, mouthHeight, expression });
       if (!previous) {
         ctx.clearRect(0, 0, image.naturalWidth, image.naturalHeight);
         ctx.drawImage(image, 0, 0);
       }
+      const faceChanged = expression !== previous?.expression;
+      if (paintDetails && faceChanged) {
+        if (previous) {
+          const { x, y, width, height } = faceArea;
+          ctx.clearRect(x, y, width, height);
+          ctx.drawImage(image, x, y, width, height, x, y, width, height);
+        }
+        paintDetails(ctx, expression);
+      }
       ctx.save();
       for (const [name, amount, last] of [['EyeL', eyeL, previous?.eyeL], ['EyeR', eyeR, previous?.eyeR]]) {
-        if (amount === last && eyeTilt === previous?.eyeTilt) continue;
+        if (!faceChanged && amount === last && eyeTilt === previous?.eyeTilt) continue;
         if (previous) restoreRegion(ctx, name);
-        if (amount === 1 && eyeTilt === 0) continue;
         const { x, y, original, alternate, underpaint } = features[name];
+        if (paintEye) {
+          ctx.drawImage(underpaint, x, y);
+          paintEye(ctx, x, y, name === 'EyeR', expression, amount);
+          continue;
+        }
+        if (amount === 1 && eyeTilt === 0) continue;
         if (amount === 0) {
           ctx.drawImage(alternate, x, y);
           continue;
@@ -144,9 +161,16 @@ globalThis.makeIvoryCrownRig = (() => {
         ctx.restore();
       }
       const mouthShapeChanged = mouth > 0 && (mouthWidth !== previous?.mouthWidth || mouthHeight !== previous?.mouthHeight);
-      if (mouth !== previous?.mouth || mouthShapeChanged) {
+      if (mouth !== previous?.mouth || mouthShapeChanged || faceChanged) {
         if (previous) restoreRegion(ctx, 'Mouth');
-        if (mouth > 0) {
+        if (paintEmotionMouth) {
+          const { x, y, underpaint } = features.Mouth;
+          ctx.drawImage(underpaint, x, y);
+          ctx.beginPath();
+          ctx.rect(x, y, underpaint.width, underpaint.height);
+          ctx.clip();
+          paintEmotionMouth(ctx, x, y, expression, mouth);
+        } else if (mouth > 0) {
           const { x, y, underpaint } = features.Mouth;
           ctx.globalAlpha = Math.min(1, mouth * 5);
           ctx.drawImage(underpaint, x, y);

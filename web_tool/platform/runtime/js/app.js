@@ -1,9 +1,9 @@
 import { createRandomId } from '../../../shared/random-id.js';
 import { AvatarRenderer } from './avatars/sogangi-renderer.js';
-import { expressionFor } from './expressions.js';
+import { expressionFor } from './expressions.js?studio=16';
 import { loadPreferences, savePreferences, loadSession, saveSession, studioScenes, loadStudioScene, saveStudioScene } from './local-state.js?studio=6';
 import { getStudioProfile, studioEvent, onStudioShutdown } from './studio-bridge.js';
-import { StudioAvatarRenderer } from './avatars/live2d-avatar.js';
+import { StudioAvatarRenderer } from './avatars/live2d-avatar.js?studio=16';
 import { createHistoryView } from './history-view.js';
 import { createAudioPlayback } from './audio-playback.js';
 import { createMicrophone } from './microphone.js';
@@ -184,9 +184,15 @@ const studioProfile = await getStudioProfile();
     canPlay: () => !state.muted && !state.failed,
     onStart(change) {
       ui.phase.textContent = '음성을 재생하고 있어요.';
-      change.ready = true;
+      if (change) change.ready = true;
       applyPendingExpressions();
       mascot(state.lastExpression, 'speaking', '같이 이야기하자!');
+    },
+    onUnavailable(change) {
+      if (!change) return;
+      change.silent = true;
+      change.ready = true;
+      applyPendingExpressions();
     },
     onComplete: () => connection.send({ type: 'frontend-playback-complete' }),
     onError: notice,
