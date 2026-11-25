@@ -1,0 +1,19 @@
+{
+  "name": "sogang-minecraft-ws-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MCPFabric HTTP to Open-LLM-VTuber proxy-ws game lane",
+  "engines": { "node": ">=22.16.0" },
+  "scripts": {
+    "start": "node --env-file=.env src/main.js",
+    "send": "node --env-file=.env src/send-command.js",
+    "tools": "node --env-file=.env src/list-tools.js",
+    "test": "node --test tests/*.test.js",
+    "check": "node --check src/main.js && node --check src/protocol.js && node --check src/mcp.js && node --check src/send-command.js && node --check src/list-tools.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "ws": "^8.18.0"
+  }
+}
