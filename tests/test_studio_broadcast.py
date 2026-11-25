@@ -31,6 +31,12 @@ TOKEN = "local-test-collector-token"
 
 
 class StudioBroadcastTests(unittest.IsolatedAsyncioTestCase):
+    def model_fixture(self):
+        return RecordedStudioLLM()
+
+    def create_model(self, *args, **kwargs):
+        return self.llm
+
     def start_patch(self, patcher):
         patcher.start()
         self.addCleanup(patcher.stop)
@@ -40,6 +46,7 @@ class StudioBroadcastTests(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(temporary.cleanup)
         directory = Path(temporary.name)
         registry = StudioRegistry(directory / "studio.sqlite3")
+        self.registry = registry
         data = payload(preset_id="warm")
         data.update(
             name="방송 테스트 캐릭터", memories=["발표는 오전 열 시에 시작한다."]
@@ -52,7 +59,7 @@ class StudioBroadcastTests(unittest.IsolatedAsyncioTestCase):
         self.other_workspace_cookie = registry.register_workspace(str(uuid4()), "")
         context = context_fixture()
         context.character_config.agent_config.agent_settings.basic_memory_agent.use_mcpp = False
-        self.llm = RecordedStudioLLM()
+        self.llm = self.model_fixture()
         self.llm.expression_hint = "joy"
         wav = directory / "sample.wav"
         with wave.open(str(wav), "wb") as output:
@@ -68,7 +75,7 @@ class StudioBroadcastTests(unittest.IsolatedAsyncioTestCase):
         self.start_patch(
             patch(
                 "src.open_llm_vtuber.agent.agent_factory.StatelessLLMFactory.create_llm",
-                return_value=self.llm,
+                side_effect=self.create_model,
             )
         )
         self.start_patch(
@@ -88,8 +95,8 @@ class StudioBroadcastTests(unittest.IsolatedAsyncioTestCase):
         password = bcrypt.hashpw(b"test-password", bcrypt.gensalt(rounds=4)).decode()
         install_studio_auth(app, StudioAuth("team", password, ORIGIN))
         app.include_router(init_client_ws_route(context, registry))
-        with patch.dict("os.environ", {"STUDIO_CHZZK_TOKEN": TOKEN}):
-            app.include_router(init_proxy_route(upstream, upstream))
+        self.start_patch(patch.dict("os.environ", {"STUDIO_CHZZK_TOKEN": TOKEN}))
+        app.include_router(init_proxy_route(upstream, upstream))
 
         server = uvicorn.Server(
             uvicorn.Config(app, log_level="critical", lifespan="off")
@@ -148,12 +155,19 @@ class StudioBroadcastTests(unittest.IsolatedAsyncioTestCase):
         async with self.client.ws_connect(
             self.base + CHZZK_COLLECTOR_PATH, headers=collector_headers
         ) as collector:
-            for text in ("발표가 잘 끝났어요!", "안녕!"):
+            exchanges = (
+                ("viewer-a", "발표용 마인크래프트 집을 완성했어요!"),
+                ("viewer-b", "보라색 보트가 좋아요!"),
+                ("viewer-a", "그거 기억해?"),
+            )
+            for viewer, text in exchanges:
                 await collector.send_json(
                     {
                         "type": "text-input",
                         "source": "chzzk_chat",
                         "author": "시청자",
+                        "channel_id": "fixture-channel",
+                        "user_id": viewer,
                         "text": text,
                     }
                 )
@@ -166,7 +180,7 @@ class StudioBroadcastTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIsNone(self.llm.request)
                 await screen.send_json({"type": "create-new-history"})
                 await self.receive(screen, "new-history-created")
-                for text in ("발표가 잘 끝났어요!", "안녕!"):
+                for viewer, text in exchanges:
                     incoming = await self.receive(
                         screen, "user-input-transcription", text
                     )
@@ -177,13 +191,20 @@ class StudioBroadcastTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(started["request_id"], request_id)
                     trace = await self.receive(screen, "studio-turn-context")
                     self.assertEqual(trace["request_id"], request_id)
-                    self.assertEqual(trace["expression"], "joy")
+                    self.assertEqual(
+                        trace["expression"], "neutral" if text.endswith("?") else "joy"
+                    )
                     audio = await self.receive(screen, "audio")
                     self.assertEqual(audio["request_id"], request_id)
                     self.assertTrue(audio["audio"])
                     self.assertIn("방송 테스트 캐릭터", self.llm.generation_system)
-                    if text.startswith("발표"):
-                        self.assertIn("발표는 오전 열 시", str(self.llm.request))
+                    self.assertNotIn("발표는 오전 열 시", str(self.llm.request))
+                    if text.startswith("그거"):
+                        for request in (self.llm.appraisal_request, self.llm.request):
+                            self.assertIn(exchanges[0][1], str(request))
+                            self.assertNotIn(exchanges[1][1], str(request))
+                    if viewer == "viewer-b":
+                        self.assertNotIn(exchanges[0][1], str(self.llm.request))
                     await self.receive(screen, "backend-synth-complete")
                     await screen.send_json(
                         {"type": "frontend-playback-complete", "request_id": request_id}

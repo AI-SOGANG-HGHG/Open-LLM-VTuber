@@ -6,6 +6,7 @@ import secrets
 from collections import deque
 from http.cookies import SimpleCookie
 from ipaddress import ip_address
+from uuid import uuid4
 
 import aiohttp
 from fastapi import WebSocket
@@ -14,6 +15,7 @@ from starlette.websockets import WebSocketDisconnect
 from .proxy_handler import ProxyHandler
 from .proxy_message_queue import ProxyMessageQueue
 from .studio_auth import COOKIE
+from .studio_broadcast_context import BROADCAST_TOKEN_HEADER
 from .studio_registry import WORKSPACE_COOKIE
 
 
@@ -28,6 +30,7 @@ class StudioBroadcast:
         self.session: BroadcastSession | None = None
         self.pending: deque[dict] = deque(maxlen=MAX_PENDING)
         self.changed = asyncio.Event()
+        self.channel_id = ""
 
     async def handle_screen(self, socket: WebSocket) -> None:
         if not self.token or not socket.cookies.get(WORKSPACE_COOKIE):
@@ -73,6 +76,9 @@ class StudioBroadcast:
                     continue
                 if len(text) > 4096 or len(author) > 256:
                     continue
+                channel = data.get("channel_id")
+                if isinstance(channel, str) and 0 < len(channel) <= 128:
+                    self.channel_id = channel
                 self.pending.append(
                     {
                         "type": "text-input",
@@ -82,6 +88,12 @@ class StudioBroadcast:
                         "amount": data.get("amount"),
                         "text_stream": True,
                         "require_spoken_response": True,
+                        "studio_broadcast": {
+                            "channel_id": self.channel_id or "local-broadcast",
+                            "event_id": uuid4().hex,
+                            "viewer_id": data.get("user_id"),
+                            "room": False,
+                        },
                     }
                 )
                 self.changed.set()
@@ -106,6 +118,7 @@ class BroadcastSession(ProxyHandler):
             if value := self.screen.cookies.get(name):
                 cookies[name] = value
         headers = {"Cookie": cookies.output(header="", sep=";").strip()}
+        headers[BROADCAST_TOKEN_HEADER] = self.broadcast.token
         if origin := self.screen.headers.get("origin"):
             headers["Origin"] = origin
         return headers
@@ -180,7 +193,18 @@ class BroadcastSession(ProxyHandler):
                         self.message_queue.clear()
                     await self.forward_to_server(data)
             elif kind == "text-input" and self.ready:
-                self.message_queue.queue_message(data, "screen")
+                self.message_queue.queue_message(
+                    {
+                        **data,
+                        "studio_broadcast": {
+                            "channel_id": self.broadcast.channel_id
+                            or "local-broadcast",
+                            "event_id": uuid4().hex,
+                            "room": True,
+                        },
+                    },
+                    "screen",
+                )
             elif kind in {"interrupt-signal", "frontend-playback-complete"}:
                 async with self.message_queue.lock:
                     if self.message_queue.matches_active(data.get("request_id")):
@@ -214,6 +238,12 @@ class BroadcastSession(ProxyHandler):
         self, message: dict, exclude_client: str | None = None
     ) -> None:
         kind = message.get("type")
+        if kind == "user-input-transcription":
+            message = {
+                key: value
+                for key, value in message.items()
+                if key != "studio_broadcast"
+            }
         if kind == "studio-persona-applied":
             self.profile_applied = True
         if self.profile_applied and kind in {"new-history-created", "history-data"}:

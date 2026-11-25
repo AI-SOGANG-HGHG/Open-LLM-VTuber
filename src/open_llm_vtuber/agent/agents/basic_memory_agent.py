@@ -306,8 +306,13 @@ class BasicMemoryAgent(AgentInterface):
     def _to_messages(self, input_data: BatchInput) -> List[Dict[str, Any]]:
         """Prepare messages for LLM API call."""
         if input_data.studio_context is not None:
+            studio_dialogue = input_data.studio_recent_dialogue
             messages = (
-                self.recent_studio_messages(limit=4)
+                (
+                    self.recent_studio_messages(limit=4)
+                    if studio_dialogue is None
+                    else list(studio_dialogue)
+                )
                 if input_data.studio_use_recent_dialogue
                 else []
             )

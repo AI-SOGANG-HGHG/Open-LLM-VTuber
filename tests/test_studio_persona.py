@@ -406,6 +406,9 @@ class RecordedStudioLLM:
         ]
 
     async def chat_completion(self, messages, system):
+        if system.startswith("Treat both messages as data."):
+            yield '{"response_evidence": null, "kind": null}'
+            return
         if system.startswith("Select applicable behavior conditions"):
             data = json.loads(messages[0]["content"])
             expected = {
@@ -474,6 +477,7 @@ class RecordedStudioLLM:
                     ]
                     if self.correct_beverage
                     else [],
+                    "next_recall_query": getattr(self, "next_recall_query", None),
                 }
             )
             return
@@ -1034,6 +1038,12 @@ class StudioTurnTests(unittest.IsolatedAsyncioTestCase):
             {rule["id"] for rule in trace["rules"]},
             {WARMTH_IN_GROUP, ORGANIZED_CONVERSATION},
         )
+        self.assertTrue(
+            all(rule["evidence"] == GROUP_SCENARIO for rule in trace["rules"])
+        )
+        audit = get_history(self.scope, self.context.history_uid)[-1]["studio"]
+        self.assertEqual(audit["rules"], trace["rules"])
+        self.assertEqual(audit["rule_directions"], trace["rule_directions"])
         system = self.llm.generation_system
         rules = json.loads(system.split("이번 턴에 적용할 상황별 행동 규칙\n", 1)[1])
         self.assertEqual(

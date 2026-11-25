@@ -1,5 +1,5 @@
 from typing import Union, List, Dict, Any, Optional
-from functools import partial
+from dataclasses import asdict
 import asyncio
 import json
 from loguru import logger
@@ -72,6 +72,10 @@ async def process_single_conversation(
 
         # Store user message (check if we should skip storing to history)
         skip_history = metadata and metadata.get("skip_history", False)
+        broadcast_turn = (metadata or {}).get("broadcast_turn")
+        broadcast_audit = (
+            {"broadcast": asdict(broadcast_turn)} if broadcast_turn else {}
+        )
         if context.history_uid and not skip_history:
             store_message(
                 conf_uid=context.character_config.conf_uid,
@@ -79,6 +83,7 @@ async def process_single_conversation(
                 role="human",
                 content=input_text,
                 name=context.character_config.human_name,
+                **({"studio": broadcast_audit} if broadcast_audit else {}),
             )
 
         if skip_history:
@@ -102,11 +107,17 @@ async def process_single_conversation(
                 context.character_config.conf_uid,
                 context.history_uid,
                 input_text,
-                recent_messages=context.agent_engine.recent_studio_messages(limit=4),
+                recent_messages=(
+                    ()
+                    if broadcast_turn
+                    else context.agent_engine.recent_studio_messages(limit=4)
+                ),
+                broadcast=broadcast_turn,
             )
             batch_input.studio_context = studio_turn.context
             batch_input.studio_rule_prompt = studio_turn.rule_prompt
             batch_input.studio_use_recent_dialogue = studio_turn.use_recent_dialogue
+            batch_input.studio_recent_dialogue = studio_turn.recent_messages
             await websocket_send(json.dumps(studio_turn.trace, ensure_ascii=False))
 
         generation_failed = False
@@ -181,6 +192,7 @@ async def process_single_conversation(
         # --- End processing agent response ---
 
         complete_studio_turn = None
+        studio_completed = False
         if (
             studio_turn is not None
             and not generation_failed
@@ -188,7 +200,12 @@ async def process_single_conversation(
             and context.character_config.conf_uid == studio_turn.history_scope
             and context.history_uid == studio_turn.history_uid
         ):
-            complete_studio_turn = partial(studio_runtime.complete_async, studio_turn)
+
+            async def complete_studio_turn() -> None:
+                nonlocal studio_completed
+                await studio_runtime.complete_async(studio_turn, full_response)
+                studio_completed = True
+
         await finalize_conversation_turn(
             tts_manager=tts_manager,
             websocket_send=websocket_send,
@@ -201,6 +218,17 @@ async def process_single_conversation(
             and full_response
             and (not generation_failed or studio_turn is None)
         ):
+            studio_audit = broadcast_audit
+            if studio_completed:
+                studio_audit = {
+                    **broadcast_audit,
+                    "event_id": studio_turn.source.id,
+                    "profile_version": studio_turn.trace["preset"]["version"],
+                    "rule_candidate_ids": studio_turn.trace["rule_candidate_ids"],
+                    "rule_directions": studio_turn.trace["rule_directions"],
+                    "rule_selection": studio_turn.trace["rule_selection"],
+                    "rules": studio_turn.trace["rules"],
+                }
             store_message(
                 conf_uid=context.character_config.conf_uid,
                 history_uid=context.history_uid,
@@ -208,6 +236,7 @@ async def process_single_conversation(
                 content=full_response,
                 name=context.character_config.character_name,
                 avatar=context.character_config.avatar,
+                **({"studio": studio_audit} if studio_audit else {}),
             )
             logger.info(f"AI response: {full_response}")
 

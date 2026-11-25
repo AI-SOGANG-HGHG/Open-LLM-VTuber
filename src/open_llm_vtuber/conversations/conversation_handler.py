@@ -9,6 +9,7 @@ from loguru import logger
 from ..chat_group import ChatGroupManager
 from ..chat_history_manager import store_message
 from ..service_context import ServiceContext
+from ..studio_broadcast_context import BroadcastTurn
 from .group_conversation import process_group_conversation
 from .single_conversation import process_single_conversation
 from .conversation_utils import EMOJI_LIST
@@ -68,6 +69,8 @@ async def handle_conversation_trigger(
         )
     elif msg_type == "text-input":
         user_input = data.get("text", "")
+        if broadcast_turn := BroadcastTurn.from_socket(websocket, data):
+            metadata = {**(metadata or {}), "broadcast_turn": broadcast_turn}
     else:  # mic-audio-end
         user_input = received_data_buffers[client_uid]
         received_data_buffers[client_uid] = np.array([])

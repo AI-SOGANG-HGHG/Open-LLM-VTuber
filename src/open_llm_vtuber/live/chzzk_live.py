@@ -331,6 +331,7 @@ class ChzzkLivePlatform(LivePlatformInterface):
                 payload: dict[str, Any] = {
                     "type": "text-input",
                     "source": source,
+                    "channel_id": self._channel_id,
                     "user_id": user_id,
                     "author": author,
                     "text": text,

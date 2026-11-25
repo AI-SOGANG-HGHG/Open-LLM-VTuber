@@ -1,11 +1,12 @@
 """Verify persistent agent identity and memory boundaries."""
 
 from base64 import b64encode
+from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 from fastapi import FastAPI
@@ -19,6 +20,7 @@ from src.open_llm_vtuber.chat_history_manager import (
     update_metadate,
 )
 from src.open_llm_vtuber.studio_persona import StudioPersona
+from src.open_llm_vtuber.studio_broadcast_context import BroadcastTurn
 from src.open_llm_vtuber.studio_profiles import (
     BigFive,
     PersonaPreset,
@@ -28,7 +30,9 @@ from src.open_llm_vtuber.studio_registry import StudioRegistry, WORKSPACE_COOKIE
 from src.open_llm_vtuber.studio_registry_api import studio_registry_router
 from src.open_llm_vtuber.studio_tasks import TaskUpdate
 from src.open_llm_vtuber.studio_turn import (
+    Affect,
     Appraisal,
+    ExchangeSelection,
     MemoryMeaning,
     RECALL_METADATA,
     RecallItem,
@@ -157,6 +161,77 @@ class AgentRecallTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(records[0]["source_history_id"], history)
         self.assertEqual(
             get_metadata(scope, history)[RECALL_METADATA], [previous_record]
+        )
+
+    def test_broadcast_scopes_isolate_search_pending_vectors_and_corrections(self):
+        agent = self.registry.create(profile(self.workspace), self.token)
+        viewer_a = BroadcastTurn("channel", "a", "turn-a", "viewer-a", False)
+        viewer_b = BroadcastTurn("channel", "b", "turn-b", "viewer-b", False)
+        room = BroadcastTurn("channel", "room", "turn-room", None, True)
+        other_channel = BroadcastTurn(
+            "other-channel", "other", "turn-other", "viewer-a", False
+        )
+        now = datetime.now(timezone.utc).isoformat()
+        vector = self.runtime(agent)._encode_vector(np.array([1, 0], dtype=np.float32))
+        for event_id, scope, embedding in (
+            ("private", "", vector),
+            ("a", viewer_a.scope, vector),
+            ("b", viewer_b.scope, None),
+            ("room", room.scope, vector),
+        ):
+            self.registry.save_memory(
+                agent.agent_id,
+                {
+                    "id": event_id,
+                    "text": "같은 문장",
+                    "occurred_at": now,
+                    "embedding_model": "fixture",
+                    "vector": embedding,
+                    "broadcast_scope": scope,
+                },
+                (),
+            )
+        revised = {
+            "id": "revised",
+            "text": "시청자 B의 정정",
+            "occurred_at": now,
+            "embedding_model": "fixture",
+            "vector": vector,
+            "broadcast_scope": viewer_b.scope,
+        }
+        self.registry.save_memory(agent.agent_id, revised, ("a", "room", "private"))
+        self.assertEqual(
+            {m["id"] for m in self.registry.memories(agent.agent_id, "fixture", -1)},
+            {"private"},
+        )
+        self.assertEqual(
+            {
+                m["id"]
+                for m in self.registry.memories(
+                    agent.agent_id, "fixture", -1, viewer_a.scopes
+                )
+            },
+            {"a", "room"},
+        )
+        self.assertEqual(
+            {
+                m["id"]
+                for m in self.registry.memories(
+                    agent.agent_id, "fixture", -1, viewer_b.scopes
+                )
+            },
+            {"revised", "room"},
+        )
+        self.assertEqual(
+            self.registry.memories(agent.agent_id, "fixture", -1, other_channel.scopes),
+            [],
+        )
+        self.assertEqual(
+            self.registry.pending_embeddings(agent.agent_id, 8, viewer_a.scopes), []
+        )
+        self.assertEqual(
+            self.registry.pending_embeddings(agent.agent_id, 8, viewer_b.scopes),
+            [("b", "같은 문장")],
         )
 
     async def test_recall_crosses_conversations_and_stays_with_agent(self):
@@ -405,6 +480,254 @@ class AgentRecallTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             runtime._rank(vector, [(journal, vector[::-1])], 1, persona_weighted=True),
             [],
+        )
+
+    def test_vad_changes_rank_only_for_relevant_experiences(self):
+        agent = self.registry.create(profile(self.workspace), self.token)
+        runtime = self.runtime(agent)
+        vector = np.array([1, 0], dtype=np.float32)
+        now = datetime.now(timezone.utc).isoformat()
+        happy = RecallItem(
+            "happy",
+            "환호하며 끝낸 발표",
+            "user_turn",
+            now,
+            meaning=MemoryMeaning(kind="experience"),
+            event_affect=Affect(valence=0.9, arousal=0.6, dominance=0.7),
+        )
+        sad = RecallItem(
+            "sad",
+            "실망하며 끝낸 발표",
+            "user_turn",
+            now,
+            meaning=MemoryMeaning(kind="experience"),
+            event_affect=Affect(valence=-0.9, arousal=0.6, dominance=0.7),
+        )
+        for current, expected in ((happy.event_affect, happy), (sad.event_affect, sad)):
+            self.assertEqual(
+                runtime._rank(
+                    vector,
+                    [(happy, vector), (sad, vector)],
+                    1,
+                    persona_weighted=True,
+                    affect=current,
+                ),
+                [expected],
+            )
+            self.assertEqual(
+                runtime._rank(
+                    vector,
+                    [(expected, vector[::-1])],
+                    1,
+                    persona_weighted=True,
+                    affect=current,
+                ),
+                [],
+            )
+        old = RecallItem(
+            "old",
+            happy.text,
+            happy.source,
+            (datetime.now(timezone.utc) - timedelta(days=90)).isoformat(),
+            meaning=happy.meaning,
+            event_affect=happy.event_affect,
+        )
+        self.assertGreater(
+            runtime._affective_weight(happy, happy.event_affect),
+            runtime._affective_weight(old, happy.event_affect),
+        )
+
+    def test_optional_trait_labels_do_not_discard_the_event_appraisal(self):
+        appraisal = Appraisal.model_validate(
+            {
+                "relevant_memory_ids": [],
+                "remember": True,
+                "affect": None,
+                "memory_meaning": {
+                    "kind": "experience",
+                    "axes": {
+                        "agreeableness": "high",
+                        "neuroticism": "medium",
+                        "openness": 0.8,
+                    },
+                },
+            }
+        )
+        self.assertEqual(appraisal.memory_meaning.axes, {"agreeableness": "high"})
+
+    async def test_happiest_lifetime_search_reaches_before_recent_limit(self):
+        agent = self.registry.create(profile(self.workspace), self.token)
+        runtime = self.runtime(agent)
+        now = datetime.now(timezone.utc)
+        vector = runtime._encode_vector(np.array([1, 0], dtype=np.float32))
+
+        def add(
+            event_id, text, event_time, valence, experiencer="character", recorded=None
+        ):
+            self.registry.save_memory(
+                agent.agent_id,
+                {
+                    "id": event_id,
+                    "text": text,
+                    "occurred_at": (recorded or event_time).isoformat(),
+                    "embedding_model": "fixture",
+                    "vector": vector,
+                    "meaning": MemoryMeaning(
+                        kind="experience",
+                        experiencer=experiencer,
+                        event_date=event_time.date(),
+                    ).model_dump(mode="json"),
+                    "event_affect": Affect(valence=valence).model_dump(),
+                },
+                (),
+            )
+
+        add(
+            "concert",
+            "첫 공연의 막이 내렸다",
+            now - timedelta(days=1095),
+            0.96,
+            recorded=now - timedelta(days=2),
+        )
+        for index in range(65):
+            add(
+                f"ordinary-{index}",
+                f"일상적인 경험 {index}",
+                now - timedelta(days=1),
+                0.25,
+            )
+        add("game", "이번 주 게임에서 이겼다", now, 0.76)
+        add("viewer", "시청자가 결혼식을 올렸다", now, 1, "user")
+        self.assertNotIn(
+            "concert",
+            {
+                row["id"]
+                for row in self.registry.memories(agent.agent_id, "fixture", 64)
+            },
+        )
+        room = create_new_history(agent.history_scope)
+        recent = await runtime.prepare(
+            agent.history_scope, room, "최근 가장 기뻤던 일은 뭐야?"
+        )
+        lifetime = await runtime.prepare(
+            agent.history_scope, room, "인생에서 가장 기뻤던 일은 뭐야?"
+        )
+        self.assertEqual(recent.trace["memories"][0]["id"], "game")
+        self.assertEqual(lifetime.trace["memories"][0]["id"], "concert")
+        self.assertNotIn("viewer", {item["id"] for item in lifetime.trace["memories"]})
+
+    async def test_explicit_goal_searches_once_more_for_missing_evidence(self):
+        agent = self.registry.create(profile(self.workspace), self.token)
+        runtime = self.runtime(agent)
+        now = datetime.now(timezone.utc).isoformat()
+        for event_id, text, vector in (
+            ("draft", "발표 초안을 완성했다", [1, 0]),
+            ("rehearsal", "리허설은 내일 저녁에 해야 한다", [0, 1]),
+        ):
+            self.registry.save_memory(
+                agent.agent_id,
+                {
+                    "id": event_id,
+                    "text": text,
+                    "occurred_at": now,
+                    "embedding_model": "fixture",
+                    "vector": runtime._encode_vector(
+                        np.array(vector, dtype=np.float32)
+                    ),
+                },
+                (),
+            )
+        llm = runtime.llm
+        llm.embed_texts = AsyncMock(
+            side_effect=lambda _, texts: [
+                [0, 1] if text == "발표 리허설 상태" else [1, 0] for text in texts
+            ]
+        )
+        room = create_new_history(agent.history_scope)
+        with patch.object(
+            runtime,
+            "_appraise",
+            new=AsyncMock(
+                return_value=Appraisal(
+                    relevant_memory_ids=["draft"],
+                    affect=None,
+                    remember=False,
+                    next_recall_query="발표 리허설 상태",
+                )
+            ),
+        ):
+            turn = await runtime.prepare(
+                agent.history_scope, room, "발표 준비에서 뭐가 남았지?"
+            )
+        self.assertEqual(turn.trace["recall_steps"], 2)
+        self.assertEqual([item["id"] for item in turn.trace["memories"]], ["draft"])
+        self.assertEqual(
+            [item["id"] for item in turn.trace["unverified_memories"]], ["rehearsal"]
+        )
+
+    async def test_completed_reply_persists_grounded_character_commitment(self):
+        agent = self.registry.create(profile(self.workspace), self.token)
+        runtime = self.runtime(agent)
+        room = create_new_history(agent.history_scope)
+        turn = await runtime.prepare(
+            agent.history_scope, room, "초안을 나중에 가져올게요."
+        )
+        reply = "다음에 초안을 가져오면 구조부터 검토할게요."
+        with patch.object(
+            runtime,
+            "_decision",
+            new=AsyncMock(
+                return_value=ExchangeSelection(
+                    response_evidence=reply,
+                    kind="commitment",
+                )
+            ),
+        ):
+            await runtime.complete_async(turn, reply)
+        [pending] = self.registry.pending_embeddings(agent.agent_id, 8)
+        self.assertEqual(pending, (turn.source.id, f"{turn.source.text}\n{reply}"))
+        await runtime.prepare(agent.history_scope, room, "지난번에 뭐라고 했지?")
+        [memory] = self.registry.memories(agent.agent_id, "fixture", 8)
+        self.assertEqual(memory["assistant_excerpt"], reply)
+        self.assertEqual(memory["assistant_memory_kind"], "commitment")
+        self.assertEqual(memory["text"], turn.source.text)
+
+    async def test_grounded_reply_affect_is_saved_with_the_experience(self):
+        agent = self.registry.create(profile(self.workspace), self.token)
+        runtime = self.runtime(agent)
+        room = create_new_history(agent.history_scope)
+        remark = "함께 끝낸 방송이 성황리에 마무리됐어요."
+        with patch.object(
+            runtime,
+            "_appraise",
+            new=AsyncMock(
+                return_value=Appraisal(
+                    relevant_memory_ids=[],
+                    remember=True,
+                    affect_evidence=remark,
+                    affect=Affect(valence=0.8, arousal=0.6, dominance=0.7),
+                    memory_meaning=MemoryMeaning(
+                        kind="experience", experiencer="shared"
+                    ),
+                )
+            ),
+        ):
+            turn = await runtime.prepare(agent.history_scope, room, remark)
+        reply = "함께 해냈다는 게 저도 정말 기뻐요."
+        with patch.object(
+            runtime,
+            "_decision",
+            new=AsyncMock(
+                return_value=ExchangeSelection(
+                    response_affect=Affect(valence=0.4, arousal=0.4, dominance=0.5),
+                    response_affect_evidence=reply,
+                )
+            ),
+        ):
+            await runtime.complete_async(turn, reply)
+        [memory] = self.registry.memories(agent.agent_id, "fixture", 8)
+        self.assertEqual(
+            memory["event_affect"], {"valence": 0.6, "arousal": 0.5, "dominance": 0.6}
         )
 
     def runtime(self, agent, registry=None) -> StudioTurnRuntime:

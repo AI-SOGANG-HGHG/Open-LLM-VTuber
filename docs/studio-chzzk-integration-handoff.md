@@ -28,7 +28,7 @@ Studio 방송 화면 → /proxy-ws?mode=studio ──┐
 Studio 방송 화면 ← /proxy-ws ← 텍스트·음성·표정 이벤트
 ```
 
-**음성·Live2D 대화**를 열면 일반 모드, **방송** 탭이나 **방송 대화실 열기**를 누르면 방송 모드다. 방송 모드에서는 Studio 입력창에 직접 보낸 텍스트와 치지직 채팅이 같은 큐를 사용한다. 두 모드는 같은 캐릭터의 장기 기억을 조회하며, 브라우저에서 마지막으로 열었던 대화방은 모드별로 복원한다. [Studio 연결 메뉴](../web_tool/platform/js/views/connections.js) · [방송 모드와 대화방 저장 범위](../web_tool/platform/runtime/js/app.js)
+**음성·Live2D 대화**를 열면 일반 모드, **방송** 탭이나 **방송 대화실 열기**를 누르면 방송 모드다. 방송 모드에서는 Studio 입력창에 직접 보낸 텍스트와 치지직 채팅이 같은 큐를 사용한다. 현재 통합 파이프라인에서는 방송용 기억과 일대일 기억을 응답 대상으로 구분한다. 브라우저에서 마지막으로 열었던 대화방은 모드별로 복원한다. [Studio 연결 메뉴](../web_tool/platform/js/views/connections.js) · [통합 페르소나 파이프라인](studio-persona-pipeline.md)
 
 ### 1. 연결과 입력 큐
 

@@ -95,3 +95,4 @@ class BatchInput(BaseInput):
     studio_context: str | None = None
     studio_rule_prompt: str = ""
     studio_use_recent_dialogue: bool = False
+    studio_recent_dialogue: list[dict[str, str]] | None = None

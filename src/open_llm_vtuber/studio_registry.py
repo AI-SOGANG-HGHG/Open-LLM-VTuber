@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
+from datetime import date
 from hashlib import sha256
 import hmac
 import json
@@ -14,6 +15,7 @@ from typing import Iterator
 from uuid import UUID, uuid4
 
 from .chat_history_manager import get_history_list, get_metadata
+from .studio_broadcast_context import BroadcastTurn
 from .studio_persona import StudioPersona
 from .studio_profiles import BigFive, PresetProfile, studio_presets
 
@@ -53,7 +55,22 @@ CREATE TABLE IF NOT EXISTS agent_memories (
 );
 CREATE INDEX IF NOT EXISTS agent_memory_lookup
     ON agent_memories(agent_id, embedding_model, occurred_at);
+CREATE INDEX IF NOT EXISTS agent_memory_scope_lookup
+    ON agent_memories(agent_id, COALESCE(json_extract(payload, '$.broadcast_scope'), ''), embedding_model, occurred_at);
+CREATE TABLE IF NOT EXISTS studio_broadcast_turns (
+    agent_id TEXT NOT NULL REFERENCES agents(id),
+    history_uid TEXT NOT NULL,
+    event_id TEXT NOT NULL,
+    request_id TEXT NOT NULL,
+    scope TEXT NOT NULL,
+    input TEXT NOT NULL,
+    reply TEXT NOT NULL,
+    PRIMARY KEY(agent_id, event_id)
+);
+CREATE INDEX IF NOT EXISTS studio_broadcast_turn_lookup
+    ON studio_broadcast_turns(agent_id, history_uid, scope);
 """
+_MEMORY_SCOPE = "COALESCE(json_extract(payload, '$.broadcast_scope'), '')"
 
 
 class AgentNotFound(LookupError):
@@ -383,29 +400,116 @@ class StudioRegistry:
                 "UPDATE agents SET memory_imported = 1 WHERE id = ?", (agent.agent_id,)
             )
 
-    def memories(self, agent_id: str, model: str, limit: int) -> list[dict]:
-        """Return recent memories only from the bound agent and embedding model."""
+    def recent_broadcast_turns(
+        self, agent_id: str, history_uid: str, turn: BroadcastTurn
+    ) -> list[dict[str, str]]:
+        """Return two viewer turns plus at most one public room turn."""
+        with closing(self._connect()) as database:
+            rows = [
+                row
+                for scope in turn.scopes
+                for row in database.execute(
+                    "SELECT rowid, scope, input, reply FROM studio_broadcast_turns "
+                    "WHERE agent_id = ? AND history_uid = ? AND scope = ? "
+                    "ORDER BY rowid DESC LIMIT ?",
+                    (agent_id, history_uid, scope, 2 if scope == turn.scope else 1),
+                )
+            ]
+        return [
+            {
+                "role": role,
+                "content": row[field],
+                "audience": "target" if row["scope"] == turn.scope else "room",
+            }
+            for row in sorted(rows, key=lambda row: row["rowid"])
+            for role, field in (("user", "input"), ("assistant", "reply"))
+        ]
+
+    def save_broadcast_turn(
+        self,
+        agent_id: str,
+        history_uid: str,
+        turn: BroadcastTurn,
+        text: str,
+        reply: str,
+    ) -> None:
+        """Store a completed exchange with its original event and request IDs."""
+        with self._write() as database:
+            database.execute(
+                "INSERT OR IGNORE INTO studio_broadcast_turns VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    agent_id,
+                    history_uid,
+                    turn.event_id,
+                    turn.request_id,
+                    turn.scope,
+                    text,
+                    reply,
+                ),
+            )
+
+    def memories(
+        self, agent_id: str, model: str, limit: int, scopes: tuple[str, ...] = ("",)
+    ) -> list[dict]:
+        """Return memories for the bound agent, scope, and embedding model."""
+        scope_parameters = ", ".join("?" for _ in scopes)
         with closing(self._connect()) as database:
             rows = database.execute(
                 "SELECT payload, superseded_by FROM agent_memories WHERE agent_id = ? AND embedding_model = ? "
+                f"AND {_MEMORY_SCOPE} IN ({scope_parameters}) "
                 "ORDER BY occurred_at DESC, rowid DESC LIMIT ?",
-                (agent_id, model, limit),
+                (agent_id, model, *scopes, limit),
             ).fetchall()
         return [
             dict(json.loads(row["payload"]), superseded_by=row["superseded_by"])
             for row in reversed(rows)
         ]
 
-    def pending_embeddings(self, agent_id: str, limit: int) -> list[tuple[str, str]]:
-        """Read active memories awaiting their first vector, oldest first."""
+    def pending_embeddings(
+        self, agent_id: str, limit: int, scopes: tuple[str, ...] = ("",)
+    ) -> list[tuple[str, str]]:
+        """Read active memories in the permitted scopes awaiting their first vector."""
+        scope_parameters = ", ".join("?" for _ in scopes)
         with closing(self._connect()) as database:
             rows = database.execute(
-                "SELECT event_id, text FROM agent_memories WHERE agent_id = ? "
+                "SELECT event_id, COALESCE(json_extract(payload, '$.search_text'), text) AS text "
+                "FROM agent_memories WHERE agent_id = ? "
                 "AND embedding_model = '' AND superseded_by IS NULL "
+                f"AND {_MEMORY_SCOPE} IN ({scope_parameters}) "
                 "ORDER BY occurred_at, rowid LIMIT ?",
-                (agent_id, limit),
+                (agent_id, *scopes, limit),
             ).fetchall()
         return [(row["event_id"], row["text"]) for row in rows]
+
+    def happiest_experiences(
+        self,
+        agent_id: str,
+        scopes: tuple[str, ...],
+        experiencer: str,
+        period: tuple[date, date] | None,
+    ) -> list[dict]:
+        """Rank eligible experiences across the requested period independently of indexing."""
+        scope_parameters = ", ".join("?" for _ in scopes)
+        exact = (
+            "COALESCE(json_extract(payload, '$.meaning.happiest_evidence'), '') != ''"
+        )
+        event_date = "json_extract(payload, '$.meaning.event_date')"
+        valence = "COALESCE(json_extract(payload, '$.event_affect.valence'), 0)"
+        bound = tuple(day.isoformat() for day in period) if period else ()
+        date_filter = f"AND {event_date} BETWEEN ? AND ? " if bound else ""
+        with closing(self._connect()) as database:
+            rows = database.execute(
+                "SELECT payload FROM agent_memories WHERE agent_id = ? AND superseded_by IS NULL "
+                f"AND {_MEMORY_SCOPE} IN ({scope_parameters}) "
+                "AND json_extract(payload, '$.meaning.kind') = 'experience' "
+                "AND json_extract(payload, '$.meaning.experiencer') IN (?, 'shared') "
+                f"AND ({exact} OR {valence} >= 0.2) "
+                f"{date_filter}"
+                f"ORDER BY ({exact}) DESC, {valence} DESC, "
+                "json_extract(payload, '$.meaning.importance') DESC, occurred_at DESC LIMIT 3",
+                (agent_id, *scopes, experiencer, *bound),
+            ).fetchall()
+        return [json.loads(row["payload"]) for row in rows]
 
     @staticmethod
     def _index_pending(
@@ -444,11 +548,20 @@ class StudioRegistry:
             ).fetchone():
                 return
             model, vector = record["embedding_model"], record.get("vector")
+            scope = record.get("broadcast_scope", "")
             duplicate = database.execute(
                 "SELECT event_id, embedding_model FROM agent_memories WHERE agent_id = ? "
                 "AND embedding_model IN ('', ?) AND text = ? AND superseded_by IS NULL "
+                f"AND {_MEMORY_SCOPE} = ? "
+                "AND COALESCE(json_extract(payload, '$.assistant_excerpt'), '') = ? "
                 "ORDER BY embedding_model DESC, occurred_at DESC LIMIT 1",
-                (agent_id, model, record["text"]),
+                (
+                    agent_id,
+                    model,
+                    record["text"],
+                    scope,
+                    record.get("assistant_excerpt", ""),
+                ),
             ).fetchone()
             if duplicate:
                 event_id = duplicate["event_id"]
@@ -459,12 +572,14 @@ class StudioRegistry:
                 event_id = record["id"]
             database.executemany(
                 "UPDATE agent_memories SET superseded_by = ? WHERE agent_id = ? AND event_id = ? "
+                f"AND {_MEMORY_SCOPE} = ? "
                 "AND superseded_by IS NULL AND text != ? AND occurred_at <= ?",
                 [
                     (
                         event_id,
                         agent_id,
                         old,
+                        scope,
                         record["text"],
                         record["occurred_at"],
                     )
