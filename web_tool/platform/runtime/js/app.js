@@ -391,7 +391,7 @@ const studioProfile = await getStudioProfile();
     state.assistant.body.textContent += (state.assistant.body.textContent ? ' ' : '') + text;
     if (followResponse) scrollMessagesToEnd();
   }
-  function studioTurnDetails({ preset, affect, previous_affect, appraisal, retrieval, rule_selection, rules, memories, unverified_memories = [], task_states = [] }) {
+  function studioTurnDetails({ preset, affect, previous_affect, appraisal, retrieval, rule_selection, rules, memories, unverified_memories = [] }) {
     const details = document.createElement('details');
     details.className = 'studio-turn-context';
     const summary = document.createElement('summary');
@@ -410,12 +410,6 @@ const studioProfile = await getStudioProfile();
     const moodLabel = appraisal === 'ok' && affectChanged ? '캐릭터 감정 변화' : '이전 감정 유지';
     mood.textContent = `${moodLabel} · 쾌·불쾌 ${transition('valence')} · 각성 ${transition('arousal')} · 통제감 ${transition('dominance')}`;
     content.append(persona, mood);
-    const taskStatuses = { not_started: '시작 전', in_progress: '진행 중', completed: '완료' };
-    for (const task of task_states) {
-      const item = document.createElement('p');
-      item.textContent = `현재 과제 · ${task.title} · ${taskStatuses[task.status]}`;
-      content.append(item);
-    }
     const evidence = document.createElement('p');
     evidence.textContent = unverified_memories.length ? '답변에 전달한 기억 후보 · 답변 모델이 관련성을 판단해요.'
       : retrieval !== 'ok' ? '기억 검색을 사용할 수 없었어요.'
