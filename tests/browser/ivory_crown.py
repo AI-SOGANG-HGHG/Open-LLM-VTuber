@@ -404,7 +404,7 @@ class IvoryCrownTests(unittest.TestCase):
             expect(page.locator("#motionControls")).to_be_hidden()
             browser.close()
 
-    def test_live2d_filter_and_kang_iseo_preview(self):
+    def test_character_list_live2d_filter_and_kang_iseo_preview(self):
         base = os.environ.get("SOGANGI_BASE_URL", "http://localhost:12393").rstrip("/")
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(
@@ -417,6 +417,10 @@ class IvoryCrownTests(unittest.TestCase):
             page.goto(f"{base}/web-tool/platform/")
             page.locator("#loginUsername").fill("테스트 사용자")
             page.locator("#loginSubmit").click()
+            grid = page.locator("#characterGrid")
+            for name in ("직설적인 검토자", "다정한 코치"):
+                expect(grid.get_by_role("heading", name=name, exact=True)).to_be_visible()
+            expect(page.get_by_role("heading", name="두 캐릭터의 답변 비교")).to_have_count(0)
             page.get_by_role("button", name="Live2D", exact=True).click()
             card = page.locator("#characterGrid .character-card").filter(
                 has=page.get_by_role("heading", name="강이서", exact=True)
