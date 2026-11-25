@@ -63,7 +63,10 @@ main.addEventListener('click', async (event) => {
   if (action === 'favorite' && char) {
     char.favorite = !char.favorite; persist(); renderCards();
   }
-  if (action === 'suggest') { $('#chatInput').value = button.dataset.message; $('#chatForm').requestSubmit(); }
+  if (action === 'suggest' && !$('#chatInput').value) {
+    $('#chatInput').value = button.dataset.message;
+    $('#chatForm').requestSubmit();
+  }
   if (action === 'duplicate' && char) {
     if (button.disabled) return;
     button.disabled = true;

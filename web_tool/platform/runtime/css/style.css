@@ -313,6 +313,9 @@ textarea:focus-visible {
   gap: 7px;
   margin-top: 27px;
 }
+.conversation:has(#messageInput:not(:placeholder-shown)) .suggestions {
+  display: none;
+}
 .suggestions button {
   padding: 9px 12px;
   border: 1px solid #e0d8cd;

@@ -221,6 +221,7 @@ body.conversation-focus { overflow: hidden; }
 .chat-empty { margin: auto; max-width: 300px; text-align: center; }
 .chat-empty p { color: var(--muted); font-size: 12px; line-height: 1.9; white-space: pre-wrap; }
 .chat-suggestions { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin-top: 24px; }
+.chat-panel:has(#chatInput:not(:placeholder-shown)) .chat-suggestions { display: none; }
 .chat-suggestions button { background: var(--wash); border: 1px solid var(--line); color: var(--ink); border-radius: 7px; padding: 9px 12px; font-size: 10px; }
 .chat-suggestions button:hover { background: var(--accent-soft); }
 .chat-message { align-self: flex-start; max-width: 88%; padding: 13px 16px; background: var(--wash); border: 1px solid var(--line); border-radius: 3px 13px 13px 13px; font-size: 12px; line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); }
