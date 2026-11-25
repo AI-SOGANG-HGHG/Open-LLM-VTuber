@@ -1,0 +1,284 @@
+/* Applied only inside Persona Studio; the standalone Sogangi screen retains its design. */
+html[data-studio] { color-scheme: dark; background: #19161e; color: #eee6f2; --muted: #b7a5c3; --line: #4a3655; --red: #ff9873; }
+html[data-studio] body { background: #19161e; color: #eee6f2; }
+html[data-studio] .topbar, html[data-studio] .page-footer { display: none; }
+html[data-studio] .workspace { width: 100%; max-width: none; height: 100dvh; min-height: 0; padding: 25px; gap: 25px; grid-template-columns: minmax(0, 1.5fr) minmax(340px, .9fr); background-color: #1b2230; background-image: linear-gradient(90deg, #080e1910 35%, #080d1a42), var(--studio-scene-image, url('/bg/ceiling-window-room-night.jpeg')); background-position: center; background-size: cover; }
+html[data-studio] .stage { background: transparent; border: 0; border-radius: 0; padding: 24px; }
+html[data-studio] .stage-copy .eyebrow { color: #ffb095; }
+html[data-studio] .stage-copy h1 { color: #f7f4f1; text-shadow: 0 2px 18px #000b; }
+html[data-studio] .stage-copy > p:last-child { color: #e4e4e8; font-size: 12px; line-height: 1.8; text-shadow: 0 1px 8px #000c; max-width: 360px; }
+html[data-studio] .mascot-note { background: #182537d9; border-color: #9bb4c555; color: #f0e8f3; max-width: 240px; white-space: normal; backdrop-filter: blur(10px); }
+html[data-studio] .mascot-wrap { height: 79%; max-height: none; bottom: 5%; width: auto; max-width: 92%; }
+html[data-studio] .mascot-halo { background: #b58fba0b; }
+html[data-studio] .mascot-shadow { background: #10071842; }
+html[data-studio] .stage-location { color: #d2dce4; font-size: 8px; text-shadow: 0 1px 8px #000; }
+html[data-studio] .eyebrow, html[data-studio] .phase { color: #c6a3d6; }
+html[data-studio] .quiet-button, html[data-studio] .icon-button { color: #d6bddf; background: #37213f; border-color: #684577; }
+html[data-studio] dialog { color: #eee2f4; background: #281a31; border-color: #684274; }
+html[data-studio] .history-item { background: #34213e; color: #dfc6eb; border-color: #6a4578; }
+html[data-studio] input, html[data-studio] select { background: #211627; color: #efdef7; border-color: #61406e; }
+html[data-studio] .settings-about { background: #35203f; border-color: #61406e; color: #d4b4e2; }
+html[data-studio-avatar=mao] .mascot-wrap { width: auto; aspect-ratio: 900 / 1100; }
+html[data-studio-avatar=ivory-crown]:not([data-studio-scene=plain]) .workspace {
+  background-image: linear-gradient(90deg, #20162064, #1b14278a), var(--studio-scene-image);
+}
+html[data-studio-avatar=ivory-crown] .mascot-wrap { aspect-ratio: 2 / 3; height: 87%; bottom: 0; }
+html[data-studio-avatar=ivory-crown] .mascot { mask-image: linear-gradient(#000 89%, transparent); }
+html[data-studio-avatar=ivory-crown] .mascot-live2d { object-fit: contain; }
+html[data-studio-avatar=ivory-crown] .mascot-shadow { display: none; }
+html[data-studio-scene=campus] .stage-copy h1 { color: #243d33; text-shadow: 0 1px 8px #fff8; }
+html[data-studio-scene=campus] .stage-copy > p:last-child { color: #385447; text-shadow: 0 1px 8px #fffa; }
+html[data-studio-scene=plain] .workspace { background-image: none; }
+
+html[data-studio] .conversation {
+  --chat-surface: #20252f;
+  --chat-border: #373e4c;
+  --chat-text: #f0eff5;
+  --chat-muted: #b1bacb;
+  --bubble-width: min(90%, 60ch);
+  min-width: 0;
+  border-color: #ffffff25;
+  border-radius: 18px;
+  padding: 18px 20px 12px;
+  background: #151922f5;
+  backdrop-filter: blur(15px);
+  box-shadow: 0 14px 48px #0003;
+  color: var(--chat-text);
+}
+
+html[data-studio] .conversation-heading {
+  gap: 12px;
+}
+
+html[data-studio] .conversation-heading > div:first-child {
+  min-width: 0;
+}
+
+html[data-studio] .conversation-heading h2 {
+  overflow: hidden;
+  color: var(--chat-text);
+  font-size: 19px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[data-studio] .conversation-toolbar {
+  gap: 8px;
+  min-height: 0;
+  padding: 8px 0;
+  border-color: var(--chat-border);
+  color: var(--chat-muted);
+  font-size: 12px;
+}
+
+html[data-studio] .conversation :is(.quiet-button, .icon-button, .suggestions button) {
+  border: 1px solid var(--chat-border);
+  background: var(--chat-surface);
+  color: var(--chat-text);
+}
+
+html[data-studio] .conversation :is(.quiet-button, .icon-button, .suggestions button):hover:not(:disabled) {
+  border-color: #7d879b;
+  background: #2a303c;
+}
+
+html[data-studio] .conversation .quiet-button {
+  min-height: 32px;
+  padding: 5px 10px;
+  border-radius: 9px;
+  white-space: nowrap;
+}
+
+html[data-studio] .conversation .icon-button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  border-radius: 10px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+html[data-studio] .conversation .quiet-button[aria-pressed='true'],
+html[data-studio] .conversation .stop:not(:disabled) {
+  color: #ffba9f;
+}
+
+html[data-studio] .conversation :focus-visible {
+  outline: 2px solid #ffad8e;
+  outline-offset: 2px;
+}
+
+html[data-studio] .messages {
+  margin-block: 4px 10px;
+  padding: 10px 8px 10px 4px;
+  scroll-behavior: auto;
+  scrollbar-color: #5e687a transparent;
+}
+
+html[data-studio] .messages:focus-visible {
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+html[data-studio] .message {
+  margin-bottom: 16px;
+  line-height: 1.65;
+}
+
+html[data-studio] .message:last-child {
+  margin-bottom: 0;
+}
+
+html[data-studio] .message-label {
+  margin: 0 3px 4px;
+  color: var(--chat-muted);
+  font-size: 11px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+html[data-studio] .message-body {
+  max-width: var(--bubble-width);
+  padding: 10px 13px;
+  border-color: var(--chat-border);
+  border-radius: 5px 14px 14px;
+  background: #252c38;
+  color: var(--chat-text);
+}
+
+html[data-studio] .message.user .message-body {
+  border-color: #78564b;
+  border-radius: 14px 5px 14px 14px;
+  background: #50392f;
+  color: #fff0e9;
+}
+
+html[data-studio] .studio-turn-context {
+  max-width: var(--bubble-width);
+  margin: 4px 0 0 3px;
+  color: var(--chat-muted);
+  font-size: 0.85em;
+  overflow-wrap: anywhere;
+}
+
+html[data-studio] .studio-turn-context summary {
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+html[data-studio] .studio-turn-context summary:hover,
+html[data-studio] .studio-turn-context[open] summary {
+  color: var(--chat-text);
+}
+
+html[data-studio] .studio-turn-context-content {
+  display: grid;
+  gap: 6px;
+  padding: 9px 12px;
+  border: 1px solid var(--chat-border);
+  border-radius: 10px;
+  background: var(--chat-surface);
+}
+
+html[data-studio] .studio-turn-context-content :is(p, ul) {
+  margin: 0;
+}
+
+html[data-studio] .studio-turn-context-content ul {
+  padding-inline-start: 18px;
+}
+
+html[data-studio] .welcome {
+  min-height: min-content;
+}
+
+html[data-studio] .welcome p {
+  color: var(--chat-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+html[data-studio] .welcome-spark {
+  color: #ff9873;
+}
+
+html[data-studio] .composer {
+  padding: 8px 10px;
+  border-color: var(--chat-border);
+  border-radius: 13px;
+  background: var(--chat-surface);
+}
+
+html[data-studio] .composer:focus-within {
+  border-color: #c38b77;
+  box-shadow: 0 0 0 2px #ff987325;
+}
+
+html[data-studio] .composer textarea {
+  min-height: 0;
+  padding: 3px 4px;
+  color: var(--chat-text);
+}
+
+html[data-studio] .composer textarea:focus-visible {
+  outline: none;
+}
+
+html[data-studio] .composer textarea::placeholder {
+  color: var(--chat-muted);
+}
+
+html[data-studio] .composer-bottom {
+  margin-top: 2px;
+}
+
+html[data-studio] .send-button {
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 12px;
+  background: #ff9873;
+  color: #261a17;
+  font-weight: 700;
+}
+
+html[data-studio] .send-button:hover:not(:disabled) {
+  background: #ffb298;
+}
+
+html[data-studio] .conversation-footnote {
+  color: var(--chat-muted);
+}
+
+html[data-studio] .notice {
+  background: var(--chat-surface);
+  color: var(--chat-text);
+}
+
+html[data-studio] .notice[data-kind='error'] {
+  background: #52313e;
+  color: #ffe2e9;
+}
+
+@media (max-width: 740px) {
+  html[data-studio] body { min-height: 0; }
+  html[data-studio] .workspace { flex: none; grid-template-columns: minmax(0, 1fr); grid-template-rows: clamp(100px, 28dvh, 240px) minmax(0, 1fr); min-height: 340px; padding: 8px; gap: 8px; }
+  html[data-studio] .stage { padding: 18px; }
+  html[data-studio] .stage-copy h1 { font-size: 26px; }
+  html[data-studio] .stage-copy > p:last-child { max-width: 160px; font-size: 10px; }
+  html[data-studio] .mascot-wrap { width: auto; height: 85%; max-width: 70%; bottom: 0; margin: 0; }
+  html[data-studio] .stage-bottom { gap: 6px; }
+  html[data-studio] .stage-location { display: none; }
+  html[data-studio] .stage-actions { margin-left: auto; flex-wrap: wrap; }
+  html[data-studio] .mascot-note { font-size: 10px; max-width: 170px; }
+  html[data-studio] .conversation { --bubble-width: 92%; padding: 10px 12px 8px; }
+  html[data-studio] .conversation-heading h2 { font-size: 16px; }
+  html[data-studio] .conversation-toolbar { padding: 4px 0; }
+  html[data-studio] .welcome { padding: 10px 0; }
+  html[data-studio] .suggestions { gap: 5px; }
+  html[data-studio] .suggestions button { padding: 7px 9px; font-size: 11px; }
+  html[data-studio] .composer textarea { height: 2.7em; font-size: 16px; }
+}

@@ -1,4 +1,5 @@
 from typing import Union, List, Dict, Any, Optional
+from functools import partial
 import asyncio
 import json
 from loguru import logger
@@ -49,6 +50,7 @@ async def process_single_conversation(
     # Create TTSTaskManager for this conversation
     tts_manager = TTSTaskManager()
     full_response = ""  # Initialize full_response here
+    studio_turn = None
 
     try:
         # Send initial signals
@@ -86,6 +88,28 @@ async def process_single_conversation(
         if images:
             logger.info(f"With {len(images)} images")
 
+        studio_runtime = getattr(context.agent_engine, "studio_runtime", None)
+        if (
+            studio_runtime is not None
+            and context.history_uid
+            and input_text.strip()
+            and not any(
+                (metadata or {}).get(flag)
+                for flag in ("skip_memory", "skip_history", "proactive_speak")
+            )
+        ):
+            studio_turn = await studio_runtime.prepare(
+                context.character_config.conf_uid,
+                context.history_uid,
+                input_text,
+                recent_messages=context.agent_engine.recent_studio_messages(limit=4),
+            )
+            batch_input.studio_context = studio_turn.context
+            batch_input.studio_rule_prompt = studio_turn.rule_prompt
+            batch_input.studio_use_recent_dialogue = studio_turn.use_recent_dialogue
+            await websocket_send(json.dumps(studio_turn.trace, ensure_ascii=False))
+
+        generation_failed = False
         try:
             # agent.chat yields Union[SentenceOutput, Dict[str, Any]]
             agent_output_stream = context.agent_engine.chat(batch_input)
@@ -137,6 +161,7 @@ async def process_single_conversation(
                     logger.debug(f"Unexpected item content: {output_item}")
 
         except Exception as e:
+            generation_failed = True
             logger.exception(
                 f"Error processing agent response stream: {e}"
             )  # Log with stack trace
@@ -144,20 +169,38 @@ async def process_single_conversation(
                 json.dumps(
                     {
                         "type": "error",
-                        "message": f"Error processing agent response: {str(e)}",
+                        "message": (
+                            "지금 답변을 마치지 못했어요. 잠시 후 다시 말해 주세요."
+                            if studio_turn is not None
+                            else f"Error processing agent response: {str(e)}"
+                        ),
                     }
                 )
             )
             # full_response will contain partial response before error
         # --- End processing agent response ---
 
+        complete_studio_turn = None
+        if (
+            studio_turn is not None
+            and not generation_failed
+            and full_response.strip()
+            and context.character_config.conf_uid == studio_turn.history_scope
+            and context.history_uid == studio_turn.history_uid
+        ):
+            complete_studio_turn = partial(studio_runtime.complete_async, studio_turn)
         await finalize_conversation_turn(
             tts_manager=tts_manager,
             websocket_send=websocket_send,
             client_uid=client_uid,
+            on_complete=complete_studio_turn,
         )
 
-        if context.history_uid and full_response:  # Check full_response before storing
+        if (
+            context.history_uid
+            and full_response
+            and (not generation_failed or studio_turn is None)
+        ):
             store_message(
                 conf_uid=context.character_config.conf_uid,
                 history_uid=context.history_uid,

@@ -23,6 +23,10 @@ async def check(credentials_path):
             response.status_code == 200 and "www-authenticate" not in response.headers
         )
         checks.append("Public login page: 200, no browser authentication challenge")
+        image = client.get("/web-tool/sogangi/assets/sogangi-cheer.svg")
+        assert image.status_code == 200, "Login page Sogangi illustration is unavailable"
+        assert image.headers["content-type"].split(";", 1)[0] == "image/svg+xml"
+        checks.append("Public login page Sogangi illustration: 200 SVG")
         assert client.get("/auth/session").json() == {
             "enabled": True,
             "authenticated": False,
@@ -58,7 +62,7 @@ async def check(credentials_path):
         checks.append("Page login and cookie session restored")
         for path in (
             "/web-tool/platform/runtime/",
-            "/web-tool/platform/app.js",
+            "/web-tool/platform/js/main.js",
             "/live2d-models/mao_pro/runtime/mao_pro.model3.json",
         ):
             assert client.get(path).status_code == 200, path

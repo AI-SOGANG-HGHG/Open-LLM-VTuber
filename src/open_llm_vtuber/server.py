@@ -8,6 +8,7 @@ It uses FastAPI for the server and Starlette for static file serving.
 
 import os
 import shutil
+from pathlib import Path
 
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
@@ -18,6 +19,8 @@ from .routes import init_client_ws_route, init_webtool_routes, init_proxy_route
 from .service_context import ServiceContext
 from .config_manager.utils import Config
 from .studio_auth import install_studio_auth
+from .studio_registry import StudioRegistry
+from .studio_registry_api import studio_registry_router
 
 
 # Create a custom StaticFiles class that adds CORS headers
@@ -89,11 +92,16 @@ class WebSocketServer:
             allow_headers=["*"],
         )
         install_studio_auth(self.app)
+        registry = StudioRegistry(Path("chat_history") / "studio.sqlite3")
+        self.app.include_router(studio_registry_router(registry))
 
         # Include routes, passing the context instance
         # The context will be populated during the initialize step
         self.app.include_router(
-            init_client_ws_route(default_context_cache=self.default_context_cache),
+            init_client_ws_route(
+                default_context_cache=self.default_context_cache,
+                studio_registry=registry,
+            ),
         )
         self.app.include_router(
             init_webtool_routes(default_context_cache=self.default_context_cache),

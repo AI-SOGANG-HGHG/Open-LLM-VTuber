@@ -71,6 +71,23 @@ class AsyncLLM(StatelessLLMInterface):
     async def close(self) -> None:
         await self.client.close()
 
+    async def embed_texts(self, model: str, texts: list[str]) -> list[list[float]]:
+        response = await self.client.embeddings.create(
+            model=model,
+            input=texts[0] if len(texts) == 1 else texts,
+            encoding_format="float",
+        )
+        # Gemini's compatible endpoint can omit index zero in its JSON response.
+        by_index = {
+            0 if getattr(item, "index", None) is None else item.index: item.embedding
+            for item in response.data
+        }
+        if len(response.data) != len(texts) or by_index.keys() != set(
+            range(len(texts))
+        ):
+            raise ValueError("Embedding response has missing or duplicate entries")
+        return [by_index[index] for index in range(len(texts))]
+
     async def chat_completion(
         self,
         messages: List[Dict[str, Any]],

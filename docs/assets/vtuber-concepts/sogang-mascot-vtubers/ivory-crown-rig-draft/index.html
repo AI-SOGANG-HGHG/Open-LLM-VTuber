@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>강이서 · 눈·입 리깅 초안</title>
+  <style>
+    :root { color-scheme: dark; font: 16px/1.5 system-ui, sans-serif; background: #20171a; color: #fff4eb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    main { max-width: 970px; margin: auto; padding: clamp(16px, 4vw, 40px); }
+    h1 { font: 400 clamp(2rem, 6vw, 3.5rem)/1.2 Georgia, serif; margin: 0; }
+    header p { margin: 8px 0 22px; color: #e8ccc7; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; }
+    .stage, .controls { border: 1px solid #6b4a4b; border-radius: 14px; }
+    .stage { overflow: hidden; min-height: 260px; background: radial-gradient(ellipse at 50% 35%, #9b6469, #39252c 83%); }
+    canvas { display: block; width: 100%; height: clamp(320px, 66vh, 640px); object-fit: cover; object-position: center 10%; }
+    .controls { padding: clamp(14px, 3vw, 24px); background: #302227; align-self: start; }
+    h2 { font-size: 1.06rem; margin: 0 0 16px; }
+    fieldset { padding: 0; border: 0; margin: 0; min-width: 0; }
+    .range { display: grid; grid-template-columns: 1fr auto; column-gap: 12px; margin: 12px 0; }
+    .range input { grid-column: 1 / -1; width: 100%; margin: 5px 0 0; }
+    output { font-variant-numeric: tabular-nums; color: #f4bf9e; }
+    input { accent-color: #e7ab8f; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 15px 0 22px; }
+    button { padding: 7px 12px; color: inherit; border: 1px solid #9b696a; border-radius: 6px; background: #57343d; font: inherit; cursor: pointer; }
+    :focus-visible { outline: 2px solid #ffcaa9; outline-offset: 3px; }
+    .audio { border-top: 1px solid #6b4a4b; padding-top: 15px; }
+    .audio input, audio { display: block; width: 100%; margin-top: 7px; }
+    audio { height: 36px; }
+    .audio p { color: #e8ccc7; font-size: .88rem; margin: 8px 0 0; }
+    .status { color: #ffd1a9; font-size: .9rem; margin: 14px 0 0; }
+    [hidden] { display: none !important; }
+    @media (max-width: 650px) {
+      .layout { grid-template-columns: 1fr; gap: 14px; }
+      canvas { height: min(48vh, 430px); }
+    }
+  </style>
+  <script defer src="../../../../../web_tool/shared/ivory-crown-rig.js"></script>
+  <script defer src="./preview.js"></script>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>강이서</h1>
+      <p>눈 깜빡임과 음성 립싱크를 확인하는 2D 리깅 초안</p>
+    </header>
+    <div class="layout">
+      <section class="stage" aria-label="캐릭터 미리보기">
+        <canvas id="stage" width="1024" height="1536" role="img" aria-label="강이서 캐릭터"></canvas>
+      </section>
+      <section class="controls" aria-labelledby="controlsTitle">
+        <h2 id="controlsTitle">눈과 입 조작</h2>
+        <fieldset id="pose" disabled>
+          <label><input id="autoBlink" type="checkbox"> 자동 깜빡임</label>
+          <div class="range">
+            <label for="eyeL">화면 왼쪽 눈 뜨기</label>
+            <output for="eyeL">100%</output>
+            <input id="eyeL" type="range" min="0" max="100" value="100">
+          </div>
+          <div class="range">
+            <label for="eyeR">화면 오른쪽 눈 뜨기</label>
+            <output for="eyeR">100%</output>
+            <input id="eyeR" type="range" min="0" max="100" value="100">
+          </div>
+          <div class="range">
+            <label for="mouth">입 벌림</label>
+            <output for="mouth">0%</output>
+            <input id="mouth" type="range" min="0" max="100" value="0">
+          </div>
+          <div class="actions">
+            <button id="blink" type="button">한 번 깜빡이기</button>
+            <button id="reset" type="button">중립으로 복귀</button>
+          </div>
+          <div class="audio">
+            <label for="audioFile">립싱크용 오디오</label>
+            <input id="audioFile" type="file" accept="audio/*,.wav,.mp3,.ogg,.m4a">
+            <audio id="audio" controls hidden></audio>
+            <p>오디오 파일을 재생하면 음량에 맞춰 입이 움직여요.</p>
+          </div>
+        </fieldset>
+        <p id="status" class="status" role="status">정면 원화를 불러오는 중이에요.</p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

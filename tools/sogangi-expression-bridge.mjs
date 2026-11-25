@@ -1,6 +1,9 @@
 import { greetingBridgeSource } from './sogangi-greeting-bridge.mjs';
 
-export function expressionBridgeSource(source, converter) {
+export function expressionBridgeSource(source, converter, {
+  faceMoods = ['neutral', 'anger', 'surprise'],
+  maxForms = 81,
+} = {}) {
   let adapted = greetingBridgeSource(source, converter);
   const missing =
     '      if (parameter == null) throw new IllegalStateException("Unknown parameter: " + id);';
@@ -12,8 +15,8 @@ export function expressionBridgeSource(source, converter) {
         parameter = new CParameterSource();
         parameter.setGuid(new com.live2d.type.CParameterGuid());
         parameter.setId(new CParameterId(id));
-        parameter.setName("Face mood: neutral / anger / surprise");
-        parameter.setMinValue(0f); parameter.setMaxValue(2f); parameter.setDefaultValue(0f);
+        parameter.setName(${JSON.stringify(`Face mood: ${faceMoods.join(' / ')}`)});
+        parameter.setMinValue(0f); parameter.setMaxValue(${faceMoods.length - 1}f); parameter.setDefaultValue(0f);
         modelSource.getParameterSourceSet().add(parameter, modelSource.getParameterSourceSet().getSources().size());
         var group = modelSource.getRootParameterGroup();
         group.add(parameter, group.getChildren().size());
@@ -36,6 +39,9 @@ ${start}
         }`,
   );
   adapted = adapted.replace(end, `      if (hasOpacity) form.setOpacity(composedOpacity);\n${end}`);
+  const gridLimit = 'if (count > 81)';
+  if (!adapted.includes(gridLimit)) throw Error('Reviewed grid limit changed');
+  adapted = adapted.replace(gridLimit, `if (count > ${maxForms})`);
   const sort =
     '      int order = Integer.compare(Math.max(right.getWidth(), right.getHeight()), Math.max(left.getWidth(), left.getHeight()));';
   if (!adapted.includes(sort)) throw new Error('Reviewed atlas packing order changed');

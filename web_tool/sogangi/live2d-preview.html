@@ -4,12 +4,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>서강이 · 실제 Live2D 모델 검수</title>
-    <link rel="stylesheet" href="./style.css" />
-    <link rel="stylesheet" href="./live2d-preview.css" />
+    <link rel="stylesheet" href="../platform/runtime/css/style.css" />
+    <link rel="stylesheet" href="./workshop/live2d-preview/live2d-preview.css" />
     <script defer src="/libs/live2dcubismcore.min.js"></script>
-    <script defer src="./vendor/pixi.min.js"></script>
-    <script defer src="./vendor/cubism4.min.js"></script>
-    <script defer src="./live2d-preview.js"></script>
+    <script defer src="../shared/vendor/pixi.min.js"></script>
+    <script defer src="../shared/vendor/cubism4.min.js"></script>
+    <script type="module" src="./workshop/live2d-preview/live2d-preview.js?v=3"></script>
   </head>
   <body>
     <header class="topbar">
@@ -40,6 +40,7 @@
         </div>
       </form>
       <div class="model-presets" aria-label="검사할 모델 선택">
+        <button id="loadKangIseo" type="button">강이서 표정</button>
         <button id="loadSogangiExpressions" type="button">서강이 표정 모델</button>
         <button id="loadSogangiGreeting" type="button">서강이 팔 인사 모델</button>
         <button id="loadSogangiMotion" type="button">서강이 고개·호흡 모델</button>
@@ -50,11 +51,37 @@
         불러오기를 누르면 기준 모델을 확인할 수 있어요.
       </p>
       <div class="preview-layout">
-        <section id="modelStage" class="model-stage" aria-label="실제 Live2D 모델">
-          <canvas id="modelCanvas" aria-label="Live2D 렌더링 화면"></canvas>
-        </section>
+        <div class="model-display">
+          <section id="kangIseoExpressionPreview" class="expression-preview" aria-labelledby="expressionPreviewTitle" hidden>
+            <div class="expression-preview-heading">
+              <h2 id="expressionPreviewTitle">강이서 표정</h2>
+              <button id="kangIseoZoom" type="button" aria-pressed="false">상반신 확대</button>
+            </div>
+            <label class="face-variant" for="kangIseoFaceVariant">
+              표정 강도
+              <select id="kangIseoFaceVariant">
+                <option value="standard">기본</option>
+                <option value="clearer">조금 더 또렷하게</option>
+              </select>
+            </label>
+            <div id="kangIseoExpressionButtons" class="preview-actions" role="group" aria-label="표정 선택">
+              <button type="button" data-expression="neutral" aria-pressed="false" disabled>대기·중립</button>
+              <button id="kangIseoThink" type="button" disabled>생각하기</button>
+              <button id="kangIseoSpeak" type="button" disabled>말하기</button>
+              <button type="button" data-expression="joy" aria-pressed="false" disabled>기쁨</button>
+              <button type="button" data-expression="surprise" aria-pressed="false" disabled>놀람</button>
+              <button type="button" data-expression="anger" aria-pressed="false" disabled>분노</button>
+              <button type="button" data-expression="sadness" aria-pressed="false" disabled>슬픔</button>
+              <button id="kangIseoGreeting" type="button" disabled>인사</button>
+            </div>
+            <a class="expression-chat-link" href="../platform/#character/kang-iseo/chat">강이서 대화창 열기</a>
+          </section>
+          <section id="modelStage" class="model-stage" aria-label="실제 Live2D 모델">
+            <canvas id="modelCanvas" aria-label="Live2D 렌더링 화면"></canvas>
+          </section>
+        </div>
         <section class="model-controls" aria-label="모델 검사 도구">
-          <h2>눈·입·기울기</h2>
+          <h2>모델 파라미터</h2>
           <label class="preview-check"
             ><input id="manualMode" type="checkbox" checked />수동 값을 표정·모션보다 우선
             적용</label
@@ -64,22 +91,24 @@
             <button id="mouthSweep" type="button" disabled>입 움직임 왕복 시험</button
             ><button id="resetPose" type="button" disabled>수동값 초기화</button>
           </div>
-          <h2>표정·모션</h2>
+          <h2>표정</h2>
           <label for="modelExpression">내보낸 표정</label
           ><select id="modelExpression" disabled>
             <option>모델을 먼저 불러와 주세요</option>
           </select>
-          <label for="modelMotion">내보낸 모션 그룹</label>
-          <div class="motion-row">
-            <select id="modelMotion" disabled></select
-            ><button id="playMotion" type="button" disabled>모션 재생</button>
+          <div id="motionControls">
+            <label for="modelMotion">내보낸 모션 그룹</label>
+            <div class="motion-row">
+              <select id="modelMotion" disabled></select
+              ><button id="playMotion" type="button" disabled>모션 재생</button>
+            </div>
+            <label for="modelMotionEntry">모션 파일</label
+            ><select id="modelMotionEntry" disabled></select>
+            <p class="preview-help">
+              모션 자체의 눈과 입을 보려면 수동 우선 적용을 꺼 주세요. 반복 여부는 파일 설정을
+              따르며 연결된 소리는 재생하지 않아요.
+            </p>
           </div>
-          <label for="modelMotionEntry">모션 파일</label
-          ><select id="modelMotionEntry" disabled></select>
-          <p class="preview-help">
-            표정·모션 자체의 눈과 입을 보려면 수동 우선 적용을 꺼 주세요. 반복 여부는 파일 설정을
-            따르며 연결된 소리는 재생하지 않아요.
-          </p>
           <h2>검사 정보</h2>
           <dl id="modelFacts"></dl>
           <p class="preview-help">

@@ -253,7 +253,7 @@ def main():
             "note": "화면 오른팔 인사. PSD 좌우 명명 규칙과 일치시킵니다.",
         },
     ]
-    spec = json.loads((base / "live2d-spec.json").read_text(encoding="utf-8"))
+    spec = json.loads((base / "workshop/live2d-plan/live2d-spec.json").read_text(encoding="utf-8"))
     known = {item["id"]: item for item in spec["parameters"]}
     for binding in bindings:
         parameter = known[binding["parameter"]]
@@ -278,7 +278,7 @@ def main():
         "bindings": bindings,
         "scope": "Visible-layer bounds are measured; pivots, deformation hierarchy and repair zones are review proposals. No underpainting or Cubism mesh has been completed.",
     }
-    (base / "rigging-map.json").write_text(
+    (base / "workshop/rigging-map/rigging-map.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     print(

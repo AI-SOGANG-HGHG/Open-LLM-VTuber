@@ -1,0 +1,85 @@
+OpenAI built-in image generation
+
+원본 PNG 5개를 한 장씩 편집했다. 공개 자료 10곳은 캐릭터 유형과 뿔 모양을 조사하는 데 사용했다. 이미지 생성에는 팀의 기존 원본만 입력했다.
+
+조사 자료
+
+Kiryu Coco · hololive 공식 프로필
+https://hololive.hololivepro.com/en/talents/kiryu-coco/
+
+Dola · NIJISANJI 공식 프로필
+https://www.nijisanji.jp/talents/l/dola
+
+Elira Pendora · NIJISANJI 공식 프로필
+https://www.nijisanji.jp/en/talents/l/elira-pendora
+
+Miryu Kotofuji · 원화가 Rosuuri의 캐릭터 작업 페이지
+https://www.rosuuri.com/vtubers/miryu-kotofuji
+
+Lillian · Blue Jump 공식 데뷔 페이지
+https://www.bluejump.net/news/lilliandebut
+
+Tatsuba Emera · anisophia 공식 데뷔 발표
+https://prtimes.jp/main/html/rd/p/000000004.000158566.html
+
+Rira Chiyong · 본인 공식 포트폴리오
+https://chiyongrira.carrd.co/
+
+Zeo = Sherion · 본인 공식 사이트
+https://www.sherion.net/
+
+Zentreya · 본인 공식 프로필
+https://bsky.app/profile/zentreya.bsky.social
+
+Vienna · 본인 채널 모델 데뷔 영상
+https://www.youtube.com/watch?v=veNsIKsT8Tc
+
+01 · 은빛 폭풍룡
+원본 ../01-silver-storm.png
+Use case: precise-object-edit
+Asset: one revised portrait for a long-haired female dragon VTuber team vote.
+Input image 1 is the exact edit target. Edit ONLY the horns and a few strands directly at their roots. Preserve this exact youthful adult character’s face, age impression, eyes and pupils, smile, nose, skin tone, pose, hair color and specific waist-length hairstyle, outfit, illustrated linework, shading, framing, and plain gray background. Keep all of that visually matching the input.
+Remove the old pair of horns completely if present. Add exactly two new prominent organically grown DRAGON horns, in a fixed truly BLACK color across the whole length, including the roots and tips. Color base near-black #141419 with only subtle charcoal #303037 highlights defining black-on-black ridges. No ivory, silver, blue, translucent crystal, white tips, bright edge line, or gold. Portray black keratin, not metal accessories.
+The dragon anatomy is decisive: broad planted bases seated into the hair at staggered positions to the rear of the temples, a length that sweeps UP AND BACK toward the back of the skull and out to the sides, then one distinct angular directional change in each taper, with irregular low bony ridges near the root and a long sharp point. Viewed front-on, both horns are clearly visible on the outside of the head silhouette, with subtly unequal heights, lengths, base positions and lean. The longer horn is roughly 1.25–1.40 times the visible length of the other, and each has a pronounced but shallow angular break. Make them larger than typical decorative horns, very readable when the image is a small stream avatar, roughly one third to two fifths of the eye-to-chin distance beyond the nearby hair silhouette. Fit both horn tips inside the original frame.
+Strict exclusions: no ram, goat or sheep horn, no backward curling spiral or round hook, no smoothly upturned crescents, no straight matching side spikes, no straight parallel pair, no symmetrical V, no horns pointing forward at the viewer, no deer antlers, no extra branches, no crown or headband, no extra accessories, no new scales, no different hair or face, no text or watermark. Use only the visual input of this user’s original portrait and the described original anatomy; no other character image.
+Individual horn shape: dynamic wind-swept pair. The taller upper-left horn starts broad, has two low tapered plates along its rear edge, and angles out as it sweeps back, with a sharp single kink near its final third. The companion on the upper-right grows slightly lower, leans more sideways, ends shorter with an acute upward-back sweep. These are angular black dragon horns, not shiny bat wings. Keep the gray flight jacket and smirking amber-eyed face.
+
+02 · 서리유리룡
+원본 ../02-frostglass.png
+Use case: precise-object-edit
+Asset: one revised portrait for a long-haired female dragon VTuber team vote.
+Input image 1 is the exact edit target. Edit ONLY the horns and a few strands directly at their roots. Preserve this exact youthful adult character’s face, age impression, eyes and pupils, smile, nose, skin tone, pose, hair color and specific waist-length hairstyle, outfit, illustrated linework, shading, framing, and plain gray background. Keep all of that visually matching the input.
+Remove the old pair of horns completely if present. Add exactly two new prominent organically grown DRAGON horns, in a fixed truly BLACK color across the whole length, including the roots and tips. Color base near-black #141419 with only subtle charcoal #303037 highlights defining black-on-black ridges. No ivory, silver, blue, translucent crystal, white tips, bright edge line, or gold. Portray black keratin, not metal accessories.
+The dragon anatomy is decisive: broad planted bases seated into the hair at staggered positions to the rear of the temples, a length that sweeps UP AND BACK toward the back of the skull and out to the sides, then one distinct angular directional change in each taper, with irregular low bony ridges near the root and a long sharp point. Viewed front-on, both horns are clearly visible on the outside of the head silhouette, with subtly unequal heights, lengths, base positions and lean. The longer horn is roughly 1.25–1.40 times the visible length of the other, and each has a pronounced but shallow angular break. Make them larger than typical decorative horns, very readable when the image is a small stream avatar, roughly one third to two fifths of the eye-to-chin distance beyond the nearby hair silhouette. Fit both horn tips inside the original frame.
+Strict exclusions: no ram, goat or sheep horn, no backward curling spiral or round hook, no smoothly upturned crescents, no straight matching side spikes, no straight parallel pair, no symmetrical V, no horns pointing forward at the viewer, no deer antlers, no extra branches, no crown or headband, no extra accessories, no new scales, no different hair or face, no text or watermark. Use only the visual input of this user’s original portrait and the described original anatomy; no other character image.
+Individual horn shape: black and gently faceted, with a clean broad trapezoid root, a shallow angular step at midlength and one slender sharp tip. Upper-right horn has a higher base, rises longer and sweeps outward behind the straight white hair; left horn sits lower and closer with a shorter, more outward sweep. Solid opaque black keratin throughout, comfortable margin around the head. Keep her straight white hair, blue irises, smile and icy-white outfit; only the originally light-coloured horns are replaced.
+
+03 · 백자룡
+원본 ../03-porcelain-wyrm.png
+Use case: precise-object-edit
+Asset: one revised portrait for a long-haired female dragon VTuber team vote.
+Input image 1 is the exact edit target. Edit ONLY the horns and a few strands directly at their roots. Preserve this exact youthful adult character’s face, age impression, eyes and pupils, smile, nose, skin tone, pose, hair color and specific waist-length hairstyle, outfit, illustrated linework, shading, framing, and plain gray background. Keep all of that visually matching the input.
+Remove the old pair of horns completely if present. Add exactly two new prominent organically grown DRAGON horns, in a fixed truly BLACK color across the whole length, including the roots and tips. Color base near-black #141419 with only subtle charcoal #303037 highlights defining black-on-black ridges. No ivory, silver, blue, translucent crystal, white tips, bright edge line, or gold. Portray black keratin, not metal accessories.
+The dragon anatomy is decisive: broad planted bases seated into the hair at staggered positions to the rear of the temples, a length that sweeps UP AND BACK toward the back of the skull and out to the sides, then one distinct angular directional change in each taper, with irregular low bony ridges near the root and a long sharp point. Viewed front-on, both horns are clearly visible on the outside of the head silhouette, with subtly unequal heights, lengths, base positions and lean. The longer horn is roughly 1.25–1.40 times the visible length of the other, and each has a pronounced but shallow angular break. Make them larger than typical decorative horns, very readable when the image is a small stream avatar, roughly one third to two fifths of the eye-to-chin distance beyond the nearby hair silhouette. Fit both horn tips inside the original frame.
+Strict exclusions: no ram, goat or sheep horn, no backward curling spiral or round hook, no smoothly upturned crescents, no straight matching side spikes, no straight parallel pair, no symmetrical V, no horns pointing forward at the viewer, no deer antlers, no extra branches, no crown or headband, no extra accessories, no new scales, no different hair or face, no text or watermark. Use only the visual input of this user’s original portrait and the described original anatomy; no other character image.
+Individual horn shape: it was originally hornless; add a black dragon horn pair. The taller horn sprouts on the front-view LEFT, outboard of her fringe, with two shallow scale ridges under the leading edge and a distinct backwards elbow. The smaller horn sits lower on the ponied RIGHT, sweeping out and back behind the ponytail root; ensure it remains visibly separate and does not replace or cover the white-and-cobalt hair clasp. A pointed single tip apiece. Keep the ponytail hairstyle, blue irises, white cheek scales and cobalt outfit.
+
+04 · 달무리 은룡
+원본 ../04-moon-halo.png
+Use case: precise-object-edit
+Asset: one revised portrait for a long-haired female dragon VTuber team vote.
+Input image 1 is the exact edit target. Edit ONLY the horns and a few strands directly at their roots. Preserve this exact youthful adult character’s face, age impression, eyes and pupils, smile, nose, skin tone, pose, hair color and specific waist-length hairstyle, outfit, illustrated linework, shading, framing, and plain gray background. Keep all of that visually matching the input.
+Remove the old pair of horns completely if present. Add exactly two new prominent organically grown DRAGON horns, in a fixed truly BLACK color across the whole length, including the roots and tips. Color base near-black #141419 with only subtle charcoal #303037 highlights defining black-on-black ridges. No ivory, silver, blue, translucent crystal, white tips, bright edge line, or gold. Portray black keratin, not metal accessories.
+The dragon anatomy is decisive: broad planted bases seated into the hair at staggered positions to the rear of the temples, a length that sweeps UP AND BACK toward the back of the skull and out to the sides, then one distinct angular directional change in each taper, with irregular low bony ridges near the root and a long sharp point. Viewed front-on, both horns are clearly visible on the outside of the head silhouette, with subtly unequal heights, lengths, base positions and lean. The longer horn is roughly 1.25–1.40 times the visible length of the other, and each has a pronounced but shallow angular break. Make them larger than typical decorative horns, very readable when the image is a small stream avatar, roughly one third to two fifths of the eye-to-chin distance beyond the nearby hair silhouette. Fit both horn tips inside the original frame.
+Strict exclusions: no ram, goat or sheep horn, no backward curling spiral or round hook, no smoothly upturned crescents, no straight matching side spikes, no straight parallel pair, no symmetrical V, no horns pointing forward at the viewer, no deer antlers, no extra branches, no crown or headband, no extra accessories, no new scales, no different hair or face, no text or watermark. Use only the visual input of this user’s original portrait and the described original anatomy; no other character image.
+Individual horn shape: replace the original two upward crescents with an elongated black swept-back pair with broad tapered roots and gracious angled facets. On the front-view right use a long gently outward sweep interrupted by a visible small angular step at middle, ending with one pointed tip. On left plant the root lower and give its slightly shorter profile a more outward lean, with narrow defined edge and one sharp tip. No crescent horns; the crescent pin in the costume and loop braids remain exactly as in the original.
+
+05 · 안개의 백룡
+원본 ../05-mist-white-dragon.png
+Use case: precise-object-edit
+Asset: one revised portrait for a long-haired female dragon VTuber team vote.
+Input image 1 is the exact edit target. Edit ONLY the horns and a few strands directly at their roots. Preserve this exact youthful adult character’s face, age impression, eyes and pupils, smile, nose, skin tone, pose, hair color and specific waist-length hairstyle, outfit, illustrated linework, shading, framing, and plain gray background. Keep all of that visually matching the input.
+Remove the old pair of horns completely if present. Add exactly two new prominent organically grown DRAGON horns, in a fixed truly BLACK color across the whole length, including the roots and tips. Color base near-black #141419 with only subtle charcoal #303037 highlights defining black-on-black ridges. No ivory, silver, blue, translucent crystal, white tips, bright edge line, or gold. Portray black keratin, not metal accessories.
+The dragon anatomy is decisive: broad planted bases seated into the hair at staggered positions to the rear of the temples, a length that sweeps UP AND BACK toward the back of the skull and out to the sides, then one distinct angular directional change in each taper, with irregular low bony ridges near the root and a long sharp point. Viewed front-on, both horns are clearly visible on the outside of the head silhouette, with subtly unequal heights, lengths, base positions and lean. The longer horn is roughly 1.25–1.40 times the visible length of the other, and each has a pronounced but shallow angular break. Make them larger than typical decorative horns, very readable when the image is a small stream avatar, roughly one third to two fifths of the eye-to-chin distance beyond the nearby hair silhouette. Fit both horn tips inside the original frame.
+Strict exclusions: no ram, goat or sheep horn, no backward curling spiral or round hook, no smoothly upturned crescents, no straight matching side spikes, no straight parallel pair, no symmetrical V, no horns pointing forward at the viewer, no deer antlers, no extra branches, no crown or headband, no extra accessories, no new scales, no different hair or face, no text or watermark. Use only the visual input of this user’s original portrait and the described original anatomy; no other character image.
+Individual horn shape: matte charcoal-black dragon horns with three shallow overlapping keratin plates at each base; protrude distinctly from the white curls, a sharp diagonal sweep rather than the two old curling ivory horns. Front-view left horn is larger, slightly high set, with a thick root and an angular shoulder as it tapers to a blade-like tip. Right horn starts lower in the curls, shorter and more outward, and tapers through one oblique kink. Keep the umber complexion, green eyes, ivory waist-length curls, and jade pendant.
