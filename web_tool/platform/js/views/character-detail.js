@@ -31,6 +31,33 @@ function settingsPanel(char) {
     <p class="field-help" id="profileDraftStatus" role="status"></p>
     <div class="panel-actions"><button type="button" class="button secondary" data-action="discard-profile-draft" hidden>수정 취소</button><button type="submit" class="button primary">변경사항 저장</button></div><p class="field-help">저장한 설정은 대화실에 다시 연결할 때 적용돼요.</p></form>${profilePreview(char)}</div>`;
 }
+
+export function profileForPreview(char, form = $('#settingsForm')) {
+  if (form?.dataset.id !== char.id) return char;
+  const { elements } = form;
+  return {
+    ...char,
+    avatar: elements.namedItem('avatar').value || char.avatar,
+    name: elements.namedItem('name').value,
+    description: elements.namedItem('description').value,
+    greeting: elements.namedItem('greeting').value,
+  };
+}
+
+function updateSettingsPreview(form, char) {
+  const profile = profileForPreview(char, form);
+  const preview = form.parentElement.querySelector('.settings-preview');
+  const art = preview.querySelector('.preview-art');
+  if (!art.classList.contains(profile.avatar)) {
+    preview.outerHTML = profilePreview(profile);
+    return;
+  }
+  const portrait = art.querySelector('img');
+  if (portrait) portrait.alt = `${profile.name} 캐릭터`;
+  preview.querySelector('#previewName').textContent = profile.name;
+  preview.querySelector('.preview-profile > p').textContent = profile.description;
+  preview.querySelector('#previewGreeting').textContent = `“${profile.greeting}”`;
+}
 function chatPanel(char, chatLabel) {
   return `<section class="runtime-toolbar"><div><a class="runtime-back" href="#characters">← 스튜디오</a><span class="status-dot"></span><strong id="runtimeStatus" role="status">${escapeHtml(char.name)} 연결 준비 중…</strong></div><div><a class="button secondary" href="${charLink(char)}">캐릭터 설정</a><button class="button secondary" data-action="runtime-layout">스튜디오 보기</button><button class="button secondary" data-action="runtime-connect" data-id="${escapeHtml(char.id)}">다시 연결</button><button class="button secondary" data-action="runtime-disconnect">연결 해제</button></div></section><div class="studio-runtime" id="studioRuntime"><iframe id="studioFrame" title="${escapeHtml(char.name)} ${chatLabel}실" allow="microphone; autoplay" referrerpolicy="no-referrer"></iframe></div><p class="field-help">답변 아래에서 행동 규칙, 감정 변화, 참고한 기억을 확인할 수 있어요.</p>`;
 }
@@ -109,12 +136,14 @@ function restoreProfileDraft(form, char) {
     if (!Object.hasOwn(saved, name) || typeof value !== 'string') continue;
     const control = form.elements.namedItem(name);
     control.value = value;
-    // Radio groups expose their value through the group and events through the selected input.
-    const input = control instanceof RadioNodeList ? form.querySelector('input[name="avatar"]:checked') : control;
-    input?.dispatchEvent(new Event('input', { bubbles: true }));
+    if (control.type === 'range') control.dispatchEvent(new Event('input', { bubbles: true }));
   }
+  if (draft) updateSettingsPreview(form, char);
   remember();
-  form.addEventListener('input', remember);
+  form.addEventListener('input', (event) => {
+    remember();
+    if (['name', 'avatar', 'description', 'greeting'].includes(event.target.name)) updateSettingsPreview(form, char);
+  });
 }
 
 function sampleReply(char, text) {
