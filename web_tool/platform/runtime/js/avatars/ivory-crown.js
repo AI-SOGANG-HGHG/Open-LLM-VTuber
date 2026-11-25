@@ -1,4 +1,5 @@
-import { kangIseoFaces } from '../../../../shared/kang-iseo-expressions.js';
+import { kangIseoFaces, kangIseoThinkingEyeOpen } from '../../../../shared/kang-iseo-expressions.js?face=2';
+import { kangIseoBrowArea, loadKangIseoFaceArt } from '../../../../shared/kang-iseo-face-art.js';
 
 let rigImport;
 let rigAttempt = 0;
@@ -20,7 +21,7 @@ function loadRig() {
 export async function createIvoryCrownAvatar(canvas, imageUrl) {
   const portrait = new Image();
   portrait.src = imageUrl;
-  await Promise.all([portrait.decode(), loadRig()]);
+  const [faceArt] = await Promise.all([loadKangIseoFaceArt(), portrait.decode(), loadRig()]);
 
   canvas.width = portrait.naturalWidth;
   canvas.height = portrait.naturalHeight;
@@ -30,17 +31,20 @@ export async function createIvoryCrownAvatar(canvas, imageUrl) {
   const pose = { eyeL: 1, eyeR: 1, mouth: 0 };
   const systemMotion = matchMedia('(prefers-reduced-motion: reduce)');
   let expression = 'neutral';
-  let blinkOpenness = 1;
-  let gaze = 0;
+  let thinking = false;
+  let reduced = false;
   let timer;
   let frame;
-  let breath;
-  let reduced = false;
+  let blink = 1;
 
   function draw() {
     const face = kangIseoFaces[expression];
-    pose.eyeL = pose.eyeR = Math.round(face.eyeScale * blinkOpenness * 100) / 100;
-    rig.draw(context, pose, face);
+    const eyeOpen = thinking && expression === 'neutral' ? kangIseoThinkingEyeOpen : (faceArt ? 1 : face.eyeScale);
+    pose.eyeL = pose.eyeR = Math.round(blink * eyeOpen * 100) / 100;
+    rig.draw(context, pose, {
+      ...face, expression, faceArea: kangIseoBrowArea,
+      paintEye: faceArt?.paintedEye, paintDetails: faceArt?.paintedBrows, paintEmotionMouth: faceArt?.paintedMouth,
+    });
     canvas.dataset.appliedMouth = String(pose.mouth);
     canvas.dataset.eyeOpen = String(pose.eyeL);
     canvas.dataset.expression = expression;
@@ -54,43 +58,26 @@ export async function createIvoryCrownAvatar(canvas, imageUrl) {
   function scheduleBlink() {
     timer = setTimeout(() => {
       const start = performance.now();
-      function blink(now) {
+      function animateBlink(now) {
         const progress = Math.min(1, (now - start) / 210);
-        blinkOpenness = 1 - Math.sin(Math.PI * progress) ** 2;
+        blink = 1 - Math.sin(Math.PI * progress) ** 2;
         draw();
-        if (progress < 1) frame = requestAnimationFrame(blink);
+        if (progress < 1) frame = requestAnimationFrame(animateBlink);
         else scheduleBlink();
       }
-      frame = requestAnimationFrame(blink);
+      frame = requestAnimationFrame(animateBlink);
     }, 2000 + Math.random() * 1800);
   }
 
-  function motionReduced() {
-    return reduced || systemMotion.matches;
-  }
-
-  function applyTilt() {
-    canvas.style.rotate = `${motionReduced() ? 0 : gaze * 2.5}deg`;
-  }
-
-  function applyMotion() {
+  function updateBlink() {
     stopBlink();
-    breath?.cancel();
-    blinkOpenness = 1;
-    applyTilt();
+    blink = 1;
     draw();
-    if (motionReduced()) return;
-    scheduleBlink();
-    // The PSD has a single head/body layer. Keep this motion on the entire portrait.
-    breath = canvas.animate(
-      [{ scale: '1' }, { scale: '1.008 1.012' }, { scale: '1' }],
-      { duration: 5000, iterations: Infinity, easing: 'ease-in-out' },
-    );
+    if (!reduced && !systemMotion.matches) scheduleBlink();
   }
 
-  canvas.style.transformOrigin = '50% 72%';
-  systemMotion.addEventListener('change', applyMotion);
-  applyMotion();
+  systemMotion.addEventListener('change', updateBlink);
+  updateBlink();
   return {
     setMouthOpen(amount) {
       const rounded = Math.round(amount * 100) / 100;
@@ -104,19 +91,19 @@ export async function createIvoryCrownAvatar(canvas, imageUrl) {
       expression = next;
       draw();
     },
-    lookAt(x = 0) {
-      gaze = Math.max(-1, Math.min(1, Number(x) || 0));
-      applyTilt();
+    setThinking(value) {
+      if (value === thinking) return;
+      thinking = value;
+      draw();
     },
     setReducedMotion(value) {
       if (value === reduced) return;
       reduced = value;
-      applyMotion();
+      updateBlink();
     },
     destroy() {
       stopBlink();
-      breath?.cancel();
-      systemMotion.removeEventListener('change', applyMotion);
+      systemMotion.removeEventListener('change', updateBlink);
     },
   };
 }

@@ -6,3 +6,5 @@ export const kangIseoFaces = Object.freeze({
   anger: { eyeScale: 0.81, eyeTilt: 13, mouthWidth: 1.15, mouthHeight: 0.82 },
   sadness: { eyeScale: 0.62, eyeTilt: -11, mouthWidth: 0.84, mouthHeight: 0.9 },
 });
+
+export const kangIseoThinkingEyeOpen = 0.78;

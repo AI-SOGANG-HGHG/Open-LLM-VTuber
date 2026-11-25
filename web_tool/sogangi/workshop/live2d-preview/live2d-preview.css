@@ -27,7 +27,8 @@
   opacity: 0.45;
 }
 .model-form label,
-.model-controls > label {
+.model-controls > label,
+#motionControls > label {
   display: block;
   font-size: 12px;
   margin: 14px 0 9px;
@@ -210,4 +211,59 @@ select:focus-visible {
     width: 100%;
     font-size: 11px;
   }
+}
+
+.model-display {
+  min-width: 0;
+}
+.expression-preview {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border: 1px solid #e0d8ca;
+  border-radius: 14px;
+  background: #faf8f0;
+}
+.expression-preview-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+.expression-preview h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+}
+.expression-preview button[aria-pressed='true'] {
+  border-color: var(--red);
+  color: var(--red);
+}
+#kangIseoExpressionButtons button[aria-pressed='true'] {
+  background: #f9e9e9;
+}
+.expression-chat-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--red);
+}
+.face-variant {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  color: #67574b;
+  font-size: 12px;
+}
+.face-variant[hidden] {
+  display: none;
+}
+.face-variant select {
+  border: 1px solid #d5cabe;
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: #fffcf6;
+  color: #4b443b;
+  font: inherit;
 }

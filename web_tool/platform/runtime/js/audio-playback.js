@@ -1,4 +1,4 @@
-export function createAudioPlayback({ preferences, renderer, canPlay, onStart, onComplete, onError }) {
+export function createAudioPlayback({ preferences, renderer, canPlay, onStart, onUnavailable, onComplete, onError }) {
   const queue = [];
   let playing = null;
   let lipFrame = null;
@@ -32,7 +32,7 @@ export function createAudioPlayback({ preferences, renderer, canPlay, onStart, o
     const audio = new Audio(`data:audio/wav;base64,${item.audio}`);
     playing = audio;
     updateSettings();
-    onStart(item.expression || 'neutral');
+    let started = false;
     const done = () => {
       if (playing !== audio) return;
       playing = null;
@@ -42,13 +42,19 @@ export function createAudioPlayback({ preferences, renderer, canPlay, onStart, o
       audio.onerror = null;
       playNext();
     };
-    audio.onended = done;
-    audio.onerror = () => {
-      onError('음성을 재생하지 못했어요. 화면에서 답변을 읽을 수 있어요.');
+    function failed(message) {
+      if (playing !== audio || item.epoch !== epoch) return;
+      if (!started) onUnavailable?.(item.expression);
+      onError(message);
       done();
-    };
+    }
+    audio.onended = done;
+    audio.onerror = () => failed('음성을 재생하지 못했어요. 화면에서 답변을 읽을 수 있어요.');
     try {
       await audio.play();
+      if (playing !== audio || item.epoch !== epoch) return;
+      started = true;
+      onStart(item.expression);
       const syncMouth = () => {
         if (playing !== audio) return;
         const index = Math.floor((audio.currentTime * 1000) / (item.slice || 20));
@@ -57,9 +63,7 @@ export function createAudioPlayback({ preferences, renderer, canPlay, onStart, o
       };
       syncMouth();
     } catch {
-      if (playing !== audio || item.epoch !== epoch) return;
-      onError('소리를 재생하지 못했어요. 음소거 상태와 스피커를 확인해 주세요.');
-      done();
+      failed('소리를 재생하지 못했어요. 음소거 상태와 스피커를 확인해 주세요.');
     }
   }
 

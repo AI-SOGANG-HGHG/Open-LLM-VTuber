@@ -1,6 +1,7 @@
 import { avatarAssets } from '../../../js/presets.js';
-import { createLivePreview } from '../../../../shared/live2d-loader.js';
-import { createIvoryCrownAvatar } from './ivory-crown.js';
+import { createLivePreview } from '../../../../shared/live2d-loader.js?face=2';
+import { createIvoryCrownAvatar } from './ivory-crown.js?face=2';
+import { kangIseoFaces } from '../../../../shared/kang-iseo-expressions.js?face=2';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -9,11 +10,13 @@ export class StudioAvatarRenderer {
   constructor(host, canvas, onChange, avatar) {
     this.host = host; this.canvas = canvas; this.onChange = onChange; this.avatar = avatar;
     this.active = 'image'; this.degraded = false; this.ready = false; this.closed = false;
-    this.state = { mouth: 0, reduced: false, gaze: 0, expression: 'neutral' };
+    this.state = { mouth: 0, reduced: false, gaze: 0, expression: 'neutral', phase: 'idle' };
     this.requested = null; this.epoch = 0;
     this.isKangIseo = avatar === 'ivory-crown';
   }
-  get canGreet() { return this.avatar === 'mao' && this.ready && this.active === 'live2d'; }
+  get canGreet() {
+    return this.avatar === 'mao' && this.ready && this.active === 'live2d';
+  }
   placeholder() {
     this.host.replaceChildren(); this.host.setAttribute('viewBox', '0 0 270 337');
     const imageSrc = this.isKangIseo ? avatarAssets[this.avatar].image
@@ -59,6 +62,7 @@ export class StudioAvatarRenderer {
     engine.setReducedMotion(this.state.reduced);
     engine.lookAt?.(this.state.gaze);
     engine.setExpression?.(this.state.expression);
+    if (this.isKangIseo) engine.setThinking(this.state.phase === 'waiting');
     this.onChange();
   }
   async fallback(current) {
@@ -111,12 +115,36 @@ export class StudioAvatarRenderer {
       return recover() ?? false;
     }
   }
-  setPhase(phase) { if (phase !== 'speaking') this.setMouthOpen(0); }
-  setMouthOpen(amount) { this.state.mouth = Math.max(0, Math.min(1, Number(amount) || 0)); this.host.dataset.mouthOpen = this.state.mouth.toFixed(2); this.engine?.setMouthOpen(this.state.mouth); }
-  setExpression(name) { this.state.expression = name; this.engine?.setExpression?.(name); }
-  setReducedMotion(value) { this.state.reduced = value; this.engine?.setReducedMotion(value); }
-  lookAt(x) { this.state.gaze = x; this.engine?.lookAt?.(x); }
+  setPhase(phase) {
+    this.state.phase = phase;
+    if (this.isKangIseo) this.engine?.setThinking(phase === 'waiting');
+    if (phase !== 'speaking') this.setMouthOpen(0);
+  }
+  setMouthOpen(amount) {
+    this.state.mouth = Math.max(0, Math.min(1, Number(amount) || 0));
+    this.host.dataset.mouthOpen = this.state.mouth.toFixed(2);
+    this.engine?.setMouthOpen(this.state.mouth);
+  }
+  setExpression(name) {
+    const next = this.isKangIseo && !Object.hasOwn(kangIseoFaces, name) ? 'neutral' : name;
+    if (this.state.expression === next) return;
+    this.state.expression = next;
+    this.engine?.setExpression?.(next);
+  }
+  setReducedMotion(value) {
+    this.state.reduced = value;
+    this.engine?.setReducedMotion(value);
+  }
+  lookAt(x) {
+    this.state.gaze = x;
+    this.engine?.lookAt?.(x);
+  }
   greet() { return this.canGreet && this.engine.greet(); }
   cancelGesture() { this.engine?.cancelGesture?.(); }
-  dispose() { this.closed = true; this.epoch++; this.engine?.destroy(); this.engine = null; }
+  dispose() {
+    this.closed = true;
+    this.epoch++;
+    this.engine?.destroy();
+    this.engine = null;
+  }
 }

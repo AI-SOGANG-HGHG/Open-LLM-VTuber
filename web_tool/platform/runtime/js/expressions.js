@@ -1,4 +1,4 @@
-import { kangIseoExpressions, maoExpressionIndices } from '../../../shared/live2d-loader.js';
+import { kangIseoExpressions, maoExpressionIndices } from '../../../shared/live2d-loader.js?face=2';
 
 // Sogangi's semantic names are independent of Mao's numeric indices.
 // Native Cubism supports four states; the SVG engine keeps its neutral/joy fallback.
