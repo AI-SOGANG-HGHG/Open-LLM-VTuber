@@ -14,6 +14,7 @@
 		}
 	}
 	route {
+		respond /internal/chzzk-ws 404
 		redir / /web-tool/platform/ 302
 		reverse_proxy 127.0.0.1:12393 {
 			header_up -Authorization

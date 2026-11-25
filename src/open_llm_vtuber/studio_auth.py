@@ -19,6 +19,7 @@ from starlette.requests import cookie_parser
 from starlette.responses import JSONResponse, RedirectResponse, Response
 
 COOKIE = "__Host-studio_session"
+CHZZK_COLLECTOR_PATH = "/internal/chzzk-ws"
 LOGIN_PAGE = "/web-tool/platform/"
 PUBLIC_PATHS = frozenset(
     {
@@ -236,6 +237,9 @@ class StudioAuthMiddleware:
 
     async def __call__(self, scope, receive, send):
         if scope["type"] not in ("http", "websocket"):
+            return await self.app(scope, receive, send)
+        if scope["type"] == "websocket" and scope["path"] == CHZZK_COLLECTOR_PATH:
+            # The collector route validates its loopback peer and service credential.
             return await self.app(scope, receive, send)
         headers = Headers(scope=scope)
         session = self.auth.resolve(headers)

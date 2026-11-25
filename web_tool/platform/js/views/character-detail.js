@@ -30,8 +30,8 @@ function settingsPanel(char) {
     <label for="editPersona">추가 성격과 대화 지침</label><textarea id="editPersona" name="persona" maxlength="2000"${char.studioPreset ? '' : ' required'}>${escapeHtml(char.studioPreset ? char.instructions : char.persona)}</textarea>
     <div class="panel-actions"><button type="submit" class="button primary">변경사항 저장</button></div><p class="field-help">저장한 설정은 대화실에 다시 연결할 때 적용돼요.</p></form>${profilePreview(char)}</div>`;
 }
-function chatPanel(char, chatLabel) {
-  return `<section class="runtime-toolbar"><div><a class="runtime-back" href="#characters">← 스튜디오</a><span class="status-dot"></span><strong id="runtimeStatus" role="status">${escapeHtml(char.name)} 연결 준비 중…</strong></div><div><a class="button secondary" href="${charLink(char)}">캐릭터 설정</a><button class="button secondary" data-action="runtime-layout">스튜디오 보기</button><button class="button secondary" data-action="runtime-connect" data-id="${escapeHtml(char.id)}">다시 연결</button><button class="button secondary" data-action="runtime-disconnect">연결 해제</button></div></section><div class="studio-runtime" id="studioRuntime"><iframe id="studioFrame" title="${escapeHtml(char.name)} ${chatLabel}실" allow="microphone; autoplay" referrerpolicy="no-referrer"></iframe></div><p class="field-help">답변 아래에서 행동 규칙, 감정 변화, 참고한 기억을 확인할 수 있어요.</p>`;
+function chatPanel(char, chatLabel, mode) {
+  return `<section class="runtime-toolbar"><div><a class="runtime-back" href="#characters">← 스튜디오</a><span class="status-dot"></span><strong id="runtimeStatus" role="status">${escapeHtml(char.name)} 연결 준비 중…</strong></div><div><a class="button secondary" href="${charLink(char)}">캐릭터 설정</a><button class="button secondary" data-action="runtime-layout">스튜디오 보기</button><button class="button secondary" data-action="runtime-connect" data-mode="${mode}" data-id="${escapeHtml(char.id)}">다시 연결</button><button class="button secondary" data-action="runtime-disconnect">연결 해제</button></div></section><div class="studio-runtime" id="studioRuntime"><iframe id="studioFrame" title="${escapeHtml(char.name)} ${chatLabel}실" allow="microphone; autoplay" referrerpolicy="no-referrer"></iframe></div><p class="field-help">답변 아래에서 행동 규칙, 감정 변화, 참고한 기억을 확인할 수 있어요.</p>`;
 }
 function sampleChatPanel(char) {
   return `<div class="chat-layout">${profilePreview(char, true)}<section class="panel chat-panel"><div class="chat-top"><div><h2>${escapeHtml(char.name)}</h2><p>${escapeHtml(char.tone)} · ${presets[char.template].label}</p></div><span class="demo-pill">샘플 대화</span></div><div id="chatMessages" class="chat-messages" role="log" aria-label="샘플 대화 기록"></div><form id="chatForm" class="chat-compose" data-id="${escapeHtml(char.id)}"><input name="message" id="chatInput" placeholder="${escapeHtml(char.name)}에게 메시지 보내기…" aria-label="샘플 메시지" maxlength="500" autocomplete="off" required /><button class="button primary" type="submit" aria-label="메시지 보내기">↑</button></form><p class="chat-footnote">미리 준비한 답변으로 대화해 볼 수 있어요.</p></section></div>`;
@@ -47,12 +47,12 @@ function memoryPanel(char) {
 }
 
 export function renderDetail(char, tab) {
-  const tabs = { settings: '프로필·성격', chat: '음성·Live2D 대화', memory: '기억 노트', connections: '연결', records: '기록', sample: '샘플 대화' };
+  const tabs = { settings: '프로필·성격', chat: '음성·Live2D 대화', memory: '기억 노트', connections: '연결', broadcast: '방송', records: '기록', sample: '샘플 대화' };
   if (!Object.hasOwn(tabs, tab)) tab = 'settings';
   $('#breadcrumb').textContent = `스튜디오 / ${char.name} / ${tabs[tab]}`;
   main.innerHTML = `<a class="back-link" href="#characters">← 내 캐릭터로 돌아가기</a><div class="detail-heading"><div class="detail-avatar ${char.avatar}">${avatar(char)}</div><div><h1>${escapeHtml(char.name)}</h1><p>${escapeHtml(char.description)}</p></div><div class="detail-actions"><button class="button secondary" data-action="preview" data-id="${escapeHtml(char.id)}">외형 미리보기</button><button class="button secondary" data-action="duplicate" data-id="${escapeHtml(char.id)}">복제</button><button class="button secondary" data-action="delete" data-id="${escapeHtml(char.id)}">삭제</button></div></div><nav class="tabs" aria-label="캐릭터 관리 메뉴">${Object.entries(tabs).map(([key, label]) => `<a href="${charLink(char, key)}" class="${tab === key ? 'active' : ''}"${tab === key ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
   if (tab === 'settings' || tab === 'memory') showEditor(char, tab);
-  if (tab === 'chat') { main.innerHTML += chatPanel(char, tabs.chat); setConversationFocus(true); connectRuntime(char); }
+  if (tab === 'chat' || tab === 'broadcast') { main.innerHTML += chatPanel(char, tabs[tab], tab); setConversationFocus(true); connectRuntime(char, tab); }
   if (tab === 'sample') { main.innerHTML += sampleChatPanel(char); renderMessages(char); }
   if (tab === 'connections') main.innerHTML += renderConnections(char);
   if (tab === 'records') main.innerHTML += renderRecords(char);

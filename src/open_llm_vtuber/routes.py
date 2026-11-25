@@ -10,6 +10,8 @@ from loguru import logger
 from .service_context import ServiceContext
 from .websocket_handler import WebSocketHandler
 from .proxy_handler import ProxyHandler
+from .studio_auth import CHZZK_COLLECTOR_PATH
+from .studio_broadcast import StudioBroadcast
 from .studio_registry import StudioRegistry
 
 
@@ -50,7 +52,7 @@ def init_client_ws_route(
     return router
 
 
-def init_proxy_route(server_url: str) -> APIRouter:
+def init_proxy_route(server_url: str, studio_server_url: str) -> APIRouter:
     """
     Create and return API routes for handling proxy connections.
 
@@ -62,15 +64,23 @@ def init_proxy_route(server_url: str) -> APIRouter:
     """
     router = APIRouter()
     proxy_handler = ProxyHandler(server_url)
+    broadcast = StudioBroadcast(studio_server_url)
 
     @router.websocket("/proxy-ws")
     async def proxy_endpoint(websocket: WebSocket):
         """WebSocket endpoint for proxy connections"""
         try:
-            await proxy_handler.handle_client_connection(websocket)
+            if websocket.query_params.get("mode") == "studio":
+                await broadcast.handle_screen(websocket)
+            else:
+                await proxy_handler.handle_client_connection(websocket)
         except Exception as e:
             logger.error(f"Error in proxy connection: {e}")
             raise
+
+    @router.websocket(CHZZK_COLLECTOR_PATH)
+    async def collector_endpoint(websocket: WebSocket):
+        await broadcast.handle_collector(websocket)
 
     return router
 

@@ -9,6 +9,7 @@ WorkingDirectory=%h/Open-LLM-VTuber
 ExecStart=%h/Open-LLM-VTuber/.venv/bin/python %h/Open-LLM-VTuber/tools/start_server.py
 Environment=PYTHONUNBUFFERED=1
 Environment=STUDIO_AUTH_REQUIRED=true
+EnvironmentFile=-%h/Open-LLM-VTuber/private/chzzk.env
 UMask=0077
 Restart=on-failure
 RestartSec=5

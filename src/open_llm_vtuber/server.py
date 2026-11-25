@@ -115,7 +115,10 @@ class WebSocketServer:
             port = system_config.port
             server_url = f"ws://{host}:{port}/client-ws"
             self.app.include_router(
-                init_proxy_route(server_url=server_url),
+                init_proxy_route(
+                    server_url=server_url,
+                    studio_server_url=f"ws://127.0.0.1:{port}/client-ws",
+                ),
             )
 
         # Mount cache directory first (to ensure audio file access)

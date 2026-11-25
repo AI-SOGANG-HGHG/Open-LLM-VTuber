@@ -1,164 +1,178 @@
+"""Queue proxy messages and track the active conversation."""
+
 import asyncio
-from typing import Dict, Optional, Deque, Any, Callable
+import uuid
 from collections import deque
+from collections.abc import Awaitable, Callable
+from typing import Any
+
 from loguru import logger
 
 
+CONVERSATION_TIMEOUT_SECONDS = 30
+ForwardMessage = Callable[[dict[str, Any], str | None], Awaitable[None]]
+
+
 class ProxyMessageQueue:
-    """
-    Manages message queuing and consumption for the proxy handler.
-    Implements a producer-consumer pattern with conversation state awareness.
-    """
+    """Dispatch one queued message at a time and recover from missing end signals."""
 
-    def __init__(self):
-        """Initialize the message queue manager"""
-        self.message_queue: Deque[Dict] = deque()
-        self._conversation_active = False
+    def __init__(
+        self,
+        *,
+        turn_timeout: float = CONVERSATION_TIMEOUT_SECONDS,
+        max_pending: int | None = None,
+    ) -> None:
+        """Initialize the pending queue and conversation state."""
+        self.message_queue: deque[tuple[dict[str, Any], str | None]] = deque()
+        self._deadline: float | None = None
+        self._request_id: str | None = None
         self.lock = asyncio.Lock()
-        self._consumer_task = None
-        self._forward_func = None
-        self._running = False
+        self._changed = asyncio.Event()
+        self._consumer_task: asyncio.Task[None] | None = None
+        self._forward_func: ForwardMessage | None = None
+        self.turn_timeout = turn_timeout
+        self.max_pending = max_pending
+        self.dispatch_enabled = True
 
-    def initialize(self, forward_func: Callable[[Dict, Optional[str]], Any]):
-        """
-        Initialize the queue with a message forwarding function.
+    def set_dispatch_enabled(self, enabled: bool) -> None:
+        self.dispatch_enabled = enabled
+        self._changed.set()
+        self._ensure_consumer_running()
 
-        Args:
-            forward_func: Function to call when forwarding messages to the server
-        """
+    def initialize(self, forward_func: ForwardMessage) -> None:
+        """Set the async callback used to forward a message and its sender ID."""
         self._forward_func = forward_func
-        logger.debug("Message queue initialized with forward function")
+        self._ensure_consumer_running()
 
-    def queue_message(self, message: Dict, sender_id: Optional[str] = None) -> None:
-        """
-        Add a message to the queue.
-
-        Args:
-            message: The message to queue
-            sender_id: Optional ID of the client that sent the message
-        """
-        # Store the message along with its sender ID
-        queue_item = {"message": message, "sender_id": sender_id}
-        logger.info(
-            f"Queuing message: {message.get('text', '')} (active conversation: {self._conversation_active})"
-        )
-        self.message_queue.append(queue_item)
-
-        # Start consumer if needed
+    def queue_message(
+        self,
+        message: dict[str, Any],
+        sender_id: str | None = None,
+        *,
+        priority: bool = False,
+    ) -> None:
+        """Queue a message and its sender ID, inserting at the front for priority."""
+        queue_item = (message, sender_id)
+        if self.max_pending is not None and len(self.message_queue) >= self.max_pending:
+            if not priority:
+                return
+            self.message_queue.pop()
+        if priority:
+            self.message_queue.appendleft(queue_item)
+        else:
+            self.message_queue.append(queue_item)
+        self._changed.set()
         self._ensure_consumer_running()
 
     @property
     def conversation_active(self) -> bool:
-        """Get the conversation active state"""
-        return self._conversation_active
+        """Return whether the queue is waiting for the current turn to finish."""
+        return self._deadline is not None
 
     @conversation_active.setter
     def conversation_active(self, active: bool) -> None:
-        """
-        Set the conversation active state.
+        """Set or release the conversation lock."""
+        if active:
+            self._deadline = asyncio.get_running_loop().time() + self.turn_timeout
+        else:
+            self._deadline = None
+            self._request_id = None
+        self._changed.set()
 
-        Args:
-            active: True if a conversation is active, False otherwise
-        """
-        if self._conversation_active != active:
-            logger.debug(f"Setting conversation active state to: {active}")
-            self._conversation_active = active
+    def complete_conversation(self, request_id: str | None) -> None:
+        """Release the queue lock for a matching turn or an untagged group turn."""
+        if request_id is None or request_id == self._request_id:
+            self.conversation_active = False
 
-            # If conversation becomes inactive, make sure consumer is running to process any queued messages
-            if not active and self.has_pending_messages():
-                self._ensure_consumer_running()
+    def matches_active(self, request_id: object) -> bool:
+        return self._request_id is not None and request_id == self._request_id
 
     def has_pending_messages(self) -> bool:
-        """
-        Check if there are pending messages in the queue.
+        """Return whether the queue contains pending messages."""
+        return bool(self.message_queue)
 
-        Returns:
-            bool: True if there are messages to process, False otherwise
-        """
-        return len(self.message_queue) > 0
+    def _ensure_consumer_running(self) -> None:
+        """Start a consumer if forwarding is configured and messages are pending."""
+        if (
+            self._forward_func
+            and self.dispatch_enabled
+            and self.has_pending_messages()
+            and (self._consumer_task is None or self._consumer_task.done())
+        ):
+            self._consumer_task = asyncio.create_task(self._consume_loop())
 
-    def _ensure_consumer_running(self):
-        """Ensure the consumer task is running if needed"""
-        if not self._forward_func:
-            logger.warning("Cannot start consumer: no forward function provided")
+    async def _consume_loop(self) -> None:
+        """Wait for queue updates or the active conversation deadline."""
+        while True:
+            async with self.lock:
+                if not self.dispatch_enabled:
+                    return
+                self._changed.clear()
+                remaining = None
+                if self._deadline is not None:
+                    remaining = self._deadline - asyncio.get_running_loop().time()
+                    if remaining <= 0:
+                        logger.warning("Proxy conversation timed out; releasing queue")
+                        self.conversation_active = False
+
+                if not self.conversation_active:
+                    if not self.has_pending_messages():
+                        return
+                    await self.dispatch_next()
+                    continue
+
+            try:
+                await asyncio.wait_for(self._changed.wait(), timeout=remaining)
+            except asyncio.TimeoutError:
+                pass
+
+    async def dispatch_next(self) -> None:
+        """Dispatch the first pending message while the caller holds the queue lock."""
+        if (
+            not self.dispatch_enabled
+            or self.conversation_active
+            or not self.message_queue
+            or not self._forward_func
+        ):
             return
 
-        if self._consumer_task is None or self._consumer_task.done():
-            self._running = True
-            self._consumer_task = asyncio.create_task(self._consume_loop())
-            logger.debug("Started message consumer task")
+        message, sender_id = self.message_queue.popleft()
+        request_id = message.get("request_id")
+        if not isinstance(request_id, str) or not 0 < len(request_id) <= 128:
+            request_id = uuid.uuid4().hex
+            message = {**message, "request_id": request_id}
 
-    async def _consume_loop(self):
-        """Background task that consumes messages based on conversation state"""
+        self._request_id = request_id
+        self.conversation_active = True
         try:
-            while self._running:
-                # Wait a short time to prevent CPU hogging
-                await asyncio.sleep(0.1)
+            await asyncio.wait_for(
+                self._forward_message(self._forward_func, message, sender_id),
+                timeout=CONVERSATION_TIMEOUT_SECONDS,
+            )
+        except Exception as error:
+            logger.error("Failed to forward queued proxy message: {}", error)
+            self.complete_conversation(request_id)
 
-                # Try to consume a message if appropriate
-                async with self.lock:
-                    if not self._conversation_active and self.has_pending_messages():
-                        # Get next message
-                        queue_item = self.message_queue.popleft()
-                        message = queue_item["message"]
-                        sender_id = queue_item["sender_id"]
+    async def _forward_message(
+        self,
+        forward_func: ForwardMessage,
+        message: dict[str, Any],
+        sender_id: str | None,
+    ) -> None:
+        """Forward the existing transcription notification before the original input."""
+        if message.get("type") == "text-input":
+            await forward_func(
+                {**message, "type": "user-input-transcription"}, sender_id
+            )
+        await forward_func(message, sender_id)
 
-                        logger.info(
-                            f"Consumer processing message: {message.get('text', '')}"
-                        )
-
-                        # Set active before forwarding to prevent race conditions
-                        self._conversation_active = True
-
-                        # Forward the message outside the lock to prevent deadlocks
-                        asyncio.create_task(self._forward_message(message, sender_id))
-
-                # If queue is empty and we've been idle for a while, we can pause the consumer
-                if not self.has_pending_messages() and not self._conversation_active:
-                    await asyncio.sleep(1)  # Wait a bit longer before deciding to stop
-                    if (
-                        not self.has_pending_messages()
-                        and not self._conversation_active
-                    ):
-                        logger.debug(
-                            "No more pending messages and no active conversation, pausing consumer"
-                        )
-                        break
-
-        except Exception as e:
-            logger.error(f"Error in message consumer loop: {e}")
-        finally:
-            self._running = False
-            logger.debug("Message consumer task ended")
-
-    async def _forward_message(self, message: Dict, sender_id: Optional[str] = None):
-        """Forward a message using the provided forward function"""
-        try:
-            if self._forward_func:
-                # If this is a text input, send transcription first
-                if message.get("type") == "text-input":
-                    # Create transcription message
-                    transcription_message = message.copy()
-                    transcription_message["type"] = "user-input-transcription"
-                    # Forward transcription message
-                    await self._forward_func(transcription_message, sender_id)
-
-                # Forward the original message
-                await self._forward_func(message, sender_id)
-            else:
-                logger.warning("No forward function available to process message")
-        except Exception as e:
-            logger.error(f"Error forwarding message: {e}")
-            # If forwarding fails, mark conversation as inactive to allow next message
-            self._conversation_active = False
-
-    def stop(self):
-        """Stop the consumer task"""
-        self._running = False
+    def stop(self) -> None:
+        """Cancel the consumer and release the conversation lock."""
         if self._consumer_task and not self._consumer_task.done():
             self._consumer_task.cancel()
+        self._consumer_task = None
+        self.conversation_active = False
 
-    def clear(self):
-        """Clear all pending messages"""
+    def clear(self) -> None:
+        """Clear all pending messages."""
         self.message_queue.clear()
-        logger.info("Message queue cleared")
