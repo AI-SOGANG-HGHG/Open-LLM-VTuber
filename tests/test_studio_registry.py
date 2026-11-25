@@ -660,9 +660,129 @@ class AgentRecallTests(unittest.IsolatedAsyncioTestCase):
                 agent.history_scope, room, "발표 준비에서 뭐가 남았지?"
             )
         self.assertEqual(turn.trace["recall_steps"], 2)
+        self.assertIsNone(turn.trace["recall_redirection"])
         self.assertEqual([item["id"] for item in turn.trace["memories"]], ["draft"])
         self.assertEqual(
             [item["id"] for item in turn.trace["unverified_memories"]], ["rehearsal"]
+        )
+
+    async def test_recall_gate_redirects_only_the_single_followup(self):
+        agent = self.registry.create(profile(self.workspace), self.token)
+        runtime = self.runtime(agent)
+        now = datetime.now(timezone.utc).isoformat()
+        cue_text = "발표 무대 리허설을 하다가 조명 순서를 바꾸기로 했다. " + (
+            "메모" * 30
+        )
+        cue = cue_text[:60].strip()
+        semantic_query = "발표 리허설 일정"
+        scenarios = (
+            ("draft", "발표 초안 완성", [1, 0, 0]),
+            ("slides", "발표 슬라이드 완성", [1, 0, 0]),
+            ("intro", "발표 도입부 확정", [1, 0, 0]),
+            ("cue", cue_text, [0.8, 0, 0.6]),
+            ("rehearsal", "리허설은 내일 저녁에 해야 한다", [0, 1, 0]),
+            ("lights", "조명 전환 연습은 아직 하지 않았다", [0, 0, 1]),
+        )
+        for memory_id, memory_text, coordinates in scenarios:
+            record = {
+                "id": memory_id,
+                "text": memory_text,
+                "occurred_at": now,
+                "embedding_model": "fixture",
+                "vector": runtime._encode_vector(
+                    np.array(coordinates, dtype=np.float32)
+                ),
+            }
+            if memory_id in ("cue", "rehearsal"):
+                record.update(
+                    meaning={"kind": "experience"},
+                    event_affect=Affect(
+                        valence=0.8, arousal=0.7, dominance=0.8
+                    ).model_dump(),
+                )
+            self.registry.save_memory(agent.agent_id, record, ())
+        runtime.llm.embed_texts = AsyncMock(
+            side_effect=lambda _, texts: [
+                [0, 0, 1]
+                if item == cue
+                else [0, 1, 0]
+                if item == semantic_query
+                else [1, 0, 0]
+                for item in texts
+            ]
+        )
+        appraisal = Appraisal(
+            relevant_memory_ids=["draft"],
+            affect=None,
+            remember=False,
+            next_recall_query=semantic_query,
+        )
+        room = create_new_history(agent.history_scope)
+        for draw, followup, expected in (
+            (0.0, cue, ["cue", "lights"]),
+            (0.999999, semantic_query, ["rehearsal"]),
+        ):
+            with (
+                self.subTest(draw=draw),
+                patch.object(
+                    runtime, "_appraise", new=AsyncMock(return_value=appraisal)
+                ),
+                patch("src.open_llm_vtuber.studio_turn.random", return_value=draw),
+            ):
+                runtime.llm.embed_texts.reset_mock()
+                turn = await runtime.prepare(
+                    agent.history_scope, room, "발표 준비에서 뭐가 남았지?"
+                )
+                self.assertEqual(runtime.llm.embed_texts.await_count, 2)
+                self.assertEqual(runtime.llm.embed_texts.await_args.args[1], [followup])
+                self.assertEqual(turn.trace["recall_steps"], 2)
+                self.assertEqual(turn.trace["recall_redirection"]["memory_id"], "cue")
+                self.assertEqual(
+                    turn.trace["recall_redirection"]["redirected"], draw == 0.0
+                )
+                self.assertEqual(
+                    [item["id"] for item in turn.trace["memories"]], ["draft"]
+                )
+                self.assertEqual(
+                    [item["id"] for item in turn.trace["unverified_memories"]], expected
+                )
+        with (
+            patch.object(runtime, "_appraise", new=AsyncMock(return_value=appraisal)),
+            patch.object(
+                runtime, "_redirection_candidate", wraps=runtime._redirection_candidate
+            ) as redirect,
+        ):
+            turn = await runtime.prepare(
+                agent.history_scope, room, "오늘은 날씨가 화창해."
+            )
+        redirect.assert_not_called()
+        self.assertEqual(turn.trace["recall_steps"], 1)
+        self.assertIsNone(turn.trace["recall_redirection"])
+
+    def test_recall_gate_probability_increases_with_arousal_and_neuroticism(self):
+        def runtime_with_trait(character, neuroticism):
+            traits = BigFive(
+                **{
+                    **dict.fromkeys(BigFive.model_fields, 0.5),
+                    "neuroticism": neuroticism,
+                }
+            )
+            data = profile(self.workspace, character).model_copy(
+                update={"traits": traits}
+            )
+            return self.runtime(self.registry.create(data, self.token))
+
+        calm = runtime_with_trait("calm", 0.0)
+        sensitive = runtime_with_trait("sensitive", 1.0)
+        quiet, activated = Affect(arousal=0.0), Affect(arousal=0.9)
+        self.assertAlmostEqual(calm._redirection_probability(0.5, quiet), 0.5)
+        self.assertGreater(
+            calm._redirection_probability(0.5, activated),
+            calm._redirection_probability(0.5, quiet),
+        )
+        self.assertGreater(
+            sensitive._redirection_probability(0.5, quiet),
+            calm._redirection_probability(0.5, quiet),
         )
 
     async def test_completed_reply_persists_grounded_character_commitment(self):

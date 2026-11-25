@@ -228,6 +228,8 @@ async def process_single_conversation(
                     "rule_directions": studio_turn.trace["rule_directions"],
                     "rule_selection": studio_turn.trace["rule_selection"],
                     "rules": studio_turn.trace["rules"],
+                    "recall_steps": studio_turn.trace["recall_steps"],
+                    "recall_redirection": studio_turn.trace["recall_redirection"],
                 }
             store_message(
                 conf_uid=context.character_config.conf_uid,

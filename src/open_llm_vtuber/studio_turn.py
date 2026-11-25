@@ -10,7 +10,7 @@ from contextlib import aclosing
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta, timezone
 from math import exp
-from random import random
+from random import choices, random
 import re
 from typing import TYPE_CHECKING, Annotated, Iterable, Literal, Sequence, TypeVar
 from uuid import uuid4
@@ -58,6 +58,9 @@ RULES_PER_AXIS = 4
 MAX_EMBEDDING_BATCH = 100
 MAX_PENDING_EMBEDDINGS = 8
 MAX_SHARED_RULE_VECTORS = 1024
+MIN_SEMANTIC_SCORE = 0.40
+REDIRECTION_CANDIDATES = 6
+REDIRECTION_QUERY_CHARS = 60
 _rule_vectors: OrderedDict[tuple[str, str, str], np.ndarray] = OrderedDict()
 EXPLICIT_RECALL = re.compile(
     r"기억(?:나|하니|하나요|하세요)|(?:다고|라고)\s*(?:했|말했|말씀했|하셨)"
@@ -449,7 +452,7 @@ class StudioTurnRuntime:
             if vector.shape != query.shape:
                 continue
             score = float(query @ vector)
-            if score < 0.4:
+            if score < MIN_SEMANTIC_SCORE:
                 continue
             if (
                 persona_weighted
@@ -493,6 +496,11 @@ class StudioTurnRuntime:
             + 1
             - abs(affect.dominance - event.dominance)
         ) / 3
+        emotion_weight = 0.030 + 0.010 * self.preset.traits.neuroticism
+        return emotion_weight * resonance + 0.015 * self._retention(item, event)
+
+    def _retention(self, item: RecallItem, event: Affect) -> float:
+        """Return the current accessibility of an affect-tagged memory."""
         try:
             timestamp = datetime.fromisoformat(item.occurred_at or "")
             age = max(
@@ -503,8 +511,105 @@ class StudioTurnRuntime:
         decay = (1 - 0.5 * event.arousal) * (
             1 - 0.5 * self.preset.traits.neuroticism * max(0, -event.valence)
         )
-        emotion_weight = 0.030 + 0.010 * self.preset.traits.neuroticism
-        return emotion_weight * resonance + 0.015 * exp(-age * decay / 60)
+        return exp(-age * decay / 60)
+
+    def _redirection_probability(self, passive_score: float, affect: Affect) -> float:
+        """Apply the PersMem Big Five gate threshold and arousal term."""
+        threshold = 0.50 - 0.20 * self.preset.traits.neuroticism
+        logit = 6.0 * (passive_score - threshold) + affect.arousal
+        return 1.0 / (1.0 + exp(-logit))
+
+    def _redirection_candidate(
+        self, search: RecallSearch, seen: set[str], affect: Affect
+    ) -> tuple[RecallItem, float] | None:
+        """Sample an unused, affect-tagged memory related to the current recall goal."""
+        candidates: dict[str, tuple[RecallItem, float]] = {}
+        affect_weight = 0.30 * (1 + 0.30 * self.preset.traits.neuroticism)
+        for item, vector in search.pool:
+            event = item.event_affect
+            if (
+                item.id in seen
+                or event is None
+                or not item.meaning
+                or item.meaning.kind != "experience"
+            ):
+                continue
+            semantic = float(search.memory_query @ vector)
+            if semantic < MIN_SEMANTIC_SCORE:
+                continue
+            matching = (
+                0.50 * (affect.valence * event.valence + 1) / 2
+                + 0.30 * (1 - abs(affect.arousal - event.arousal))
+                + 0.20 * (1 - abs(affect.dominance - event.dominance))
+            )
+            score = (
+                0.50 * semantic
+                + affect_weight * matching
+                + 0.20 * self._retention(item, event)
+            )
+            if item.id not in candidates or score > candidates[item.id][1]:
+                candidates[item.id] = (item, score)
+        ranked = sorted(candidates.values(), key=lambda entry: entry[1], reverse=True)[
+            :REDIRECTION_CANDIDATES
+        ]
+        if not ranked:
+            return None
+        temperature = 0.12 + 0.18 * self.preset.traits.openness
+        peak_score = ranked[0][1]
+        weights = [exp((score - peak_score) / temperature) for _, score in ranked]
+        return choices(ranked, weights=weights, k=1)[0]
+
+    async def _refine_recall(
+        self,
+        search: RecallSearch,
+        query: str,
+        seen: set[str],
+        affect: Affect,
+        original_queries: tuple[str, str | None],
+    ) -> tuple[list[RecallItem], bool, dict[str, str | bool | float] | None]:
+        """Use one follow-up retrieval, optionally redirected by an affective memory."""
+        seed: list[RecallItem] = []
+        decision = None
+        candidate = self._redirection_candidate(search, seen, affect)
+        if candidate:
+            memory, passive_score = candidate
+            probability = self._redirection_probability(passive_score, affect)
+            cue = memory.text[:REDIRECTION_QUERY_CHARS].strip()
+            redirected = bool(
+                cue and cue not in (*original_queries, query) and random() < probability
+            )
+            decision = {
+                "memory_id": memory.id,
+                "probability": round(probability, 4),
+                "redirected": redirected,
+            }
+            if redirected:
+                query = cue
+                seed = [memory]
+                seen = seen | {memory.id}
+        try:
+            results = await asyncio.wait_for(
+                self.llm.embed_texts(self.embedding_model, [query]), timeout=4
+            )
+            refined = np.asarray(results[0], dtype=np.float32)
+            norm = np.linalg.norm(refined)
+            if (
+                refined.shape != search.memory_query.shape
+                or not np.isfinite(norm)
+                or norm <= 0
+            ):
+                return seed, False, decision
+            additional = self._rank(
+                refined / norm,
+                ((item, vector) for item, vector in search.pool if item.id not in seen),
+                3 - len(seed),
+                persona_weighted=self.registry is not None,
+                affect=affect,
+            )
+            return [*seed, *additional], True, decision
+        except Exception as error:
+            logger.warning("Studio recall refinement failed ({})", type(error).__name__)
+            return seed, False, decision
 
     @staticmethod
     def _stored_memories(metadata: dict) -> list[dict]:
@@ -1015,41 +1120,22 @@ class StudioTurnRuntime:
         affect = (snapshot.affect if snapshot else previous_affect).model_dump()
         next_query = (appraisal.next_recall_query or "").strip() if appraisal else ""
         recall_steps = int(search is not None)
+        recall_redirection = None
         if (
             search
             and explicit
             and next_query
             and next_query not in (text, followup_query)
         ):
-            try:
-                results = await asyncio.wait_for(
-                    self.llm.embed_texts(self.embedding_model, [next_query]), timeout=4
-                )
-                refined = np.asarray(results[0], dtype=np.float32)
-                norm = np.linalg.norm(refined)
-                if (
-                    refined.shape == search.memory_query.shape
-                    and np.isfinite(norm)
-                    and norm > 0
-                ):
-                    seen = {item.id for item in memory_candidates}
-                    additional = self._rank(
-                        refined / norm,
-                        (
-                            (item, embedding)
-                            for item, embedding in search.pool
-                            if item.id not in seen
-                        ),
-                        3,
-                        persona_weighted=self.registry is not None,
-                        affect=snapshot.affect if snapshot else previous_affect,
-                    )
-                    unverified_memories.extend(item.details() for item in additional)
-                    recall_steps += 1
-            except Exception as error:
-                logger.warning(
-                    "Studio recall refinement failed ({})", type(error).__name__
-                )
+            additional, refined, recall_redirection = await self._refine_recall(
+                search,
+                next_query,
+                {item.id for item in memory_candidates},
+                snapshot.affect if snapshot else previous_affect,
+                (text, followup_query),
+            )
+            unverified_memories.extend(item.details() for item in additional)
+            recall_steps += int(refined)
         if happiest:
             matched_memories = [memory.details() for memory in memory_candidates]
         elif search and affect_update:
@@ -1165,6 +1251,7 @@ class StudioTurnRuntime:
             "appraisal": "ok" if appraisal is not None else "unavailable",
             "retrieval": "ok" if search else "unavailable",
             "recall_steps": recall_steps,
+            "recall_redirection": recall_redirection,
         }
         return PreparedStudioTurn(
             source,
