@@ -12,13 +12,14 @@ import { mountConversationShell } from './conversation-shell.js';
 
 mountConversationShell(document.documentElement.hasAttribute('data-studio-pending'));
 const studioProfile = await getStudioProfile();
+const broadcastMode = Boolean(studioProfile && new URLSearchParams(location.search).get('broadcast') === '1');
 
 (() => {
   'use strict';
   const $ = (id) => document.getElementById(id);
   const characterName = studioProfile?.name || '서강이';
   const historyTitle = `대화 기록 · ${characterName}`;
-  const sessionScope = studioProfile ? `${studioProfile.workspace_id}.${studioProfile.character_id}` : '';
+  const sessionScope = studioProfile ? `${studioProfile.workspace_id}.${studioProfile.character_id}${broadcastMode ? '.broadcast' : ''}` : '';
   const ui = Object.fromEntries(
     [
       'connection',
@@ -132,6 +133,7 @@ const studioProfile = await getStudioProfile();
   let expressionHoldUntil = 0;
   let expressionTimer = null;
   const connection = createConversationConnection({
+    path: broadcastMode ? '/proxy-ws?mode=studio' : '/client-ws',
     onConnecting: prepareConnection,
     onMessage: handleServerMessage,
     onDisconnected: handleDisconnect,
@@ -195,7 +197,9 @@ const studioProfile = await getStudioProfile();
       change.ready = true;
       applyPendingExpressions();
     },
-    onComplete: () => connection.send({ type: 'frontend-playback-complete' }),
+    onComplete: () => connection.send(broadcastMode
+      ? { type: 'frontend-playback-complete', request_id: state.requestId }
+      : { type: 'frontend-playback-complete' }),
     onError: notice,
   });
   const microphone = createMicrophone(ui, {
@@ -455,18 +459,20 @@ const studioProfile = await getStudioProfile();
     ui.phase.textContent = '메시지를 보낼 수 있어요.';
     mascot(state.lastExpression, 'idle', '네 이야기를 듣고 있어');
   }
-  function interrupt(reason = '') {
-    if (!state.busy) return;
-    connection.send({ type: 'interrupt-signal', text: state.assistant?.body.textContent || '' });
+  function cancelResponse() {
     state.discard = true;
     playback.cancelTurn();
     resetExpression();
-    state.recoverable = Boolean(reason);
     ready();
+  }
+  function interrupt(reason = '') {
+    if (!state.busy) return;
+    connection.send({ type: 'interrupt-signal', request_id: state.requestId, text: state.assistant?.body.textContent || '' });
+    cancelResponse();
+    state.recoverable = Boolean(reason);
     if (reason) notice(reason);
   }
-  function begin(text) {
-    if (!state.ready || state.busy || !text.trim()) return;
+  function startResponse(text, requestId) {
     notice('');
     playback.startTurn();
     clearPendingExpressions();
@@ -482,11 +488,10 @@ const studioProfile = await getStudioProfile();
     state.firstAudio = null;
     state.firstText = null;
     state.textStreaming = false;
-    state.requestId = createRandomId();
+    state.requestId = requestId;
     state.started = performance.now();
-    message('user', text);
+    if (text) message('user', text);
     scrollMessagesToEnd();
-    ui.messageInput.value = '';
     persistSession();
     controls();
     ui.phase.textContent = '답변을 기다리고 있어요 · 0초';
@@ -499,12 +504,19 @@ const studioProfile = await getStudioProfile();
       () => interrupt('답변이 오래 걸려 요청을 멈췄어요. 다시 질문해 주세요.'),
       90000,
     );
+  }
+  function begin(text) {
+    if (!state.ready || state.busy || !text.trim()) return;
+    const requestId = createRandomId();
+    ui.messageInput.value = '';
+    if (broadcastMode) persistSession();
+    else startResponse(text, requestId);
     connection.send({
       type: 'text-input',
       text,
       text_stream: true,
       require_spoken_response: true,
-      request_id: state.requestId,
+      request_id: requestId,
     });
   }
   function newHistory() {
@@ -555,7 +567,9 @@ const studioProfile = await getStudioProfile();
     state.recoverable = false;
     ui.timing.textContent = '답변에는 틀린 내용이 있을 수 있어요.';
   }
+  let broadcastInput;
   function prepareConnection() {
+    broadcastInput = null;
     requestedConfig = false;
     resetExpression();
     clearTimeout(state.historyTimer);
@@ -573,6 +587,24 @@ const studioProfile = await getStudioProfile();
     ui.phase.textContent = '대화방을 준비하고 있어요.';
   }
   function handleServerMessage(data) {
+    if (broadcastMode) {
+      if (data.type === 'user-input-transcription' && data.request_id) {
+        broadcastInput = data;
+        return;
+      }
+      if (data.type === 'interrupt-signal') {
+        if (state.busy) cancelResponse();
+        return;
+      }
+      if (data.type === 'control' && data.text === 'conversation-chain-start' && data.request_id) {
+        if (!state.ready || (state.busy && state.requestId === data.request_id)) return;
+        if (state.busy) cancelResponse();
+        const text = broadcastInput?.request_id === data.request_id ? broadcastInput.text : '';
+        broadcastInput = null;
+        startResponse(text, data.request_id);
+        return;
+      }
+    }
     if (data.request_id && data.request_id !== state.requestId) return;
     if (data.type === 'set-model-and-conf' && !requestedConfig) {
       requestedConfig = true;

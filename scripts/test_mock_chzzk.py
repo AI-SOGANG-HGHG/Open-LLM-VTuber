@@ -1,7 +1,9 @@
 """Mock simulator script for testing Chzzk chat and donation events via proxy-ws."""
 
+import argparse
 import asyncio
 import json
+import os
 import time
 from typing import Any
 
@@ -65,6 +67,8 @@ MOCK_SCENARIOS: list[dict[str, Any]] = [
 async def run_mock_simulation(
     proxy_url: str = DEFAULT_PROXY_URL,
     interval_sec: float = 3.0,
+    *,
+    collector_token: str = "",
 ) -> None:
     """Send sequential mock Chzzk chat and donation payloads to proxy-ws.
 
@@ -73,7 +77,13 @@ async def run_mock_simulation(
         interval_sec: Delay in seconds between each simulated event.
     """
     logger.info(f"Connecting to {proxy_url} for Chzzk mock simulation...")
-    async with websockets.connect(proxy_url) as ws:
+    options = {}
+    if collector_token:
+        options = {
+            "additional_headers": {"Authorization": f"Bearer {collector_token}"},
+            "proxy": None,
+        }
+    async with websockets.connect(proxy_url, **options) as ws:
         for index, scenario in enumerate(MOCK_SCENARIOS, start=1):
             payload: dict[str, Any] = {
                 "type": "text-input",
@@ -90,7 +100,26 @@ async def run_mock_simulation(
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--studio",
+        action="store_true",
+        help="send to the local Studio collector endpoint",
+    )
+    parser.add_argument("--port", type=int, default=12393)
+    args = parser.parse_args()
     try:
-        asyncio.run(run_mock_simulation())
+        if args.studio:
+            token = os.getenv("STUDIO_CHZZK_TOKEN", "")
+            if not token:
+                parser.error("STUDIO_CHZZK_TOKEN is required in Studio mode")
+            asyncio.run(
+                run_mock_simulation(
+                    f"ws://127.0.0.1:{args.port}/internal/chzzk-ws",
+                    collector_token=token,
+                )
+            )
+        else:
+            asyncio.run(run_mock_simulation(f"ws://localhost:{args.port}/proxy-ws"))
     except KeyboardInterrupt:
         logger.info("Stopped Chzzk mock simulation")

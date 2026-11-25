@@ -1,6 +1,6 @@
 const RECONNECT_DELAYS = [1000, 2000, 4000, 8000, 15000];
 
-export function createConversationConnection({ onConnecting, onMessage, onDisconnected, onError }) {
+export function createConversationConnection({ path = '/client-ws', onConnecting, onMessage, onDisconnected, onError }) {
   let socket = null;
   let connectTimer = null;
   let reconnectTimer = null;
@@ -18,7 +18,7 @@ export function createConversationConnection({ onConnecting, onMessage, onDiscon
     onConnecting();
 
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const current = new WebSocket(`${protocol}//${location.host}/client-ws`);
+    const current = new WebSocket(`${protocol}//${location.host}${path}`);
     socket = current;
     connectTimer = setTimeout(() => {
       if (current === socket) current.close(4000, 'Initialization timeout');

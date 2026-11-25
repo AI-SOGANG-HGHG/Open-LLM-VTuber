@@ -1,0 +1,16 @@
+[Unit]
+Description=Open-LLM-VTuber Chzzk collector
+After=open-llm-vtuber.service
+PartOf=open-llm-vtuber.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Open-LLM-VTuber
+EnvironmentFile=%h/Open-LLM-VTuber/private/chzzk.env
+ExecStart=%h/Open-LLM-VTuber/.venv/bin/python %h/Open-LLM-VTuber/scripts/run_chzzk_live.py
+UMask=0077
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

@@ -239,7 +239,10 @@ class ProxyHandler:
         amount = message.get("amount")
         if is_donation and type(amount) is int and amount >= URGENT_DONATION_AMOUNT:
             async with self.message_queue.lock:
-                if self.message_queue.conversation_active:
+                if (
+                    self.message_queue.dispatch_enabled
+                    and self.message_queue.conversation_active
+                ):
                     await self.forward_to_server(
                         {"type": "interrupt-signal"}, client_id
                     )
@@ -330,7 +333,8 @@ class ProxyHandler:
                             if not data:  # Check if parsed data is empty
                                 continue
 
-                            # Check for conversation end signal
+                            # Deliver the end before opening the queue for the next turn.
+                            await self.broadcast_to_clients(data)
                             if (
                                 data.get("type") == "control"
                                 and data.get("text") == "conversation-chain-end"
@@ -340,8 +344,6 @@ class ProxyHandler:
                                 )
                                 logger.info("Received conversation end signal")
 
-                            # Broadcast the message to all clients
-                            await self.broadcast_to_clients(data)
                         except json.JSONDecodeError as e:
                             logger.error(f"Failed to parse message data: {e}")
                             continue

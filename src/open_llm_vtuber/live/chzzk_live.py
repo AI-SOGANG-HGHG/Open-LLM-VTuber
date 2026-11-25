@@ -34,6 +34,8 @@ class ChzzkLivePlatform(LivePlatformInterface):
         self,
         channel_id: str,
         proxy_url: str = "ws://localhost:12393/proxy-ws",
+        *,
+        collector_token: str = "",
     ) -> None:
         """Initialize the Chzzk Live platform client.
 
@@ -43,6 +45,7 @@ class ChzzkLivePlatform(LivePlatformInterface):
         """
         self._channel_id: str = channel_id.strip()
         self._proxy_url: str = proxy_url
+        self._collector_token = collector_token
         self._session: aiohttp.ClientSession | None = None
         self._proxy_ws: Any = None
         self._chzzk_ws: aiohttp.ClientWebSocketResponse | None = None
@@ -78,11 +81,20 @@ class ChzzkLivePlatform(LivePlatformInterface):
             bool: True if connection succeeded, False otherwise.
         """
         try:
+            collector_options = {}
+            if self._collector_token:
+                collector_options = {
+                    "additional_headers": {
+                        "Authorization": f"Bearer {self._collector_token}"
+                    },
+                    "proxy": None,
+                }
             self._proxy_ws = await websockets.connect(
                 proxy_url,
                 ping_interval=20,
                 ping_timeout=10,
                 close_timeout=5,
+                **collector_options,
             )
             self._connected = True
             logger.info(f"[ChzzkLive] Connected to VTuber proxy at {proxy_url}")
@@ -256,11 +268,7 @@ class ChzzkLivePlatform(LivePlatformInterface):
 
         try:
             await self._proxy_ws.send(json.dumps(payload, ensure_ascii=False))
-            logger.info(
-                f"[ChzzkLive -> Proxy] ({payload['source']}) "
-                f"{payload['author']}: {payload['text']} "
-                f"(amount={payload['amount']})"
-            )
+            logger.debug("[ChzzkLive -> Proxy] Forwarded {}", payload["source"])
             return True
         except Exception as e:
             logger.error(f"[ChzzkLive] Error sending payload to proxy: {e}")
@@ -399,7 +407,7 @@ class ChzzkLivePlatform(LivePlatformInterface):
 
     async def run(self) -> None:
         """Run the Chzzk Live platform client lifecycle."""
-        receive_task: asyncio.Task[None] | None = None
+        tasks: list[asyncio.Task[None]] = []
         try:
             self._running = True
             self._session = aiohttp.ClientSession()
@@ -408,12 +416,18 @@ class ChzzkLivePlatform(LivePlatformInterface):
                 logger.error("[ChzzkLive] Failed to connect to local proxy, exiting")
                 return
 
-            receive_task = asyncio.create_task(self.start_receiving())
-
             chat_channel_id, access_token = await self._fetch_chat_channel_info()
             logger.info(f"[ChzzkLive] Resolved chatChannelId={chat_channel_id}")
 
-            await self._listen_chzzk_chat(chat_channel_id, access_token)
+            tasks = [
+                asyncio.create_task(self.start_receiving()),
+                asyncio.create_task(
+                    self._listen_chzzk_chat(chat_channel_id, access_token)
+                ),
+            ]
+            done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            for task in done:
+                task.result()
 
         except KeyboardInterrupt:
             logger.info("[ChzzkLive] Received keyboard interrupt, shutting down")
@@ -421,10 +435,7 @@ class ChzzkLivePlatform(LivePlatformInterface):
             logger.error(f"[ChzzkLive] Error in Chzzk Live run loop: {e}")
             logger.debug(traceback.format_exc())
         finally:
-            if receive_task and not receive_task.done():
-                receive_task.cancel()
-                try:
-                    await receive_task
-                except asyncio.CancelledError:
-                    pass
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
             await self.disconnect()

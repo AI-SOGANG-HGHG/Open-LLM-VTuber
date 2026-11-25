@@ -16,7 +16,12 @@ ForwardMessage = Callable[[dict[str, Any], str | None], Awaitable[None]]
 class ProxyMessageQueue:
     """Dispatch one queued message at a time and recover from missing end signals."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        turn_timeout: float = CONVERSATION_TIMEOUT_SECONDS,
+        max_pending: int | None = None,
+    ) -> None:
         """Initialize the pending queue and conversation state."""
         self.message_queue: deque[tuple[dict[str, Any], str | None]] = deque()
         self._deadline: float | None = None
@@ -25,6 +30,14 @@ class ProxyMessageQueue:
         self._changed = asyncio.Event()
         self._consumer_task: asyncio.Task[None] | None = None
         self._forward_func: ForwardMessage | None = None
+        self.turn_timeout = turn_timeout
+        self.max_pending = max_pending
+        self.dispatch_enabled = True
+
+    def set_dispatch_enabled(self, enabled: bool) -> None:
+        self.dispatch_enabled = enabled
+        self._changed.set()
+        self._ensure_consumer_running()
 
     def initialize(self, forward_func: ForwardMessage) -> None:
         """Set the async callback used to forward a message and its sender ID."""
@@ -40,6 +53,10 @@ class ProxyMessageQueue:
     ) -> None:
         """Queue a message and its sender ID, inserting at the front for priority."""
         queue_item = (message, sender_id)
+        if self.max_pending is not None and len(self.message_queue) >= self.max_pending:
+            if not priority:
+                return
+            self.message_queue.pop()
         if priority:
             self.message_queue.appendleft(queue_item)
         else:
@@ -56,9 +73,7 @@ class ProxyMessageQueue:
     def conversation_active(self, active: bool) -> None:
         """Set or release the conversation lock."""
         if active:
-            self._deadline = (
-                asyncio.get_running_loop().time() + CONVERSATION_TIMEOUT_SECONDS
-            )
+            self._deadline = asyncio.get_running_loop().time() + self.turn_timeout
         else:
             self._deadline = None
             self._request_id = None
@@ -69,6 +84,9 @@ class ProxyMessageQueue:
         if request_id is None or request_id == self._request_id:
             self.conversation_active = False
 
+    def matches_active(self, request_id: object) -> bool:
+        return self._request_id is not None and request_id == self._request_id
+
     def has_pending_messages(self) -> bool:
         """Return whether the queue contains pending messages."""
         return bool(self.message_queue)
@@ -77,6 +95,7 @@ class ProxyMessageQueue:
         """Start a consumer if forwarding is configured and messages are pending."""
         if (
             self._forward_func
+            and self.dispatch_enabled
             and self.has_pending_messages()
             and (self._consumer_task is None or self._consumer_task.done())
         ):
@@ -86,6 +105,8 @@ class ProxyMessageQueue:
         """Wait for queue updates or the active conversation deadline."""
         while True:
             async with self.lock:
+                if not self.dispatch_enabled:
+                    return
                 self._changed.clear()
                 remaining = None
                 if self._deadline is not None:
@@ -107,7 +128,12 @@ class ProxyMessageQueue:
 
     async def dispatch_next(self) -> None:
         """Dispatch the first pending message while the caller holds the queue lock."""
-        if self.conversation_active or not self.message_queue or not self._forward_func:
+        if (
+            not self.dispatch_enabled
+            or self.conversation_active
+            or not self.message_queue
+            or not self._forward_func
+        ):
             return
 
         message, sender_id = self.message_queue.popleft()
