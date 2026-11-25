@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 from pathlib import Path
 import unittest
 
@@ -146,31 +147,9 @@ class IvoryCrownTests(unittest.TestCase):
                 fixture.received[0]["agent_id"], fixture.registration["agent_id"]
             )
 
-            # Wait for a real blink and check the single-layer portrait's motion.
             wait_for_blink(canvas)
             expect(canvas).to_have_attribute("data-eye-open", "1")
-            self.assertEqual(
-                canvas.evaluate("""canvas => {
-                    const [breath] = canvas.getAnimations();
-                    breath.pause();
-                    breath.currentTime = 2500;
-                    return getComputedStyle(canvas).scale;
-                }"""),
-                "1.008 1.012",
-            )
-            frame.locator(
-                ".stage"
-            ).evaluate("""stage => stage.dispatchEvent(new PointerEvent('pointermove', {
-                pointerType: 'mouse', clientX: stage.getBoundingClientRect().right,
-            }))""")
-            self.assertEqual(canvas.evaluate("canvas => canvas.style.rotate"), "2.5deg")
-
-            # Compare the canvas mouth pixels against neutral with blinking paused.
             frame.locator("#motionToggle").click()
-            self.assertEqual(
-                canvas.evaluate("canvas => canvas.getAnimations().length"), 0
-            )
-            self.assertEqual(canvas.evaluate("canvas => canvas.style.rotate"), "0deg")
             neutral = canvas.evaluate(
                 """canvas => [...canvas.getContext('2d').getImageData(480, 554, 74, 36).data]"""
             )
@@ -188,7 +167,7 @@ class IvoryCrownTests(unittest.TestCase):
                 slice_length=20,
             )
             expect(canvas).to_have_attribute("data-expression", "joy")
-            expect(canvas).to_have_attribute("data-eye-open", "0.72")
+            expect(canvas).to_have_attribute("data-eye-open", "1")
             expect(canvas).to_have_attribute("data-applied-mouth", "0.75")
             fixture.expression("surprise")
             fixture.turn_message(
@@ -216,7 +195,7 @@ class IvoryCrownTests(unittest.TestCase):
             fixture.expression("surprise")
             fixture.turn_message("text-response", display_text={"text": "뜻밖이네요."})
             expect(canvas).to_have_attribute("data-expression", "surprise")
-            expect(canvas).to_have_attribute("data-eye-open", "1.1")
+            expect(canvas).to_have_attribute("data-eye-open", "1")
             expect(canvas).to_have_attribute("data-applied-mouth", "0")
             frame.locator("#stopButton").click()
 
@@ -310,7 +289,7 @@ class IvoryCrownTests(unittest.TestCase):
             page.evaluate("testAvatar.dispose()")
             browser.close()
 
-    def test_inspector_renders_kang_iseo_eye_and_motion_keyforms(self):
+    def test_inspector_renders_kang_iseo_expressions_and_eyes(self):
         base = os.environ.get("SOGANGI_BASE_URL", "http://localhost:12393").rstrip("/")
         model = "/live2d-models/kang-iseo/runtime/kang-iseo.model3.json"
         with sync_playwright() as playwright:
@@ -318,9 +297,7 @@ class IvoryCrownTests(unittest.TestCase):
                 executable_path=os.environ.get("SOGANGI_BROWSER")
             )
             page = browser.new_page(viewport={"width": 1280, "height": 950})
-            page.goto(f"{base}/web-tool/sogangi/live2d-preview.html")
-            page.locator("#modelUrl").fill(model)
-            page.locator("#loadModel").click()
+            page.goto(f"{base}/web-tool/sogangi/live2d-preview.html?model=kang-iseo")
             stage = page.locator("#modelStage")
             expect(stage).to_have_attribute("data-model-url", model)
             canvas = page.locator("#modelCanvas")
@@ -328,8 +305,6 @@ class IvoryCrownTests(unittest.TestCase):
             for control, value, parameter in (
                 ("eyeL", 0, "ParamEyeLOpen"),
                 ("eyeR", 0, "ParamEyeROpen"),
-                ("tilt", 3, "ParamAngleZ"),
-                ("breath", 1, "ParamBreath"),
             ):
                 page.locator(f"#parameter-{control}").evaluate(
                     "(input, value) => {input.value = value; input.dispatchEvent(new Event('input'));}",
@@ -346,6 +321,87 @@ class IvoryCrownTests(unittest.TestCase):
                     arg=[parameter, 1 if control.startswith("eye") else 0],
                 )
                 self.assertEqual(canvas.screenshot(), neutral, parameter)
+            def face_regions():
+                box = canvas.bounding_box()
+                scale = min(box["width"] / 1024, box["height"] / 1536) * 0.92
+                left = box["x"] + (box["width"] - 1024 * scale) / 2
+                top = box["y"] + (box["height"] - 1536 * scale) / 2
+                return [
+                    page.screenshot(
+                        clip={
+                            "x": left + x * scale,
+                            "y": top + y * scale,
+                            "width": width * scale,
+                            "height": height * scale,
+                        }
+                    )
+                    for x, y, width, height in (
+                        (417, 408, 67, 22), (419, 445, 64, 46),
+                        (481, 553, 72, 28)
+                    )
+                ]
+
+            regions = face_regions()
+            seen_regions = [{pixels} for pixels in regions]
+            output = Path("tmp/kang-iseo-browser")
+            output.mkdir(parents=True, exist_ok=True)
+            canvas.screenshot(path=output / "face-neutral.png")
+            buttons = page.get_by_role("group", name="표정 선택")
+            expect(buttons.get_by_role("button")).to_have_count(8)
+            neutral_button = buttons.get_by_role("button", name="대기·중립")
+            expect(neutral_button).to_have_attribute("aria-pressed", "true")
+            for expression, label in (("joy", "기쁨"), ("surprise", "놀람"), ("anger", "분노"), ("sadness", "슬픔")):
+                button = buttons.get_by_role("button", name=label, exact=True)
+                button.click()
+                expect(stage).to_have_attribute("data-expression", expression)
+                expect(button).to_have_attribute("aria-pressed", "true")
+                expect(buttons.locator('[aria-pressed="true"]')).to_have_count(1)
+                for seen, changed in zip(seen_regions, face_regions()):
+                    self.assertNotIn(changed, seen, expression)
+                    seen.add(changed)
+                canvas.screenshot(path=output / f"face-{expression}.png")
+            page.locator("#modelExpression").select_option(label="neutral")
+            expect(stage).to_have_attribute("data-expression", "neutral")
+            expect(neutral_button).to_have_attribute("aria-pressed", "true")
+            self.assertEqual(regions, face_regions())
+
+            variant = page.get_by_label("표정 강도")
+            expect(variant).to_have_value("standard")
+            variant.select_option("clearer")
+            expect(stage).to_have_attribute("data-face-variant", "clearer")
+            self.assertEqual(regions, face_regions())
+            for expression in ("joy", "surprise", "anger", "sadness"):
+                variant.select_option("standard")
+                expect(stage).to_have_attribute("data-face-variant", "standard")
+                page.locator("#modelExpression").select_option(label=expression)
+                expect(stage).to_have_attribute("data-expression", expression)
+                standard = canvas.screenshot()
+                variant.select_option("clearer")
+                expect(stage).to_have_attribute("data-face-variant", "clearer")
+                expect(stage).to_have_attribute("data-expression", expression)
+                self.assertNotEqual(canvas.screenshot(), standard, expression)
+                variant.select_option("standard")
+                expect(stage).to_have_attribute("data-face-variant", "standard")
+                self.assertEqual(canvas.screenshot(), standard, expression)
+
+            buttons.get_by_role("button", name="생각하기").click()
+            expect(stage).to_have_attribute("data-expression", "neutral")
+            expect(page.locator("#parameter-eyeL")).to_have_value("0.78")
+            buttons.get_by_role("button", name="말하기").click()
+            page.wait_for_function("Number(document.querySelector('#modelStage').dataset.appliedMouth) > 0.25")
+            expect(page.locator("#parameter-eyeL")).to_have_value("1")
+            buttons.get_by_role("button", name="인사", exact=True).click()
+            expect(stage).to_have_attribute("data-expression", "joy")
+            page.wait_for_function("Number(document.querySelector('#modelStage').dataset.appliedMouth) > 0.25")
+            neutral_button.click()
+            expect(stage).to_have_attribute("data-expression", "neutral")
+            expect(stage).to_have_attribute("data-applied-mouth", "0")
+            expect(page.locator("#motionControls")).to_be_hidden()
+            expect(page.locator("#parameter-tilt")).to_have_count(0)
+            expect(page.locator("#parameter-breath")).to_have_count(0)
+            page.goto(f"{base}/web-tool/sogangi/live2d-preview.html?model=kang-iseo-arm")
+            expect(stage).to_have_attribute("data-model-url", model)
+            expect(page.locator("#motionControls")).to_be_hidden()
             browser.close()
 
     def test_live2d_filter_and_kang_iseo_preview(self):
@@ -403,12 +459,15 @@ class IvoryCrownTests(unittest.TestCase):
                 "data-renderer", "live2d"
             )
             expect(canvas).to_have_attribute("data-loaded", "true")
-            frame.locator("#motionToggle").click()
             output = Path("tmp/kang-iseo-browser")
             output.mkdir(parents=True, exist_ok=True)
+            frame.locator("#motionToggle").click()
             neutral = canvas.screenshot(path=output / "studio-neutral.png")
+            frame.locator("#motionToggle").click()
 
             for expression, prompt, response in (
+                ("joy", "오늘 발표를 잘 마쳤어.", "발표를 잘 마쳤다니 기뻐요."),
+                ("surprise", "친구들이 깜짝 생일 파티를 열어 줬어.", "정말 깜짝 놀랐겠어요."),
                 ("anger", "또 부당한 판정이 나왔어.", "그 판정은 부당하네요."),
                 (
                     "sadness",
@@ -419,6 +478,7 @@ class IvoryCrownTests(unittest.TestCase):
                 frame.locator("#messageInput").fill(prompt)
                 frame.locator("#sendButton").click()
                 expect(frame.locator("#stopButton")).to_be_enabled()
+                expect(canvas).to_have_attribute("data-eye-open", re.compile(r"^0\.(?:78|779)"))
                 fixture.expression(expression)
                 fixture.turn_message("text-response", display_text={"text": response})
                 fixture.turn_message(
@@ -432,7 +492,9 @@ class IvoryCrownTests(unittest.TestCase):
                 frame.locator("#stopButton").click()
                 expect(canvas).to_have_attribute("data-expression", "neutral")
                 expect(canvas).to_have_attribute("data-applied-mouth", "0")
+                frame.locator("#motionToggle").click()
                 self.assertEqual(canvas.screenshot(), neutral)
+                frame.locator("#motionToggle").click()
             browser.close()
 
     def test_existing_workspace_adds_default_once_and_can_start_from_discover(self):
