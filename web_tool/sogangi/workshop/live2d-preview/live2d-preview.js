@@ -126,7 +126,7 @@
       $('modelFacts').append(term, detail);
     }
   }
-  function parameterControls(settings, loaded) {
+  function parameterControls(settings, loaded, modelPath) {
     controls.clear();
     $('parameterControls').replaceChildren();
     const parameters = loaded.internalModel.coreModel.getModel().parameters;
@@ -138,6 +138,9 @@
         : null;
     stage.dataset.wiredParameters = wired ? [...wired].join(',') : '';
     const lip = settings.Groups?.find((group) => group.Name === 'LipSync')?.Ids || [];
+    const moodLabel = modelPath === '/live2d-models/kang-iseo/runtime/kang-iseo.model3.json'
+      ? '표정 · 0 중립 / 1 기쁨 / 2 놀람 / 3 분노 / 4 슬픔'
+      : '표정 · 0 중립 / 1 화남 / 2 놀람';
     for (const [key, label, candidates] of [
       ['mouth', '입 벌림', [...lip, 'ParamMouthOpenY', 'ParamA']],
       ['eyeL', '왼쪽 눈', ['ParamEyeLOpen']],
@@ -145,7 +148,7 @@
       ['tilt', '고개 기울기', ['ParamAngleZ']],
       ['breath', '상체 호흡', ['ParamBreath']],
       ['wave', '화면 오른팔 인사', ['ParamArmRWave']],
-      ['mood', '표정 · 0 중립 / 1 화남 / 2 놀람', ['ParamFaceMood']],
+      ['mood', moodLabel, ['ParamFaceMood']],
     ]) {
       const id = candidates.find((id) => ids.includes(id));
       if (!id) continue;
@@ -288,7 +291,7 @@
       sweep = null;
       model.anchor.set(0.5, 0.5);
       app.stage.addChild(model);
-      parameterControls(settings, model);
+      parameterControls(settings, model, url.pathname);
       fit();
       const expressions = settings.FileReferences.Expressions || [];
       $('modelExpression').replaceChildren(

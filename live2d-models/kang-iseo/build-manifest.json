@@ -1,0 +1,18 @@
+{
+  "source_psd_sha256": "370c08dc3e8bece915764e64f4c23f42ff2843a13397f303d26d70d3c8a6aa31",
+  "converter_commit": "4fcdf472d21488c8e8258fd05a601b2822855705",
+  "moc_sha256": "9e6cdb5630f81f07d79a20e76109822772a5ce9937c575e5763ac53c49abc468",
+  "cmo_sha256": "2aead3ba4e4dde7b1c1e12acb0c4dd760f4169e3ed964e7c3f0ab4430e4101a8",
+  "texture_sha256": "d90b173a7da2e200170dd790a97c50e2ccd1e14edbadfb62d96e31b7dfc78cbf",
+  "drawables": 7,
+  "core_parameters": 28,
+  "wired_parameters": [
+    "ParamEyeLOpen",
+    "ParamEyeROpen",
+    "ParamMouthOpenY",
+    "ParamFaceMood",
+    "ParamAngleZ",
+    "ParamBreath"
+  ],
+  "native_consistency": true
+}

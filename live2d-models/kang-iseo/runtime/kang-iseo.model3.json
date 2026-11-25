@@ -1,0 +1,48 @@
+{
+  "Version": 3,
+  "FileReferences": {
+    "Moc": "kang-iseo.moc3",
+    "Textures": [
+      "textures/texture_00.png"
+    ],
+    "Expressions": [
+      {
+        "Name": "neutral",
+        "File": "expressions/neutral.exp3.json"
+      },
+      {
+        "Name": "joy",
+        "File": "expressions/joy.exp3.json"
+      },
+      {
+        "Name": "surprise",
+        "File": "expressions/surprise.exp3.json"
+      },
+      {
+        "Name": "anger",
+        "File": "expressions/anger.exp3.json"
+      },
+      {
+        "Name": "sadness",
+        "File": "expressions/sadness.exp3.json"
+      }
+    ]
+  },
+  "Groups": [
+    {
+      "Target": "Parameter",
+      "Name": "EyeBlink",
+      "Ids": [
+        "ParamEyeLOpen",
+        "ParamEyeROpen"
+      ]
+    },
+    {
+      "Target": "Parameter",
+      "Name": "LipSync",
+      "Ids": [
+        "ParamMouthOpenY"
+      ]
+    }
+  ]
+}

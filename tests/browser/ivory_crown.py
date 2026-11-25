@@ -3,7 +3,6 @@
 import json
 import os
 from pathlib import Path
-from urllib.parse import urlparse
 import unittest
 
 from playwright.sync_api import expect, sync_playwright
@@ -60,7 +59,11 @@ class StudioChatFixture(ChatFixture):
         self.turn_message(
             "studio-turn-context",
             preset={"label": "강이서"},
-            affect={"valence": 0.5, "arousal": 0.7, "dominance": 0.5},
+            affect={
+                "valence": -0.5 if name in ("anger", "sadness") else 0.5,
+                "arousal": 0.3 if name == "sadness" else 0.7,
+                "dominance": 0.5,
+            },
             appraisal="ok",
             retrieval="ok",
             rules=[],
@@ -70,6 +73,27 @@ class StudioChatFixture(ChatFixture):
 
 
 class IvoryCrownTests(unittest.TestCase):
+    def open_default_character_settings(self, page, base):
+        page.route(
+            "**/auth/session", lambda route: route.fulfill(json={"enabled": False})
+        )
+        fixture = StudioChatFixture()
+        page.route_web_socket("**/client-ws", fixture.connect)
+        page.goto(f"{base}/web-tool/platform/")
+        page.locator("#loginUsername").fill("테스트 사용자")
+        page.locator("#loginSubmit").click()
+        card = page.locator("#characterGrid .character-card").filter(
+            has=page.get_by_role("heading", name="강이서", exact=True)
+        )
+        with page.expect_response(
+            lambda response: response.url == f"{base}/studio/agents/import"
+            and response.request.method == "POST"
+        ) as creation:
+            card.get_by_role("link", name="설정", exact=True).click()
+        self.assertTrue(creation.value.ok, creation.value.status)
+        fixture.registration = creation.value.json()
+        return fixture
+
     def test_default_character_chat_and_recover_after_canvas_load_failure(self):
         base = os.environ.get("SOGANGI_BASE_URL", "http://localhost:12393").rstrip("/")
         with sync_playwright() as playwright:
@@ -80,25 +104,8 @@ class IvoryCrownTests(unittest.TestCase):
             page = browser.new_page(viewport={"width": 1420, "height": 850})
             errors = []
             page.on("pageerror", lambda error: errors.append(str(error)))
-            page.route(
-                "**/auth/session", lambda route: route.fulfill(json={"enabled": False})
-            )
             page.route(KANG_ISEO_BUNDLE, lambda route: route.fulfill(status=404))
-            fixture = StudioChatFixture()
-            page.route_web_socket("**/client-ws", fixture.connect)
-            page.goto(f"{base}/web-tool/platform/")
-            page.locator("#loginUsername").fill("테스트 사용자")
-            page.locator("#loginSubmit").click()
-            card = page.locator("#characterGrid .character-card").filter(
-                has=page.get_by_role("heading", name="강이서", exact=True)
-            )
-            with page.expect_response(
-                lambda response: response.url == f"{base}/studio/agents/import"
-                and response.request.method == "POST"
-            ) as creation:
-                card.get_by_role("link", name="설정", exact=True).click()
-            self.assertTrue(creation.value.ok, creation.value.status)
-            fixture.registration = creation.value.json()
+            fixture = self.open_default_character_settings(page, base)
             profile = fixture.registration["profile"]
             self.assertEqual(profile["character_id"], "kang-iseo")
             self.assertEqual(profile["name"], "강이서")
@@ -122,10 +129,10 @@ class IvoryCrownTests(unittest.TestCase):
                 ),
                 0,
             )
-            page.get_by_role("link", name="음성·2D 대화", exact=True).click()
+            page.get_by_role("link", name="음성·Live2D 대화", exact=True).click()
             expect(page.locator("#runtimeStatus")).to_contain_text("대화할 수 있어요")
             expect(page.locator("#studioFrame")).to_have_attribute(
-                "title", "강이서 음성·2D 대화실"
+                "title", "강이서 음성·Live2D 대화실"
             )
             frame = page.frame_locator("#studioFrame")
             canvas = frame.locator("#avatarCanvas")
@@ -242,26 +249,14 @@ class IvoryCrownTests(unittest.TestCase):
             self.assertFalse(errors, errors)
             browser.close()
 
-    def test_cubism_bindings_and_context_loss_with_sogangi_bundle_fixture(self):
-        """Use a real Core bundle to exercise the renderer before Kang Iseo export."""
+    def test_kang_iseo_cubism_bindings_and_context_loss(self):
         base = os.environ.get("SOGANGI_BASE_URL", "http://localhost:12393").rstrip("/")
-        bundle = (
-            Path(__file__).resolve().parents[2]
-            / "live2d-models/sogangi-expressions/runtime"
-        )
-
-        def serve_fixture(route):
-            relative = urlparse(route.request.url).path.split("/runtime/", 1)[1]
-            if relative == "kang-iseo.model3.json":
-                relative = "sogangi.model3.json"
-            route.fulfill(path=bundle / relative)
 
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(
                 executable_path=os.environ.get("SOGANGI_BROWSER")
             )
             page = browser.new_page()
-            page.route(KANG_ISEO_BUNDLE, serve_fixture)
             page.goto(f"{base}/web-tool/platform/")
             page.evaluate("""async () => {
                 const { StudioAvatarRenderer } = await import('./runtime/js/avatars/live2d-avatar.js');
@@ -286,22 +281,158 @@ class IvoryCrownTests(unittest.TestCase):
             expect(canvas).to_have_attribute("data-applied-mouth", "0.75")
             speaking = canvas.screenshot()
             self.assertNotEqual(speaking, neutral)
-            page.evaluate("testAvatar.setExpression('surprise')")
-            expect(canvas).to_have_attribute("data-expression", "surprise")
-            self.assertNotEqual(canvas.screenshot(), speaking)
-            expect(canvas).to_have_attribute("data-applied-mouth", "0.75")
+            faces = {speaking}
+            for expression in ("joy", "surprise", "anger", "sadness"):
+                page.evaluate("name => testAvatar.setExpression(name)", expression)
+                expect(canvas).to_have_attribute("data-expression", expression)
+                pixels = canvas.screenshot()
+                self.assertNotIn(pixels, faces, expression)
+                faces.add(pixels)
+                expect(canvas).to_have_attribute("data-applied-mouth", "0.75")
+                if expression in ("anger", "sadness"):
+                    page.evaluate("testAvatar.setReducedMotion(false)")
+                    wait_for_blink(canvas)
+                    expect(canvas).to_have_attribute("data-applied-mouth", "0.75")
+                    page.evaluate("testAvatar.setReducedMotion(true)")
             canvas.evaluate(
                 "canvas => canvas.dispatchEvent(new Event('webglcontextlost', {cancelable: true}))"
             )
             expect(host).to_have_attribute("data-renderer", "canvas2d")
-            expect(canvas).to_have_attribute("data-expression", "surprise")
+            expect(canvas).to_have_attribute("data-expression", "sadness")
             expect(canvas).to_have_attribute("data-applied-mouth", "0.75")
-            page.evaluate("testAvatar.setExpression('joy')")
-            expect(canvas).to_have_attribute("data-expression", "joy")
+            fallback_sadness = canvas.screenshot()
+            page.evaluate("testAvatar.setExpression('anger')")
+            expect(canvas).to_have_attribute("data-expression", "anger")
+            self.assertNotEqual(canvas.screenshot(), fallback_sadness)
             expect(canvas).to_have_attribute("data-applied-mouth", "0.75")
             page.evaluate("testAvatar.setMouthOpen(0)")
             expect(canvas).to_have_attribute("data-applied-mouth", "0")
             page.evaluate("testAvatar.dispose()")
+            browser.close()
+
+    def test_inspector_renders_kang_iseo_eye_and_motion_keyforms(self):
+        base = os.environ.get("SOGANGI_BASE_URL", "http://localhost:12393").rstrip("/")
+        model = "/live2d-models/kang-iseo/runtime/kang-iseo.model3.json"
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(
+                executable_path=os.environ.get("SOGANGI_BROWSER")
+            )
+            page = browser.new_page(viewport={"width": 1280, "height": 950})
+            page.goto(f"{base}/web-tool/sogangi/live2d-preview.html")
+            page.locator("#modelUrl").fill(model)
+            page.locator("#loadModel").click()
+            stage = page.locator("#modelStage")
+            expect(stage).to_have_attribute("data-model-url", model)
+            canvas = page.locator("#modelCanvas")
+            neutral = canvas.screenshot()
+            for control, value, parameter in (
+                ("eyeL", 0, "ParamEyeLOpen"),
+                ("eyeR", 0, "ParamEyeROpen"),
+                ("tilt", 3, "ParamAngleZ"),
+                ("breath", 1, "ParamBreath"),
+            ):
+                page.locator(f"#parameter-{control}").evaluate(
+                    "(input, value) => {input.value = value; input.dispatchEvent(new Event('input'));}",
+                    value,
+                )
+                page.wait_for_function(
+                    "([id, value]) => JSON.parse(document.querySelector('#modelStage').dataset.appliedParameters)[id] === value",
+                    arg=[parameter, value],
+                )
+                self.assertNotEqual(canvas.screenshot(), neutral, parameter)
+                page.locator("#resetPose").click()
+                page.wait_for_function(
+                    "([id, value]) => JSON.parse(document.querySelector('#modelStage').dataset.appliedParameters)[id] === value",
+                    arg=[parameter, 1 if control.startswith("eye") else 0],
+                )
+                self.assertEqual(canvas.screenshot(), neutral, parameter)
+            browser.close()
+
+    def test_live2d_filter_and_kang_iseo_preview(self):
+        base = os.environ.get("SOGANGI_BASE_URL", "http://localhost:12393").rstrip("/")
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(
+                executable_path=os.environ.get("SOGANGI_BROWSER")
+            )
+            page = browser.new_page()
+            page.route(
+                "**/auth/session", lambda route: route.fulfill(json={"enabled": False})
+            )
+            page.goto(f"{base}/web-tool/platform/")
+            page.locator("#loginUsername").fill("테스트 사용자")
+            page.locator("#loginSubmit").click()
+            page.get_by_role("button", name="Live2D", exact=True).click()
+            card = page.locator("#characterGrid .character-card").filter(
+                has=page.get_by_role("heading", name="강이서", exact=True)
+            )
+            expect(card.locator(".card-type")).to_have_text("Live2D 아바타")
+
+            preview = card.get_by_role("button", name="강이서 외형 미리보기")
+            dialog = page.locator("#avatarDialog")
+            canvas = dialog.locator("#liveAvatarCanvas")
+            fallback = dialog.locator("#avatarFallback img")
+            preview.click()
+            expect(canvas).to_have_attribute("data-loaded", "true", timeout=15000)
+            expect(canvas).to_have_attribute("data-expression", "neutral")
+            expect(canvas).to_be_visible()
+            expect(fallback).to_be_hidden()
+            dialog.get_by_role("button", name="닫기").click()
+            expect(dialog).to_be_hidden()
+
+            page.route(KANG_ISEO_BUNDLE, lambda route: route.fulfill(status=404))
+            preview.click()
+            expect(dialog.get_by_role("status")).to_contain_text("이미지로 보여드려요")
+            expect(fallback).to_be_visible()
+            expect(canvas).to_be_hidden()
+            browser.close()
+
+    def test_studio_plays_kang_iseo_cubism_model_and_closes_mouth_on_stop(self):
+        base = os.environ.get("SOGANGI_BASE_URL", "http://localhost:12393").rstrip("/")
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(
+                executable_path=os.environ.get("SOGANGI_BROWSER"),
+                args=["--autoplay-policy=no-user-gesture-required"],
+            )
+            page = browser.new_page(viewport={"width": 1420, "height": 850})
+            fixture = self.open_default_character_settings(page, base)
+            page.get_by_role("link", name="음성·Live2D 대화", exact=True).click()
+            expect(page.locator("#runtimeStatus")).to_contain_text("대화할 수 있어요")
+            frame = page.frame_locator("#studioFrame")
+            canvas = frame.locator("#avatarCanvas")
+            expect(frame.locator("#mascot")).to_have_attribute(
+                "data-renderer", "live2d"
+            )
+            expect(canvas).to_have_attribute("data-loaded", "true")
+            frame.locator("#motionToggle").click()
+            output = Path("tmp/kang-iseo-browser")
+            output.mkdir(parents=True, exist_ok=True)
+            neutral = canvas.screenshot(path=output / "studio-neutral.png")
+
+            for expression, prompt, response in (
+                ("anger", "또 부당한 판정이 나왔어.", "그 판정은 부당하네요."),
+                (
+                    "sadness",
+                    "오래 키우던 강아지를 떠나보냈어.",
+                    "마음이 많이 무겁겠어요.",
+                ),
+            ):
+                frame.locator("#messageInput").fill(prompt)
+                frame.locator("#sendButton").click()
+                expect(frame.locator("#stopButton")).to_be_enabled()
+                fixture.expression(expression)
+                fixture.turn_message("text-response", display_text={"text": response})
+                fixture.turn_message(
+                    "audio", audio=wav_fixture(3), volumes=[0.75] * 150, slice_length=20
+                )
+                expect(canvas).to_have_attribute("data-expression", expression)
+                expect(canvas).to_have_attribute("data-applied-mouth", "0.75")
+                self.assertNotEqual(
+                    canvas.screenshot(path=output / f"studio-{expression}.png"), neutral
+                )
+                frame.locator("#stopButton").click()
+                expect(canvas).to_have_attribute("data-expression", "neutral")
+                expect(canvas).to_have_attribute("data-applied-mouth", "0")
+                self.assertEqual(canvas.screenshot(), neutral)
             browser.close()
 
     def test_existing_workspace_adds_default_once_and_can_start_from_discover(self):

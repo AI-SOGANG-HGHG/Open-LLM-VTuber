@@ -30,10 +30,10 @@ globalThis.makeIvoryCrownRig = (() => {
     return canvas;
   }
 
-  function paintMouth(ctx, amount) {
+  function paintMouth(ctx, amount, width = 1, height = 1) {
     ctx.save();
     ctx.translate(43.5, 13.5);
-    ctx.scale(0.80 + amount * 0.20, 0.20 + amount * 0.80);
+    ctx.scale((0.80 + amount * 0.20) * width, (0.20 + amount * 0.80) * height);
     const outline = new Path2D('M -30 -1 C -19 2 -9 -3 0 -1 C 9 -3 19 2 30 -1 C 21 9 12 18 0 18 C -12 18 -21 9 -30 -1 Z');
     const interior = ctx.createLinearGradient(0, 0, 0, 18);
     interior.addColorStop(0, '#682e34');
@@ -102,18 +102,18 @@ globalThis.makeIvoryCrownRig = (() => {
       ctx.drawImage(image, x, y, width, height, x, y, width, height);
     }
 
-    function draw(ctx, { eyeL, eyeR, mouth }) {
+    function draw(ctx, { eyeL, eyeR, mouth }, { eyeTilt = 0, mouthWidth = 1, mouthHeight = 1 } = {}) {
       const previous = previousPoses.get(ctx);
-      previousPoses.set(ctx, { eyeL, eyeR, mouth });
+      previousPoses.set(ctx, { eyeL, eyeR, mouth, eyeTilt, mouthWidth, mouthHeight });
       if (!previous) {
         ctx.clearRect(0, 0, image.naturalWidth, image.naturalHeight);
         ctx.drawImage(image, 0, 0);
       }
       ctx.save();
       for (const [name, amount, last] of [['EyeL', eyeL, previous?.eyeL], ['EyeR', eyeR, previous?.eyeR]]) {
-        if (amount === last) continue;
+        if (amount === last && eyeTilt === previous?.eyeTilt) continue;
         if (previous) restoreRegion(ctx, name);
-        if (amount === 1) continue;
+        if (amount === 1 && eyeTilt === 0) continue;
         const { x, y, original, alternate, underpaint } = features[name];
         if (amount === 0) {
           ctx.drawImage(alternate, x, y);
@@ -132,17 +132,26 @@ globalThis.makeIvoryCrownRig = (() => {
         ctx.globalAlpha = 1 - openWeight;
         ctx.drawImage(alternate, x, y);
         ctx.globalAlpha = openWeight;
+        if (eyeTilt) {
+          const pivotX = x + original.width / 2;
+          const pivotY = y + lashLine;
+          const angle = name === 'EyeL' ? eyeTilt : -eyeTilt;
+          ctx.translate(pivotX, pivotY);
+          ctx.rotate(angle * Math.PI / 180);
+          ctx.translate(-pivotX, -pivotY);
+        }
         ctx.drawImage(original, x, y + lashLine * (1 - amount), original.width, original.height * amount);
         ctx.restore();
       }
-      if (mouth !== previous?.mouth) {
+      const mouthShapeChanged = mouth > 0 && (mouthWidth !== previous?.mouthWidth || mouthHeight !== previous?.mouthHeight);
+      if (mouth !== previous?.mouth || mouthShapeChanged) {
         if (previous) restoreRegion(ctx, 'Mouth');
         if (mouth > 0) {
           const { x, y, underpaint } = features.Mouth;
           ctx.globalAlpha = Math.min(1, mouth * 5);
           ctx.drawImage(underpaint, x, y);
           ctx.translate(x, y);
-          paintMouth(ctx, mouth);
+          paintMouth(ctx, mouth, mouthWidth, mouthHeight);
         }
       }
       ctx.restore();
