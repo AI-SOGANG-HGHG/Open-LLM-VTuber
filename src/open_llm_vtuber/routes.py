@@ -10,6 +10,7 @@ from loguru import logger
 from .service_context import ServiceContext
 from .websocket_handler import WebSocketHandler
 from .proxy_handler import ProxyHandler
+from .game_ws_relay import GameWsRelay
 
 
 def init_client_ws_route(default_context_cache: ServiceContext) -> APIRouter:
@@ -57,12 +58,18 @@ def init_proxy_route(server_url: str) -> APIRouter:
     """
     router = APIRouter()
     proxy_handler = ProxyHandler(server_url)
+    game_relay = GameWsRelay()
 
     @router.websocket("/proxy-ws")
     async def proxy_endpoint(websocket: WebSocket):
         """WebSocket endpoint for proxy connections"""
         try:
-            await proxy_handler.handle_client_connection(websocket)
+            # Game clients use a separate authenticated lane on the SAME URL.
+            # Ordinary /proxy-ws chat messages keep their original behavior.
+            if websocket.query_params.get("mode") == "game":
+                await game_relay.handle_connection(websocket)
+            else:
+                await proxy_handler.handle_client_connection(websocket)
         except Exception as e:
             logger.error(f"Error in proxy connection: {e}")
             raise
