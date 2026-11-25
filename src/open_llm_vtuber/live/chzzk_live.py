@@ -20,6 +20,14 @@ CHZZK_CMD_CONNECT = 100
 CHZZK_CMD_CONNECTED = 10100
 CHZZK_CMD_CHAT = 93101
 CHZZK_CMD_DONATION = 93102
+ROOM_CHECK_INTERVAL = 15
+API_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/122.0.0.0 Safari/537.36"
+    )
+}
 
 
 class ChzzkLivePlatform(LivePlatformInterface):
@@ -196,31 +204,18 @@ class ChzzkLivePlatform(LivePlatformInterface):
         except asyncio.CancelledError:
             logger.debug("[ChzzkLive] Proxy receive loop cancelled")
 
-    async def _fetch_chat_channel_info(self) -> tuple[str, str]:
-        """Fetch the active chatChannelId and accessToken from Chzzk polling APIs.
-
-        Returns:
-            tuple[str, str]: A tuple of (chat_channel_id, access_token).
-
-        Raises:
-            RuntimeError: If the HTTP session is uninitialized, the API request
-                fails, or the target channel does not have an active chat room.
-        """
+    async def _fetch_chat_channel_id(self) -> str:
+        """Resolve the current live room for the configured broadcaster."""
         if self._session is None:
             raise RuntimeError("HTTP session is not initialized")
 
-        headers = {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/122.0.0.0 Safari/537.36"
-            )
-        }
         status_url = (
             "https://api.chzzk.naver.com/polling/v2/channels/"
             f"{self._channel_id}/live-status"
         )
-        async with self._session.get(status_url, headers=headers) as resp:
+        async with self._session.get(
+            status_url, headers=API_HEADERS, timeout=8
+        ) as resp:
             if resp.status != 200:
                 raise RuntimeError(
                     f"Failed to fetch Chzzk live-status (HTTP {resp.status})"
@@ -236,12 +231,16 @@ class ChzzkLivePlatform(LivePlatformInterface):
                 f"chatChannelId not found (live status: {live_status}). "
                 "Verify that the channel ID is valid and the stream is active."
             )
+        return chat_channel_id
 
+    async def _fetch_chat_access_token(self, chat_channel_id: str) -> str:
+        if self._session is None:
+            raise RuntimeError("HTTP session is not initialized")
         token_url = (
             "https://comm-api.game.naver.com/nng_main/v1/chats/access-token"
             f"?channelId={chat_channel_id}&chatType=STREAMING"
         )
-        async with self._session.get(token_url, headers=headers) as resp:
+        async with self._session.get(token_url, headers=API_HEADERS, timeout=8) as resp:
             if resp.status != 200:
                 raise RuntimeError(
                     f"Failed to fetch Chzzk access-token (HTTP {resp.status})"
@@ -250,7 +249,7 @@ class ChzzkLivePlatform(LivePlatformInterface):
 
         token_content: dict[str, Any] = token_data.get("content") or {}
         access_token: str = token_content.get("accessToken") or ""
-        return chat_channel_id, access_token
+        return access_token
 
     async def _forward_to_proxy(self, payload: dict[str, Any]) -> bool:
         """Forward a standardized chat or donation payload to the local proxy.
@@ -405,6 +404,41 @@ class ChzzkLivePlatform(LivePlatformInterface):
                     )
                     break
 
+    async def _follow_live_chat(self) -> None:
+        """Switch listeners when a new stream replaces a still-open chat room."""
+        room = await self._fetch_chat_channel_id()
+        while self._running:
+            token = await self._fetch_chat_access_token(room)
+            logger.info("[ChzzkLive] Resolved chatChannelId={}", room)
+            listener = asyncio.create_task(self._listen_chzzk_chat(room, token))
+            try:
+                while self._running:
+                    done, _ = await asyncio.wait(
+                        {listener}, timeout=ROOM_CHECK_INTERVAL
+                    )
+                    if done:
+                        await listener
+                        return
+                    try:
+                        current = await self._fetch_chat_channel_id()
+                    except (
+                        aiohttp.ClientError,
+                        TimeoutError,
+                        RuntimeError,
+                        ValueError,
+                    ) as error:
+                        logger.warning(
+                            "[ChzzkLive] Room check failed ({})", type(error).__name__
+                        )
+                        continue
+                    if current != room:
+                        logger.info("[ChzzkLive] Live chat room changed")
+                        room = current
+                        break
+            finally:
+                listener.cancel()
+                await asyncio.gather(listener, return_exceptions=True)
+
     async def run(self) -> None:
         """Run the Chzzk Live platform client lifecycle."""
         tasks: list[asyncio.Task[None]] = []
@@ -416,14 +450,9 @@ class ChzzkLivePlatform(LivePlatformInterface):
                 logger.error("[ChzzkLive] Failed to connect to local proxy, exiting")
                 return
 
-            chat_channel_id, access_token = await self._fetch_chat_channel_info()
-            logger.info(f"[ChzzkLive] Resolved chatChannelId={chat_channel_id}")
-
             tasks = [
                 asyncio.create_task(self.start_receiving()),
-                asyncio.create_task(
-                    self._listen_chzzk_chat(chat_channel_id, access_token)
-                ),
+                asyncio.create_task(self._follow_live_chat()),
             ]
             done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
             for task in done:
