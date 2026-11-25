@@ -120,7 +120,7 @@ async def run_case(config, registry, case, variant, examples, result):
 
             item = {"input": text, "response": response}
             if turn is not None:
-                await agent.studio_runtime.complete_async(turn)
+                await agent.studio_runtime.complete_async(turn, response)
                 item.update(
                     reconnected=index == reconnect_before,
                     appraisal=turn.trace["appraisal"],
