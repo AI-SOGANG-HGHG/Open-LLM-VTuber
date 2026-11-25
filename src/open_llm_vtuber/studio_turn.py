@@ -11,6 +11,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from math import exp
 from random import choices, random
+import re
 from typing import TYPE_CHECKING, Annotated, Iterable, Literal, Sequence, TypeVar
 from uuid import uuid4
 
@@ -51,6 +52,12 @@ MIN_SEMANTIC_SCORE = 0.40
 REDIRECTION_CANDIDATES = 6
 REDIRECTION_QUERY_CHARS = 60
 _rule_vectors: OrderedDict[tuple[str, str, str], np.ndarray] = OrderedDict()
+EXPLICIT_RECALL = re.compile(
+    r"기억(?:나|하니|하나요|하세요)|(?:다고|라고)\s*(?:했|말했|말씀했|하셨)"
+    r"|(?:전에|지난번에|아까).{0,48}(?:뭐|무엇|어떤|언제|몇|얼마)"
+    r"|\b(?:do you remember|what did i|did i (?:say|tell you|mention))\b",
+    re.IGNORECASE,
+)
 CONTEXTUAL_STARTS = (
     "그거",
     "그건",
@@ -951,7 +958,11 @@ class StudioTurnRuntime:
             if memory.id in relevant_ids
             or any(version.id in relevant_ids for version in memory.earlier_versions)
         ]
-        unverified_memories = []
+        unverified_memories = (
+            [memory.details() for memory in memory_candidates]
+            if self.registry and appraisal is None and EXPLICIT_RECALL.search(text)
+            else []
+        )
         correction_ids = set(appraisal.corrected_memory_ids) if appraisal else set()
         corrected_memory_ids = tuple(
             memory.id

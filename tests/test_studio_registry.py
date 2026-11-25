@@ -344,23 +344,29 @@ class AgentRecallTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(saved["vector"], original_vector)
 
     async def test_recall_when_separate_relevance_check_times_out(self) -> None:
-        """A failed appraisal does not label any memory as relevant."""
+        """Pass retrieved candidates as unverified only on explicit recall requests."""
         agent = self.registry.create(profile(self.workspace), self.token)
         history = create_new_history(agent.history_scope)
         runtime = self.runtime(agent)
         seed = await runtime.prepare(agent.history_scope, history, PREFERENCE)
         await runtime.complete_async(seed)
+        new_room = create_new_history(agent.history_scope)
         with patch.object(runtime, "_appraise", side_effect=TimeoutError):
             recall = await runtime.prepare(
-                agent.history_scope, history, "제가 어떤 음료를 마신다고 했죠?"
+                agent.history_scope, new_room, "제가 어떤 음료를 마신다고 했죠?"
             )
-            unrelated = await runtime.prepare(
-                agent.history_scope, history, "발표 준비는 지금 어때?"
+            casual = await runtime.prepare(
+                agent.history_scope, new_room, "오늘은 음료 이야기나 할까요?"
             )
+        self.assertEqual(recall.trace["retrieval"], "ok")
         self.assertEqual(recall.trace["appraisal"], "unavailable")
         self.assertEqual(recall.trace["memories"], [])
-        self.assertNotIn("unverified_experience", json.loads(recall.context))
-        self.assertNotIn("unverified_experience", json.loads(unrelated.context))
+        context = json.loads(recall.context)
+        self.assertEqual(context["experience"], [])
+        candidates = context["unverified_experience"]
+        self.assertEqual([item["text"] for item in candidates], [PREFERENCE])
+        self.assertEqual(recall.trace["unverified_memories"], candidates)
+        self.assertNotIn("unverified_experience", json.loads(casual.context))
 
     def test_big_five_sampling_and_experience_ranking(self):
         traits = BigFive(**dict.fromkeys(BigFive.model_fields, 1))
