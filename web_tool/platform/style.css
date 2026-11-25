@@ -131,32 +131,6 @@ input[type=range] { padding: 0; accent-color: var(--accent); border: 0; }
 .card-meta { font-size: 11px; color: var(--muted); }
 .card-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 .card-actions .button { min-height: 34px; padding: 6px 9px; font-size: 12px; white-space: nowrap; }
-.demo-comparison { border-bottom: 1px solid var(--line); padding-bottom: 24px; margin-bottom: 27px; }
-.demo-comparison > h2 { font-size: 26px; margin: 0; }
-.demo-comparison > p { font-size: 14px; color: var(--muted); margin: 6px 0 16px; line-height: 1.65; word-break: keep-all; }
-.comparison-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
-.comparison-layout:has(.comparison-art) { grid-template-columns: minmax(200px, .8fr) minmax(0, 1.2fr); }
-.comparison-art { isolation: isolate; position: relative; overflow: hidden; display: grid; align-items: end; justify-items: center; min-height: 240px; margin: 0; padding: 8px 12px 0; background: var(--mao-art); }
-.comparison-art.sogangi { background: var(--sogangi-art); }
-.comparison-art img { position: absolute; left: 50%; top: 0; transform: translateX(-50%); width: auto; height: min(133%, 345px); max-width: none; }
-.comparison-art.sogangi img { height: min(76%, 220px); top: auto; bottom: 27px; }
-.comparison-art figcaption { z-index: 1; justify-self: start; align-self: end; margin-bottom: 10px; padding: 5px 7px; font-size: 12px; font-weight: 700; background: var(--surface); }
-.comparison-art figcaption span { font-size: 10px; font-weight: 400; color: var(--muted); margin-left: 4px; }
-.comparison-grid { display: grid; grid-template-columns: minmax(0, 1fr); }
-.comparison-card { border: 0; border-top: 1px solid var(--line); background: transparent; display: flex; align-items: stretch; }
-.comparison-card .card-stage { flex: 0 0 clamp(70px, 13vw, 130px); height: auto; }
-.comparison-card .card-stage > img { max-width: 135%; }
-.comparison-card .card-stage.mao > img { width: 186px; max-width: none; top: -6px; }
-.comparison-card .card-stage > .stage-symbol { font-size: 42px; }
-.comparison-card .card-body { flex: 1; min-width: 0; padding: 12px 0 12px 14px; }
-.comparison-card:first-child .card-body { padding-top: 10px; }
-.comparison-card .card-title { padding-right: 40px; }
-.comparison-card .card-title h3 { font-size: 21px; }
-.comparison-card .card-description { margin-bottom: 0; }
-.comparison-card .favorite-button { right: 0; top: 8px; border-color: transparent; background: transparent; }
-.comparison-card .favorite-button:hover { background: var(--wash); }
-.comparison-card .card-actions .secondary { background: transparent; border-color: transparent; }
-.comparison-card .card-actions .secondary:hover { background: var(--wash); }
 .empty-state { grid-column: 1/-1; color: var(--muted); padding: 27px 16px; border: 1px solid var(--line); text-align: center; font-size: 14px; line-height: 1.7; }
 
 /* Character editor, chat, memory, integrations. */
@@ -247,6 +221,7 @@ body.conversation-focus { overflow: hidden; }
 .chat-empty { margin: auto; max-width: 300px; text-align: center; }
 .chat-empty p { color: var(--muted); font-size: 12px; line-height: 1.9; white-space: pre-wrap; }
 .chat-suggestions { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin-top: 24px; }
+.chat-panel:has(#chatInput:not(:placeholder-shown)) .chat-suggestions { display: none; }
 .chat-suggestions button { background: var(--wash); border: 1px solid var(--line); color: var(--ink); border-radius: 7px; padding: 9px 12px; font-size: 10px; }
 .chat-suggestions button:hover { background: var(--accent-soft); }
 .chat-message { align-self: flex-start; max-width: 88%; padding: 13px 16px; background: var(--wash); border: 1px solid var(--line); border-radius: 3px 13px 13px 13px; font-size: 12px; line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); }
@@ -339,18 +314,6 @@ dialog::backdrop { background: #201b16a6; }
   .filter-button { padding: 5px 6px; font-size: 12px; }
   .search-wrap { width: clamp(92px, 36%, 148px); flex-shrink: 0; }
   .search { font-size: 12px; }
-  .demo-comparison { padding-bottom: 16px; margin-bottom: 19px; }
-  .demo-comparison > h2 { font-size: 22px; }
-  .demo-comparison > p { font-size: 13px; margin-bottom: 12px; }
-  .comparison-layout:has(.comparison-art) { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-  .comparison-art { min-height: 123px; }
-  .comparison-art img { height: 190px; top: 16px; }
-  .comparison-art.sogangi img { height: 105px; bottom: 4px; }
-  .comparison-art figcaption { margin-bottom: 6px; }
-  .comparison-card .card-body { padding-inline: 0; }
-  .comparison-card .card-stage + .favorite-button + .card-body { padding-left: 10px; }
-  .comparison-card .card-title h3 { font-size: 18px; }
-  .comparison-card .card-actions { margin-top: 7px; }
   .character-grid { gap: 10px; }
   .card-stage { height: 128px; }
   .card-stage > img { width: 118px; }

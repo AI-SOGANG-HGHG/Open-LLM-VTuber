@@ -121,13 +121,13 @@ export async function createAgent(char, source) {
   syncAgent(char, await request(path, 'POST', characterPayload(char)));
 }
 
-export async function editAgent(char, draft) {
+export async function editAgent(char, draft, version = char.agentVersion) {
   if (!serverProfiles) {
     Object.assign(char, draft);
     return;
   }
   const record = await request(`/studio/agents/${char.agentId}`, 'PUT', {
-    version: char.agentVersion, profile: characterPayload(draft),
+    version, profile: characterPayload(draft),
   });
   syncAgent(char, record, draft.memories);
 }

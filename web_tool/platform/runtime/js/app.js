@@ -753,7 +753,9 @@ const studioProfile = await getStudioProfile();
   });
   ui.messageInput.addEventListener('input', persistSession);
   for (const b of document.querySelectorAll('[data-prompt]'))
-    b.addEventListener('click', () => begin(b.dataset.prompt));
+    b.addEventListener('click', () => {
+      if (!ui.messageInput.value) begin(b.dataset.prompt);
+    });
   ui.stopButton.addEventListener('click', () =>
     interrupt('답변을 중단했어요. 다른 메시지를 보낼 수 있어요.'),
   );
