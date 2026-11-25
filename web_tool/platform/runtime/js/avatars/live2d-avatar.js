@@ -1,5 +1,5 @@
 import { avatarAssets } from '../../../js/presets.js';
-import { createLivePreview, kangIseoModel } from '../../../../shared/live2d-loader.js';
+import { createLivePreview } from '../../../../shared/live2d-loader.js';
 import { createIvoryCrownAvatar } from './ivory-crown.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -102,7 +102,7 @@ export class StudioAvatarRenderer {
     try {
       const engine = createLivePreview(canvas, canvas.parentElement, recover);
       this.engine = engine;
-      await engine.load(this.isKangIseo ? kangIseoModel : avatarAssets.mao.model);
+      await engine.load(avatarAssets[this.avatar].model);
       if (recovery) return recovery;
       if (!current()) return false;
       this.showCanvas('live2d', engine);

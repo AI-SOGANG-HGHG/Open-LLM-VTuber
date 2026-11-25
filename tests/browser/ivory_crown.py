@@ -129,10 +129,10 @@ class IvoryCrownTests(unittest.TestCase):
                 ),
                 0,
             )
-            page.get_by_role("link", name="음성·2D 대화", exact=True).click()
+            page.get_by_role("link", name="음성·Live2D 대화", exact=True).click()
             expect(page.locator("#runtimeStatus")).to_contain_text("대화할 수 있어요")
             expect(page.locator("#studioFrame")).to_have_attribute(
-                "title", "강이서 음성·2D 대화실"
+                "title", "강이서 음성·Live2D 대화실"
             )
             frame = page.frame_locator("#studioFrame")
             canvas = frame.locator("#avatarCanvas")
@@ -348,6 +348,44 @@ class IvoryCrownTests(unittest.TestCase):
                 self.assertEqual(canvas.screenshot(), neutral, parameter)
             browser.close()
 
+    def test_live2d_filter_and_kang_iseo_preview(self):
+        base = os.environ.get("SOGANGI_BASE_URL", "http://localhost:12393").rstrip("/")
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(
+                executable_path=os.environ.get("SOGANGI_BROWSER")
+            )
+            page = browser.new_page()
+            page.route(
+                "**/auth/session", lambda route: route.fulfill(json={"enabled": False})
+            )
+            page.goto(f"{base}/web-tool/platform/")
+            page.locator("#loginUsername").fill("테스트 사용자")
+            page.locator("#loginSubmit").click()
+            page.get_by_role("button", name="Live2D", exact=True).click()
+            card = page.locator("#characterGrid .character-card").filter(
+                has=page.get_by_role("heading", name="강이서", exact=True)
+            )
+            expect(card.locator(".card-type")).to_have_text("Live2D 아바타")
+
+            preview = card.get_by_role("button", name="강이서 외형 미리보기")
+            dialog = page.locator("#avatarDialog")
+            canvas = dialog.locator("#liveAvatarCanvas")
+            fallback = dialog.locator("#avatarFallback img")
+            preview.click()
+            expect(canvas).to_have_attribute("data-loaded", "true", timeout=15000)
+            expect(canvas).to_have_attribute("data-expression", "neutral")
+            expect(canvas).to_be_visible()
+            expect(fallback).to_be_hidden()
+            dialog.get_by_role("button", name="닫기").click()
+            expect(dialog).to_be_hidden()
+
+            page.route(KANG_ISEO_BUNDLE, lambda route: route.fulfill(status=404))
+            preview.click()
+            expect(dialog.get_by_role("status")).to_contain_text("이미지로 보여드려요")
+            expect(fallback).to_be_visible()
+            expect(canvas).to_be_hidden()
+            browser.close()
+
     def test_studio_plays_kang_iseo_cubism_model_and_closes_mouth_on_stop(self):
         base = os.environ.get("SOGANGI_BASE_URL", "http://localhost:12393").rstrip("/")
         with sync_playwright() as playwright:
@@ -357,7 +395,7 @@ class IvoryCrownTests(unittest.TestCase):
             )
             page = browser.new_page(viewport={"width": 1420, "height": 850})
             fixture = self.open_default_character_settings(page, base)
-            page.get_by_role("link", name="음성·2D 대화", exact=True).click()
+            page.get_by_role("link", name="음성·Live2D 대화", exact=True).click()
             expect(page.locator("#runtimeStatus")).to_contain_text("대화할 수 있어요")
             frame = page.frame_locator("#studioFrame")
             canvas = frame.locator("#avatarCanvas")
