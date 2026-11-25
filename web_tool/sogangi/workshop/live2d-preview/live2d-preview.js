@@ -1,13 +1,21 @@
+import { createKangIseoAtlas } from '../../../shared/kang-iseo-atlas.js';
+import { loadKangIseoFaceArt } from '../../../shared/kang-iseo-face-art.js';
+import { kangIseoThinkingEyeOpen } from '../../../shared/kang-iseo-expressions.js?face=2';
+import { kangIseoModel } from '../../../shared/live2d-loader.js?face=2';
+
 /* Local developer inspector; no conversation WebSocket, model API or audio synthesis. */
 (() => {
   'use strict';
   const $ = (id) => document.getElementById(id);
   const stage = $('modelStage');
+  const kangIseoExpressionButtons = $('kangIseoExpressionButtons').querySelectorAll('[data-expression]');
   let app,
     model,
+    faceAtlas,
     epoch = 0,
     closed = false,
-    sweep = null;
+    sweep = null,
+    zoomKangIseo = false;
   const controls = new Map();
   let motionDefinitions = {};
   function updateMotionEntries() {
@@ -111,10 +119,15 @@
     app.renderer.resize(stage.clientWidth, stage.clientHeight);
     if (!model) return;
     const { originalWidth, originalHeight } = model.internalModel;
-    model.scale.set(
-      Math.min(stage.clientWidth / originalWidth, stage.clientHeight / originalHeight) * 0.92,
-    );
-    model.position.set(stage.clientWidth / 2, stage.clientHeight / 2);
+    const scale = Math.min(stage.clientWidth / originalWidth, stage.clientHeight / originalHeight) * 0.92;
+    if (!zoomKangIseo) {
+      model.scale.set(scale);
+      model.position.set(stage.clientWidth / 2, stage.clientHeight / 2);
+    } else {
+      model.scale.set(scale * 1.68);
+      const y = stage.clientHeight * 0.40 + (originalHeight / 2 - 520) * model.scale.y;
+      model.position.set(stage.clientWidth / 2, y);
+    }
   }
   function facts(items) {
     $('modelFacts').replaceChildren();
@@ -126,7 +139,7 @@
       $('modelFacts').append(term, detail);
     }
   }
-  function parameterControls(settings, loaded) {
+  function parameterControls(settings, loaded, modelPath) {
     controls.clear();
     $('parameterControls').replaceChildren();
     const parameters = loaded.internalModel.coreModel.getModel().parameters;
@@ -138,14 +151,21 @@
         : null;
     stage.dataset.wiredParameters = wired ? [...wired].join(',') : '';
     const lip = settings.Groups?.find((group) => group.Name === 'LipSync')?.Ids || [];
+    const kangIseo = modelPath === kangIseoModel;
+    const expressionNames = settings.FileReferences.Expressions?.map(({ Name }) => Name);
+    const moodLabel = kangIseo
+      ? '표정 · 0 중립 / 1 기쁨 / 2 놀람 / 3 분노 / 4 슬픔'
+      : '표정 · 0 중립 / 1 화남 / 2 놀람';
     for (const [key, label, candidates] of [
       ['mouth', '입 벌림', [...lip, 'ParamMouthOpenY', 'ParamA']],
       ['eyeL', '왼쪽 눈', ['ParamEyeLOpen']],
       ['eyeR', '오른쪽 눈', ['ParamEyeROpen']],
-      ['tilt', '고개 기울기', ['ParamAngleZ']],
-      ['breath', '상체 호흡', ['ParamBreath']],
-      ['wave', '화면 오른팔 인사', ['ParamArmRWave']],
-      ['mood', '표정 · 0 중립 / 1 화남 / 2 놀람', ['ParamFaceMood']],
+      ...(kangIseo ? [] : [
+        ['tilt', '고개 기울기', ['ParamAngleZ']],
+        ['breath', '상체 호흡', ['ParamBreath']],
+        ['wave', '화면 오른팔 인사', ['ParamArmRWave']],
+      ]),
+      ['mood', moodLabel, ['ParamFaceMood']],
     ]) {
       const id = candidates.find((id) => ids.includes(id));
       if (!id) continue;
@@ -179,17 +199,32 @@
       if (!input.disabled)
         controls.set(key, { id, input, value, default: parameters.defaultValues[index] });
     }
+    function applyFaceDetails() {
+      if (!kangIseo) return;
+      const mood = loaded.internalModel.coreModel.getParameterValueById('ParamFaceMood');
+      const name = expressionNames?.[Math.round(mood)] || 'neutral';
+      if (faceAtlas) {
+        faceAtlas.setExpression(name);
+        loaded.internalModel.coreModel.setParameterValueById('ParamFaceMood', 0);
+      }
+      if (stage.dataset.expression === name) return;
+      stage.dataset.expression = name;
+      for (const button of kangIseoExpressionButtons)
+        button.setAttribute('aria-pressed', String(button.dataset.expression === name));
+      const index = expressionNames?.indexOf(name) ?? -1;
+      if (index >= 0) $('modelExpression').value = String(index);
+    }
+    const core = loaded.internalModel.coreModel;
+    function publishParameters() {
+      stage.dataset.appliedParameters = JSON.stringify(
+        Object.fromEntries([...controls.values()].map(({ id }) => [id, core.getParameterValueById(id)])),
+      );
+    }
     loaded.internalModel.on('beforeModelUpdate', () => {
       if (model !== loaded) return;
       if (!$('manualMode').checked) {
-        stage.dataset.appliedParameters = JSON.stringify(
-          Object.fromEntries(
-            [...controls.values()].map(({ id }) => [
-              id,
-              loaded.internalModel.coreModel.getParameterValueById(id),
-            ]),
-          ),
-        );
+        applyFaceDetails();
+        publishParameters();
         return;
       }
       if (sweep !== null) {
@@ -208,15 +243,9 @@
       }
       for (const { id, input } of controls.values())
         loaded.internalModel.coreModel.setParameterValueById(id, Number(input.value));
+      applyFaceDetails();
       stage.dataset.appliedMouth = controls.get('mouth')?.input.value || '';
-      stage.dataset.appliedParameters = JSON.stringify(
-        Object.fromEntries(
-          [...controls.values()].map(({ id }) => [
-            id,
-            loaded.internalModel.coreModel.getParameterValueById(id),
-          ]),
-        ),
-      );
+      publishParameters();
     });
     $('mouthSweep').disabled = !controls.has('mouth');
     $('resetPose').disabled = false;
@@ -227,6 +256,8 @@
     let loaded;
     try {
       const url = modelUrl($('modelUrl').value.trim());
+      const kangIseo = url.pathname === kangIseoModel;
+      const faceArt = kangIseo ? loadKangIseoFaceArt() : null;
       status('모델과 참조 파일을 불러오고 있어요.');
       const response = await fetch(url, { cache: 'no-cache' });
       if (!response.ok)
@@ -279,16 +310,31 @@
           motionPreload: PIXI.live2d.MotionPreloadStrategy.NONE,
         },
       );
+      const art = await faceArt;
       if (ticket !== epoch || closed) {
         loaded.destroy({ children: true, texture: true, baseTexture: true });
         return;
       }
+      const nextAtlas = kangIseo ? createKangIseoAtlas(loaded, PIXI, art) : null;
+      if (kangIseo) loaded.internalModel.breath = null;
+      faceAtlas?.destroy();
       model?.destroy({ children: true, texture: true, baseTexture: true });
       model = loaded;
+      faceAtlas = nextAtlas;
+      const variant = $('kangIseoFaceVariant');
+      variant.value = 'standard';
+      variant.disabled = !faceAtlas;
+      variant.closest('label').hidden = !faceAtlas;
+      delete stage.dataset.faceVariant;
+      if (faceAtlas) stage.dataset.faceVariant = 'standard';
+      zoomKangIseo = false;
+      $('kangIseoZoom').setAttribute('aria-pressed', 'false');
+      delete stage.dataset.expression;
       sweep = null;
       model.anchor.set(0.5, 0.5);
       app.stage.addChild(model);
-      parameterControls(settings, model);
+      parameterControls(settings, model, url.pathname);
+      stage.dataset.modelUrl = url.pathname;
       fit();
       const expressions = settings.FileReferences.Expressions || [];
       $('modelExpression').replaceChildren(
@@ -300,6 +346,20 @@
         }),
       );
       $('modelExpression').disabled = !expressions.length;
+      for (const button of kangIseoExpressionButtons) {
+        const index = expressions.findIndex(({ Name }) => Name === button.dataset.expression);
+        button.disabled = !kangIseo || index < 0;
+        button.setAttribute('aria-pressed', 'false');
+        button.onclick = button.disabled ? null : () => previewKangIseoFace(index);
+      }
+      const neutral = expressions.findIndex(({ Name }) => Name === 'neutral');
+      const joy = expressions.findIndex(({ Name }) => Name === 'joy');
+      $('kangIseoThink').disabled = !kangIseo || neutral < 0;
+      $('kangIseoThink').onclick = () => previewKangIseoFace(neutral, kangIseoThinkingEyeOpen);
+      $('kangIseoSpeak').disabled = !kangIseo || !controls.has('mouth');
+      $('kangIseoSpeak').onclick = () => previewKangIseoFace(Number($('modelExpression').value), 1, true);
+      $('kangIseoGreeting').disabled = !kangIseo || joy < 0 || !controls.has('mouth');
+      $('kangIseoGreeting').onclick = () => previewKangIseoFace(joy, 1, true);
       const groups = Object.keys(settings.FileReferences.Motions || {});
       $('modelMotion').replaceChildren(
         ...groups.map((name) => {
@@ -312,6 +372,8 @@
       $('modelMotion').disabled = !groups.length;
       motionDefinitions = settings.FileReferences.Motions || {};
       updateMotionEntries();
+      $('kangIseoExpressionPreview').hidden = !kangIseo;
+      $('motionControls').hidden = kangIseo;
       facts([
         ['모델', url.pathname],
         ['Core 파라미터', model.internalModel.coreModel.getParameterCount()],
@@ -325,7 +387,6 @@
             '선언 없음',
         ],
       ]);
-      stage.dataset.modelUrl = url.pathname;
       stage.dataset.loaded = 'true';
       stage.dataset.revision = String(ticket);
       status(
@@ -337,7 +398,9 @@
               : stage.dataset.wiredParameters.includes('ParamBreath')
                 ? '고개·호흡 확장 모델이에요. 눈·입과 기울기·호흡을 함께 조작하고 초기화해 보세요.'
                 : '서강이 최소 모델을 표시했어요. 눈·입 슬라이더와 입 왕복 시험을 확인해 주세요. 고개·몸은 아직 미연결이에요.'
-          : '실제 Cubism 모델을 표시했어요. 눈·입·기울기와 표정을 확인해 주세요.',
+          : url.pathname === kangIseoModel
+            ? '강이서의 표정과 눈·입 움직임을 확인해 보세요.'
+            : '실제 Cubism 모델을 표시했어요. 눈·입·기울기와 표정을 확인해 주세요.',
       );
     } catch (error) {
       if (ticket === epoch && !closed)
@@ -358,6 +421,8 @@
     load();
   });
   const presets = {
+    'kang-iseo': kangIseoModel,
+    'kang-iseo-arm': kangIseoModel,
     'sogangi-expressions': '/live2d-models/sogangi-expressions/runtime/sogangi.model3.json',
     'sogangi-greeting': '/live2d-models/sogangi-greeting/runtime/sogangi.model3.json',
     'sogangi-motion': '/live2d-models/sogangi-motion/runtime/sogangi.model3.json',
@@ -368,6 +433,7 @@
     $('modelUrl').value = presets[name];
     load();
   }
+  $('loadKangIseo').addEventListener('click', () => selectPreset('kang-iseo'));
   $('loadSogangi').addEventListener('click', () => selectPreset('sogangi-minimum'));
   $('loadSogangiMotion').addEventListener('click', () => selectPreset('sogangi-motion'));
   $('loadSogangiGreeting').addEventListener('click', () => selectPreset('sogangi-greeting'));
@@ -375,12 +441,32 @@
   $('loadMao').addEventListener('click', () => selectPreset('mao'));
   const initialPreset = new URLSearchParams(location.search).get('model');
   if (Object.hasOwn(presets, initialPreset)) selectPreset(initialPreset);
-  $('modelExpression').addEventListener('change', () => {
+  function selectExpression(index) {
     const target = model;
-    target?.expression(Number($('modelExpression').value)).catch(() => {
+    if (stage.dataset.modelUrl === kangIseoModel && $('manualMode').checked) {
+      const mood = controls.get('mood');
+      if (mood) {
+        mood.input.value = String(index);
+        mood.value.value = index.toFixed(2);
+      }
+    }
+    target?.expression(index).catch(() => {
       if (target === model) status('표정 파일을 읽지 못했어요.', true);
     });
-  });
+  }
+  function previewKangIseoFace(index, eyes = 1, speak = false) {
+    $('manualMode').checked = true;
+    for (const [key, amount] of [['eyeL', eyes], ['eyeR', eyes], ['mouth', 0]]) {
+      const control = controls.get(key);
+      if (control) {
+        control.input.value = String(amount);
+        control.value.value = Number(control.input.value).toFixed(2);
+      }
+    }
+    sweep = speak ? performance.now() : null;
+    selectExpression(index);
+  }
+  $('modelExpression').addEventListener('change', (event) => selectExpression(Number(event.currentTarget.value)));
   $('playMotion').addEventListener('click', () => {
     const target = model,
       group = $('modelMotion').value,
@@ -396,6 +482,27 @@
       .catch(() => {
         if (target === model) status('모션 파일을 읽지 못했어요.', true);
       });
+  });
+  $('kangIseoFaceVariant').addEventListener('change', async (event) => {
+    const select = event.currentTarget;
+    const selected = select.value;
+    const atlas = faceAtlas;
+    if (!atlas) return;
+    const art = await loadKangIseoFaceArt(selected);
+    if (closed || faceAtlas !== atlas || select.value !== selected) return;
+    if (!art) {
+      select.value = stage.dataset.faceVariant;
+      status('표정 원화를 불러오지 못했어요.', true);
+      return;
+    }
+    atlas.setFaceArt(art);
+    stage.dataset.faceVariant = selected;
+    status('강이서의 표정과 눈·입 움직임을 확인해 보세요.');
+  });
+  $('kangIseoZoom').addEventListener('click', () => {
+    zoomKangIseo = !zoomKangIseo;
+    $('kangIseoZoom').setAttribute('aria-pressed', String(zoomKangIseo));
+    fit();
   });
   $('modelMotion').addEventListener('change', updateMotionEntries);
   $('mouthSweep').addEventListener('click', () => {
@@ -417,6 +524,7 @@
     closed = true;
     epoch++;
     resizeObserver.disconnect();
+    faceAtlas?.destroy();
     app?.destroy(true, { children: true, texture: true, baseTexture: true });
   });
   window.addEventListener('pageshow', (event) => {

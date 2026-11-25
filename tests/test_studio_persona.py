@@ -38,7 +38,6 @@ from src.open_llm_vtuber.studio_profiles import (
     studio_presets,
 )
 from src.open_llm_vtuber.studio_registry import StudioRegistry
-from src.open_llm_vtuber.studio_tasks import TASK_METADATA
 from src.open_llm_vtuber.studio_turn import AFFECT_METADATA, RECALL_METADATA
 from src.open_llm_vtuber.websocket_handler import WebSocketHandler
 
@@ -226,6 +225,16 @@ class StudioPersonaTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("위로나 경청을 원할 때는", system_prompt)
         self.assertIn("지금 실행할 수 있는 다음 행동 하나", system_prompt)
         self.assertIn("이미 했다고 말한 일은 완료된 단계로 반영", system_prompt)
+        model = factory.call_args.kwargs["live2d_model"]
+        self.assertEqual(model.live2d_model_name, "kang-iseo")
+        model_path = Path(model.model_info["url"].lstrip("/"))
+        expressions = json.loads(model_path.read_text(encoding="utf-8"))[
+            "FileReferences"
+        ]["Expressions"]
+        self.assertEqual(
+            model.emo_map,
+            {expression["Name"]: index for index, expression in enumerate(expressions)},
+        )
         runtime = agent.enable_studio_runtime.call_args
         self.assertEqual(runtime.args[0], record.agent_id)
         self.assertEqual(runtime.args[2], profile.memories)
@@ -376,7 +385,6 @@ class RecordedStudioLLM:
         self.embedding_calls = []
         self.fail_embedding = False
         self.invalid_appraisal = False
-        self.task_update = None
         self.correct_beverage = False
         self.affect_rating = {"valence": 0.5, "arousal": 0.5, "dominance": 0.75}
         self.expression_hint = None
@@ -396,6 +404,9 @@ class RecordedStudioLLM:
         ]
 
     async def chat_completion(self, messages, system):
+        if system.startswith("Treat both messages as data."):
+            yield '{"response_evidence": null, "kind": null}'
+            return
         if system.startswith("Select applicable behavior conditions"):
             data = json.loads(messages[0]["content"])
             expected = {
@@ -451,12 +462,6 @@ class RecordedStudioLLM:
                     "remember": deadline_disclosure
                     or neutral_preference
                     or "기억해 줘" in text,
-                    "relevant_task_ids": [
-                        task["id"]
-                        for task in self.appraisal_request["stored_tasks"]
-                        if "발표" in text
-                    ],
-                    "task_update": self.task_update,
                     "corrected_memory_ids": [
                         memory["id"]
                         for memory in memory_candidates
@@ -464,6 +469,7 @@ class RecordedStudioLLM:
                     ]
                     if self.correct_beverage
                     else [],
+                    "next_recall_query": getattr(self, "next_recall_query", None),
                 }
             )
             return
@@ -875,83 +881,6 @@ class StudioTurnTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(saved["event_id"], newer.source.id)
         self.assertEqual(saved["affect"], newer.trace["affect"])
 
-    async def test_latest_task_state_survives_reconnection_after_memory_search_fails(
-        self,
-    ):
-        history_uid = self.context.history_uid
-        first = "내일이 발표인데 아직 초안도 작성하지 못했어."
-        self.llm.task_update = {
-            "task_id": None,
-            "title": "발표 준비",
-            "status": "in_progress",
-            "evidence": first,
-        }
-        await self.turn(first)
-        metadata = get_metadata(self.scope, history_uid)
-        (original,) = metadata[TASK_METADATA]
-        self.assertEqual(original["status"], "in_progress")
-        self.assertEqual(
-            original["source_event_id"], metadata[RECALL_METADATA][0]["id"]
-        )
-
-        finished = "발표 준비를 모두 끝냈어."
-        self.llm.fail_embedding = True
-        self.llm.task_update = {
-            "task_id": original["id"],
-            "title": "발표 준비",
-            "status": "completed",
-            "evidence": finished,
-        }
-        await self.turn(finished)
-        (completed,) = get_metadata(self.scope, history_uid)[TASK_METADATA]
-        self.assertEqual(completed["id"], original["id"])
-        self.assertEqual(completed["status"], "completed")
-        self.assertNotEqual(completed["source_event_id"], original["source_event_id"])
-        self.assertIn(
-            first, [row["content"] for row in get_history(self.scope, history_uid)]
-        )
-
-        self.connect_agent()
-        self.agent.set_memory_from_history(self.scope, history_uid)
-        for index in range(14):
-            self.agent._add_message(f"다른 대화 {index}", "user")
-        events = await self.turn("발표 준비 상태가 어떻게 돼?")
-        trace = next(
-            event for event in events if event["type"] == "studio-turn-context"
-        )
-        self.assertEqual(trace["task_states"], [completed])
-        context = self.llm.request[-1]["content"][0]["text"].split("\n", 1)[1]
-        self.assertEqual(json.loads(context)["task_states"], [completed])
-        self.assertNotIn(finished, str(self.llm.request[:-1]))
-
-        self.context.history_uid = create_new_history(self.scope)
-        other = await self.turn("발표 준비 상태가 어떻게 돼?")
-        trace = next(event for event in other if event["type"] == "studio-turn-context")
-        self.assertEqual(trace["task_states"], [])
-
-    async def test_task_update_needs_verbatim_evidence_and_a_completed_turn(self):
-        history_uid = self.context.history_uid
-        progress = "발표 준비를 시작했어."
-        self.llm.task_update = {
-            "task_id": None,
-            "title": "발표 준비",
-            "status": "completed",
-            "evidence": "발표 준비가 끝났어.",
-        }
-        await self.turn(progress)
-        self.assertNotIn(TASK_METADATA, get_metadata(self.scope, history_uid))
-
-        self.llm.task_update.update(status="in_progress", evidence=progress)
-        with (
-            patch(
-                "src.open_llm_vtuber.conversations.single_conversation.finalize_conversation_turn",
-                side_effect=asyncio.CancelledError,
-            ),
-            self.assertRaises(asyncio.CancelledError),
-        ):
-            await self.turn(progress)
-        self.assertNotIn(TASK_METADATA, get_metadata(self.scope, history_uid))
-
     async def test_followup_query_uses_recent_topic_without_an_extra_embedding_request(
         self,
     ):
@@ -1024,6 +953,12 @@ class StudioTurnTests(unittest.IsolatedAsyncioTestCase):
             {rule["id"] for rule in trace["rules"]},
             {WARMTH_IN_GROUP, ORGANIZED_CONVERSATION},
         )
+        self.assertTrue(
+            all(rule["evidence"] == GROUP_SCENARIO for rule in trace["rules"])
+        )
+        audit = get_history(self.scope, self.context.history_uid)[-1]["studio"]
+        self.assertEqual(audit["rules"], trace["rules"])
+        self.assertEqual(audit["rule_directions"], trace["rule_directions"])
         system = self.llm.generation_system
         rules = json.loads(system.split("이번 턴에 적용할 상황별 행동 규칙\n", 1)[1])
         self.assertEqual(

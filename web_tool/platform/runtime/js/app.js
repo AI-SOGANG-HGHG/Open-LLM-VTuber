@@ -1,9 +1,9 @@
 import { createRandomId } from '../../../shared/random-id.js';
 import { AvatarRenderer } from './avatars/sogangi-renderer.js';
-import { expressionFor } from './expressions.js';
+import { expressionFor } from './expressions.js?studio=16';
 import { loadPreferences, savePreferences, loadSession, saveSession, studioScenes, loadStudioScene, saveStudioScene } from './local-state.js?studio=6';
 import { getStudioProfile, studioEvent, onStudioShutdown } from './studio-bridge.js?studio=8';
-import { StudioAvatarRenderer } from './avatars/live2d-avatar.js';
+import { StudioAvatarRenderer } from './avatars/live2d-avatar.js?studio=16';
 import { createHistoryView } from './history-view.js';
 import { createAudioPlayback } from './audio-playback.js';
 import { createMicrophone } from './microphone.js';
@@ -187,9 +187,15 @@ const broadcastMode = Boolean(studioProfile && new URLSearchParams(location.sear
     canPlay: () => !state.muted && !state.failed,
     onStart(change) {
       ui.phase.textContent = '음성을 재생하고 있어요.';
-      change.ready = true;
+      if (change) change.ready = true;
       applyPendingExpressions();
       mascot(state.lastExpression, 'speaking', '같이 이야기하자!');
+    },
+    onUnavailable(change) {
+      if (!change) return;
+      change.silent = true;
+      change.ready = true;
+      applyPendingExpressions();
     },
     onComplete: () => connection.send(broadcastMode
       ? { type: 'frontend-playback-complete', request_id: state.requestId }
@@ -389,7 +395,7 @@ const broadcastMode = Boolean(studioProfile && new URLSearchParams(location.sear
     state.assistant.body.textContent += (state.assistant.body.textContent ? ' ' : '') + text;
     if (followResponse) scrollMessagesToEnd();
   }
-  function studioTurnDetails({ preset, affect, previous_affect, appraisal, retrieval, rule_selection, rules, memories, unverified_memories = [], task_states = [] }) {
+  function studioTurnDetails({ preset, affect, previous_affect, appraisal, retrieval, rule_selection, rules, memories, unverified_memories = [] }) {
     const details = document.createElement('details');
     details.className = 'studio-turn-context';
     const summary = document.createElement('summary');
@@ -408,12 +414,6 @@ const broadcastMode = Boolean(studioProfile && new URLSearchParams(location.sear
     const moodLabel = appraisal === 'ok' && affectChanged ? '캐릭터 감정 변화' : '이전 감정 유지';
     mood.textContent = `${moodLabel} · 쾌·불쾌 ${transition('valence')} · 각성 ${transition('arousal')} · 통제감 ${transition('dominance')}`;
     content.append(persona, mood);
-    const taskStatuses = { not_started: '시작 전', in_progress: '진행 중', completed: '완료' };
-    for (const task of task_states) {
-      const item = document.createElement('p');
-      item.textContent = `현재 과제 · ${task.title} · ${taskStatuses[task.status]}`;
-      content.append(item);
-    }
     const evidence = document.createElement('p');
     evidence.textContent = unverified_memories.length ? '답변에 전달한 기억 후보 · 답변 모델이 관련성을 판단해요.'
       : retrieval !== 'ok' ? '기억 검색을 사용할 수 없었어요.'
@@ -779,7 +779,9 @@ const broadcastMode = Boolean(studioProfile && new URLSearchParams(location.sear
   });
   ui.messageInput.addEventListener('input', persistSession);
   for (const b of document.querySelectorAll('[data-prompt]'))
-    b.addEventListener('click', () => begin(b.dataset.prompt));
+    b.addEventListener('click', () => {
+      if (!ui.messageInput.value) begin(b.dataset.prompt);
+    });
   ui.stopButton.addEventListener('click', () =>
     interrupt('답변을 중단했어요. 다른 메시지를 보낼 수 있어요.'),
   );

@@ -1,11 +1,14 @@
 import { createRandomId } from './random-id.js';
+import { kangIseoFaces, kangIseoThinkingEyeOpen } from './kang-iseo-expressions.js?face=2';
+import { createKangIseoAtlas } from './kang-iseo-atlas.js';
+import { loadKangIseoFaceArt } from './kang-iseo-face-art.js';
 // Loads only the approved local model paths.
 let libraries;
 export const maoExpressionIndices = Object.freeze({
   neutral: 0, sadness: 1, anger: 2, joy: 3, surprise: 3,
 });
 export const kangIseoModel = '/live2d-models/kang-iseo/runtime/kang-iseo.model3.json';
-export const kangIseoExpressions = Object.freeze(['neutral', 'joy', 'surprise']);
+export const kangIseoExpressions = Object.freeze(Object.keys(kangIseoFaces));
 
 const approvedModels = [
   '/live2d-models/mao_pro/runtime/mao_pro.model3.json',
@@ -41,10 +44,11 @@ function loadLibraries() {
   return libraries;
 }
 export function createLivePreview(canvas, stage, onFailure = () => {}) {
-  let app, model, disposed = false, kangIseo = false;
+  let app, model, atlas, disposed = false, kangIseo = false;
   let expressionIndices = maoExpressionIndices;
-  const pose = { mouth: 0, gaze: 0, reduced: false, expression: 'neutral' };
+  const pose = { mouth: 0, gaze: 0, reduced: false, expression: 'neutral', thinking: false };
   const started = performance.now();
+  const systemMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const request = new AbortController();
   const resize = new ResizeObserver(fit);
   function fail(error) {
@@ -72,6 +76,7 @@ export function createLivePreview(canvas, stage, onFailure = () => {}) {
     async load(path) {
       if (!approvedModels.includes(path)) throw Error('Unknown model');
       kangIseo = path === kangIseoModel;
+      const faceArt = kangIseo ? loadKangIseoFaceArt() : null;
       const response = await fetch(path, { signal: request.signal, cache: 'no-cache' });
       if (!response.ok) throw Error('Model unavailable');
       const settings = await response.json();
@@ -121,21 +126,33 @@ export function createLivePreview(canvas, stage, onFailure = () => {}) {
         if (expressions.some((expression) => !expression)) throw Error('Kang Iseo expression unavailable');
         await model.expression(expressionIndices.neutral);
         if (disposed) throw Error('Preview closed');
+        const art = await faceArt;
+        if (disposed) throw Error('Preview closed');
+        atlas = createKangIseoAtlas(model, PIXI, art);
+        model.internalModel.breath = null;
         canvas.dataset.expression = 'neutral';
       }
       const set = (id, value) => { if (ids.has(id)) core.setParameterValueById(id, value); };
       model.internalModel.on('beforeModelUpdate', () => {
         if (disposed) return;
         const elapsed = performance.now() - started;
-        const reduced = pose.reduced || matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const reduced = pose.reduced || systemMotion.matches;
         const blink = elapsed % 4300;
         const eyes = reduced || blink > 180 ? 1 : Math.min(1, Math.abs(blink - 90) / 90);
-        for (const id of eyeParameters) set(id, eyes);
+        const thinking = kangIseo && pose.thinking && pose.expression === 'neutral';
+        for (const id of eyeParameters) set(id, eyes * (thinking ? kangIseoThinkingEyeOpen : 1));
+        if (kangIseo) {
+          // The new eyelids are drawn per mood. Keep the old mood mesh at rest.
+          if (atlas) set('ParamFaceMood', 0);
+          set('ParamBreath', 0);
+          set('ParamAngleZ', 0);
+          canvas.dataset.eyeOpen = String(core.getParameterValueById(eyeParameters[0]));
+        } else {
+          set('ParamBreath', reduced ? 0 : (1 - Math.cos(elapsed / 4800 * Math.PI * 2)) / 2);
+          set('ParamAngleZ', reduced ? 0 : pose.gaze * 8);
+        }
         set(mouthParameter, pose.mouth);
-        set('ParamBreath', reduced ? 0 : (1 - Math.cos(elapsed / 4800 * Math.PI * 2)) / 2);
-        set('ParamAngleZ', reduced ? 0 : pose.gaze * (kangIseo ? 3 : 8));
         canvas.dataset.appliedMouth = String(kangIseo ? core.getParameterValueById(mouthParameter) : pose.mouth);
-        if (kangIseo) canvas.dataset.eyeOpen = String(core.getParameterValueById(eyeParameters[0]));
         canvas.dataset.frames = String(Number(canvas.dataset.frames || 0) + 1);
       });
       app.stage.addChild(model);
@@ -145,14 +162,18 @@ export function createLivePreview(canvas, stage, onFailure = () => {}) {
       canvas.dataset.loaded = 'true';
     },
     setMouthOpen(amount) { pose.mouth = Math.max(0, Math.min(1, Number(amount) || 0)); },
+    setThinking(thinking) { pose.thinking = thinking; },
     setReducedMotion(reduced) { pose.reduced = reduced; },
     lookAt(x) { pose.gaze = Math.max(-1, Math.min(1, Number(x) || 0)); },
     setExpression(name) {
       const expression = Object.hasOwn(expressionIndices, name) ? name : 'neutral';
-      if (pose.expression === expression) return;
+      if (pose.expression === expression && (!kangIseo || canvas.dataset.expression === expression)) return;
       pose.expression = expression;
       model?.expression(expressionIndices[expression]).then((applied) => {
-        if (kangIseo && applied && !disposed && pose.expression === expression) canvas.dataset.expression = expression;
+        if (kangIseo && applied && !disposed && pose.expression === expression) {
+          atlas?.setExpression(expression);
+          canvas.dataset.expression = expression;
+        }
       }).catch((error) => { if (kangIseo) fail(error); });
     },
     greet() {
@@ -167,6 +188,7 @@ export function createLivePreview(canvas, stage, onFailure = () => {}) {
       request.abort();
       resize.disconnect();
       canvas.removeEventListener('webglcontextlost', contextLost);
+      atlas?.destroy();
       app?.destroy(false, { children: true, texture: true, baseTexture: true });
       app = null; model = null;
       delete canvas.dataset.loaded;

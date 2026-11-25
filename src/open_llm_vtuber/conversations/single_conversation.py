@@ -1,5 +1,4 @@
 from typing import Union, List, Dict, Any, Optional
-from functools import partial
 import asyncio
 import json
 from loguru import logger
@@ -181,6 +180,7 @@ async def process_single_conversation(
         # --- End processing agent response ---
 
         complete_studio_turn = None
+        studio_completed = False
         if (
             studio_turn is not None
             and not generation_failed
@@ -188,7 +188,12 @@ async def process_single_conversation(
             and context.character_config.conf_uid == studio_turn.history_scope
             and context.history_uid == studio_turn.history_uid
         ):
-            complete_studio_turn = partial(studio_runtime.complete_async, studio_turn)
+
+            async def complete_studio_turn() -> None:
+                nonlocal studio_completed
+                await studio_runtime.complete_async(studio_turn, full_response)
+                studio_completed = True
+
         await finalize_conversation_turn(
             tts_manager=tts_manager,
             websocket_send=websocket_send,
@@ -201,6 +206,18 @@ async def process_single_conversation(
             and full_response
             and (not generation_failed or studio_turn is None)
         ):
+            studio_audit = None
+            if studio_completed:
+                studio_audit = {
+                    "event_id": studio_turn.source.id,
+                    "profile_version": studio_turn.trace["preset"]["version"],
+                    "rule_candidate_ids": studio_turn.trace["rule_candidate_ids"],
+                    "rule_directions": studio_turn.trace["rule_directions"],
+                    "rule_selection": studio_turn.trace["rule_selection"],
+                    "rules": studio_turn.trace["rules"],
+                    "recall_steps": studio_turn.trace["recall_steps"],
+                    "recall_redirection": studio_turn.trace["recall_redirection"],
+                }
             store_message(
                 conf_uid=context.character_config.conf_uid,
                 history_uid=context.history_uid,
@@ -208,6 +225,7 @@ async def process_single_conversation(
                 content=full_response,
                 name=context.character_config.character_name,
                 avatar=context.character_config.avatar,
+                **({"studio": studio_audit} if studio_audit else {}),
             )
             logger.info(f"AI response: {full_response}")
 

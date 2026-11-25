@@ -2,7 +2,7 @@ import { agentError, restoreAgents } from './agents.js';
 import { closePreview } from './components/avatar-preview.js';
 import { $, toast } from './dom.js';
 import { render } from './router.js';
-import { state } from './state.js';
+import { clearProfileDrafts, state } from './state.js';
 import { persist } from './store.js';
 
 const SESSION_KEY = 'persona-studio.demo-session.v1';
@@ -85,7 +85,10 @@ export async function restoreSession() {
       else if (!nickname) render();
     } else if (status.authenticated && typeof status.username === 'string') {
       if (state.profile !== status.username) await enterProfile(status.username);
-    } else if (state.profile) clearProfile();
+    } else {
+      clearProfileDrafts();
+      if (state.profile) clearProfile();
+    }
   } catch {
     authMode = 'error';
     clearProfile();
@@ -139,7 +142,7 @@ export function bindAuthEvents() {
         if (!response.ok) throw Error('Unavailable');
         authChannel?.postMessage('logout');
       } else { try { sessionStorage.removeItem(SESSION_KEY); } catch { /* Page-local preview. */ } }
-      clearProfile(); loginError(); $('#loginUsername').focus();
+      clearProfileDrafts(); clearProfile(); loginError(); $('#loginUsername').focus();
     } catch { toast('로그아웃하지 못했어요. 다시 시도해 주세요.', true); }
     finally { authBusy = false; configureLogin(); }
   });

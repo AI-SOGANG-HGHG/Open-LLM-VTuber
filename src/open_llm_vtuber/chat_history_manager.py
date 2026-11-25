@@ -16,6 +16,7 @@ class HistoryMessage(TypedDict):
     # Optional display information for the message
     name: Optional[str]
     avatar: Optional[str]
+    studio: dict
 
 
 def _is_safe_filename(filename: str) -> bool:
@@ -133,6 +134,7 @@ def store_message(
     content: str,
     name: str | None = None,
     avatar: str | None = None,
+    studio: dict | None = None,
 ):
     """Store a message in a specific history file
 
@@ -179,6 +181,8 @@ def store_message(
         new_item["name"] = name
     if avatar is not None:
         new_item["avatar"] = avatar
+    if studio is not None:
+        new_item["studio"] = studio
 
     history_data.append(new_item)
 

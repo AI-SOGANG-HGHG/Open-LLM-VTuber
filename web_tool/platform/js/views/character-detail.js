@@ -4,7 +4,7 @@ import { avatar, tags } from '../components/card.js';
 import { $, charLink, escapeHtml, main, now, shortDate, toast } from '../dom.js';
 import { avatarAssets, defaultGreeting, presets, studioPresets } from '../presets.js';
 import { connectRuntime, setConversationFocus } from '../runtime-bridge.js';
-import { getCharacter, state } from '../state.js';
+import { getCharacter, profileDraftKey, profileDrafts, state, storeProfileDraft } from '../state.js';
 import { logActivity, persist } from '../store.js';
 import { renderConnections } from './connections.js';
 import { renderRecords } from './records.js';
@@ -28,7 +28,35 @@ function settingsPanel(char) {
     <p class="field-help">시작 프리셋 · ${escapeHtml(studioPresets[char.studioPreset] || '직접 작성한 성격')}</p>
     ${traitControls(char.traits || { openness: char.exploration / 100 })}
     <label for="editPersona">추가 성격과 대화 지침</label><textarea id="editPersona" name="persona" maxlength="2000"${char.studioPreset ? '' : ' required'}>${escapeHtml(char.studioPreset ? char.instructions : char.persona)}</textarea>
-    <div class="panel-actions"><button type="submit" class="button primary">변경사항 저장</button></div><p class="field-help">저장한 설정은 대화실에 다시 연결할 때 적용돼요.</p></form>${profilePreview(char)}</div>`;
+    <p class="field-help" id="profileDraftStatus" role="status"></p>
+    <div class="panel-actions"><button type="button" class="button secondary" data-action="discard-profile-draft" hidden>수정 취소</button><button type="submit" class="button primary">변경사항 저장</button></div><p class="field-help">저장한 설정은 대화실에 다시 연결할 때 적용돼요.</p></form>${profilePreview(char)}</div>`;
+}
+
+export function profileForPreview(char, form = $('#settingsForm')) {
+  if (form?.dataset.id !== char.id) return char;
+  const { elements } = form;
+  return {
+    ...char,
+    avatar: elements.namedItem('avatar').value || char.avatar,
+    name: elements.namedItem('name').value,
+    description: elements.namedItem('description').value,
+    greeting: elements.namedItem('greeting').value,
+  };
+}
+
+function updateSettingsPreview(form, char) {
+  const profile = profileForPreview(char, form);
+  const preview = form.parentElement.querySelector('.settings-preview');
+  const art = preview.querySelector('.preview-art');
+  if (!art.classList.contains(profile.avatar)) {
+    preview.outerHTML = profilePreview(profile);
+    return;
+  }
+  const portrait = art.querySelector('img');
+  if (portrait) portrait.alt = `${profile.name} 캐릭터`;
+  preview.querySelector('#previewName').textContent = profile.name;
+  preview.querySelector('.preview-profile > p').textContent = profile.description;
+  preview.querySelector('#previewGreeting').textContent = `“${profile.greeting}”`;
 }
 function chatPanel(char, chatLabel, mode) {
   return `<section class="runtime-toolbar"><div><a class="runtime-back" href="#characters">← 스튜디오</a><span class="status-dot"></span><strong id="runtimeStatus" role="status">${escapeHtml(char.name)} 연결 준비 중…</strong></div><div><a class="button secondary" href="${charLink(char)}">캐릭터 설정</a><button class="button secondary" data-action="runtime-layout">스튜디오 보기</button><button class="button secondary" data-action="runtime-connect" data-mode="${mode}" data-id="${escapeHtml(char.id)}">다시 연결</button><button class="button secondary" data-action="runtime-disconnect">연결 해제</button></div></section><div class="studio-runtime" id="studioRuntime"><iframe id="studioFrame" title="${escapeHtml(char.name)} ${chatLabel}실" allow="microphone; autoplay" referrerpolicy="no-referrer"></iframe></div><p class="field-help">답변 아래에서 행동 규칙, 감정 변화, 참고한 기억을 확인할 수 있어요.</p>`;
@@ -47,7 +75,7 @@ function memoryPanel(char) {
 }
 
 export function renderDetail(char, tab) {
-  const tabs = { settings: '프로필·성격', chat: char.avatar === 'ivory-crown' ? '음성·2D 대화' : '음성·Live2D 대화', memory: '기억 노트', connections: '연결', broadcast: '방송', records: '기록', sample: '샘플 대화' };
+  const tabs = { settings: '프로필·성격', chat: '음성·Live2D 대화', memory: '기억 노트', connections: '연결', broadcast: '방송', records: '기록', sample: '샘플 대화' };
   if (!Object.hasOwn(tabs, tab)) tab = 'settings';
   $('#breadcrumb').textContent = `스튜디오 / ${char.name} / ${tabs[tab]}`;
   main.innerHTML = `<a class="back-link" href="#characters">← 내 캐릭터로 돌아가기</a><div class="detail-heading"><div class="detail-avatar ${char.avatar}">${avatar(char)}</div><div><h1>${escapeHtml(char.name)}</h1><p>${escapeHtml(char.description)}</p></div><div class="detail-actions"><button class="button secondary" data-action="preview" data-id="${escapeHtml(char.id)}">외형 미리보기</button><button class="button secondary" data-action="duplicate" data-id="${escapeHtml(char.id)}">복제</button><button class="button secondary" data-action="delete" data-id="${escapeHtml(char.id)}">삭제</button></div></div><nav class="tabs" aria-label="캐릭터 관리 메뉴">${Object.entries(tabs).map(([key, label]) => `<a href="${charLink(char, key)}" class="${tab === key ? 'active' : ''}"${tab === key ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
@@ -78,7 +106,44 @@ async function showEditor(char, tab) {
       return;
     }
   }
-  if (panel.isConnected) panel.innerHTML = tab === 'settings' ? settingsPanel(char) : memoryPanel(char);
+  if (!panel.isConnected) return;
+  panel.innerHTML = tab === 'settings' ? settingsPanel(char) : memoryPanel(char);
+  if (tab === 'settings') restoreProfileDraft(panel.querySelector('form'), char);
+}
+
+function restoreProfileDraft(form, char) {
+  const key = profileDraftKey(char);
+  const saved = Object.fromEntries(new FormData(form));
+  const draft = profileDrafts.get(key);
+  const version = char.agentVersion;
+  if (version !== undefined) form.dataset.version = String(version);
+  const status = form.querySelector('#profileDraftStatus');
+  const discard = form.querySelector('[data-action="discard-profile-draft"]');
+
+  function remember() {
+    const fields = Object.fromEntries([...new FormData(form)].filter(([name, value]) => value !== saved[name]));
+    const dirty = Object.keys(fields).length > 0;
+    const baseVersion = profileDrafts.get(key)?.version ?? version;
+    storeProfileDraft(key, dirty ? { version: baseVersion, fields } : null);
+    discard.hidden = !dirty;
+    status.hidden = !dirty;
+    status.textContent = baseVersion !== version
+      ? '다른 화면에서 변경한 최신 설정 위에 내 수정값을 표시하고 있어요. 확인한 뒤 저장하거나 수정을 취소하세요.'
+      : '아직 저장하지 않은 수정사항이 있어요.';
+  }
+
+  for (const [name, value] of Object.entries(draft?.fields || {})) {
+    if (!Object.hasOwn(saved, name) || typeof value !== 'string') continue;
+    const control = form.elements.namedItem(name);
+    control.value = value;
+    if (control.type === 'range') control.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  if (draft) updateSettingsPreview(form, char);
+  remember();
+  form.addEventListener('input', (event) => {
+    remember();
+    if (['name', 'avatar', 'description', 'greeting'].includes(event.target.name)) updateSettingsPreview(form, char);
+  });
 }
 
 function sampleReply(char, text) {
@@ -113,6 +178,7 @@ export function bindCharacterDetailEvents(render) {
     } finally {
       if (button) button.disabled = false;
     }
+    storeProfileDraft(profileDraftKey(char), null);
     state.data.characters = state.data.characters.filter((entry) => entry.id !== char.id);
     state.data.activities = state.data.activities.filter((entry) => entry.characterId !== char.id);
     persist('캐릭터를 삭제했어요.');
@@ -154,6 +220,12 @@ export function bindCharacterDetailEvents(render) {
     }
   });
   main.addEventListener('click', async (event) => {
+    const discard = event.target.closest('[data-action="discard-profile-draft"]');
+    if (discard) {
+      storeProfileDraft(profileDraftKey(getCharacter(discard.form.dataset.id)), null);
+      render();
+      return;
+    }
     const button = event.target.closest('[data-action="remove-memory"]');
     if (!button) return;
     const form = $('#memoryForm');
@@ -168,8 +240,12 @@ async function saveEditor(form, char, draft, activity, message, render) {
   form.dataset.saving = 'true';
   const button = form.querySelector('button[type=submit]');
   button.disabled = true;
+  const key = profileDraftKey(char);
+  const submitted = form.id === 'settingsForm' ? profileDrafts.get(key) : null;
+  form.inert = true;
   try {
-    await editAgent(char, draft);
+    await editAgent(char, draft, form.dataset.version ? Number(form.dataset.version) : char.agentVersion);
+    if (submitted && profileDrafts.get(key) === submitted) storeProfileDraft(key, null);
     char.updatedAt = now();
     logActivity(char, activity);
     persist(message);
@@ -179,6 +255,7 @@ async function saveEditor(form, char, draft, activity, message, render) {
     if (error.status === 409 && form.isConnected) render();
   } finally {
     delete form.dataset.saving;
+    form.inert = false;
     button.disabled = false;
   }
 }

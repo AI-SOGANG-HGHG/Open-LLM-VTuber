@@ -384,7 +384,7 @@ class StudioRegistry:
             )
 
     def memories(self, agent_id: str, model: str, limit: int) -> list[dict]:
-        """Return recent memories only from the bound agent and embedding model."""
+        """Return memories for the bound agent and embedding model."""
         with closing(self._connect()) as database:
             rows = database.execute(
                 "SELECT payload, superseded_by FROM agent_memories WHERE agent_id = ? AND embedding_model = ? "
@@ -397,10 +397,11 @@ class StudioRegistry:
         ]
 
     def pending_embeddings(self, agent_id: str, limit: int) -> list[tuple[str, str]]:
-        """Read active memories awaiting their first vector, oldest first."""
+        """Read active memories awaiting their first vector."""
         with closing(self._connect()) as database:
             rows = database.execute(
-                "SELECT event_id, text FROM agent_memories WHERE agent_id = ? "
+                "SELECT event_id, COALESCE(json_extract(payload, '$.search_text'), text) AS text "
+                "FROM agent_memories WHERE agent_id = ? "
                 "AND embedding_model = '' AND superseded_by IS NULL "
                 "ORDER BY occurred_at, rowid LIMIT ?",
                 (agent_id, limit),
@@ -447,8 +448,14 @@ class StudioRegistry:
             duplicate = database.execute(
                 "SELECT event_id, embedding_model FROM agent_memories WHERE agent_id = ? "
                 "AND embedding_model IN ('', ?) AND text = ? AND superseded_by IS NULL "
+                "AND COALESCE(json_extract(payload, '$.assistant_excerpt'), '') = ? "
                 "ORDER BY embedding_model DESC, occurred_at DESC LIMIT 1",
-                (agent_id, model, record["text"]),
+                (
+                    agent_id,
+                    model,
+                    record["text"],
+                    record.get("assistant_excerpt", ""),
+                ),
             ).fetchone()
             if duplicate:
                 event_id = duplicate["event_id"]

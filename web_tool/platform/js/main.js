@@ -2,14 +2,13 @@ import { createRandomId } from '../../shared/random-id.js';
 import { agentError, createAgent, ensureAgent, serverProfiles, updateTraitOutput } from './agents.js';
 import { bindAuthEvents, restoreSession } from './auth.js';
 import { bindPreviewEvents, closePreview, openPreview } from './components/avatar-preview.js';
-import { avatar } from './components/card.js';
 import { $, charLink, main, now, toast } from './dom.js';
-import { avatarAssets, catalogCharacters } from './presets.js';
+import { catalogCharacters } from './presets.js';
 import { bindRouterEvents, render } from './router.js';
 import { bindRuntimeEvents, connectRuntime, disposeRuntime, setConversationFocus } from './runtime-bridge.js';
 import { getCharacter, state } from './state.js';
 import { loadData, logActivity, persist } from './store.js';
-import { bindCharacterDetailEvents, openDelete } from './views/character-detail.js';
+import { bindCharacterDetailEvents, openDelete, profileForPreview } from './views/character-detail.js';
 import { renderCards } from './views/characters.js';
 import { bindConnectionEvents } from './views/connections.js';
 import { bindCreateFormEvents, openCreate } from './views/create-form.js';
@@ -33,13 +32,6 @@ document.querySelectorAll('[data-close-dialog]').forEach((button) => button.addE
 main.addEventListener('input', (event) => {
   if (event.target.id === 'characterSearch') { state.searchQuery = event.target.value; renderCards(); }
   updateTraitOutput(event);
-  if (event.target.id === 'editName' && $('#previewName')) $('#previewName').textContent = event.target.value;
-  if (event.target.id === 'editGreeting' && $('#previewGreeting')) $('#previewGreeting').textContent = `“${event.target.value}”`;
-  if (event.target.name === 'avatar' && $('#settingsAvatar')) {
-    const value = event.target.value;
-    const char = getCharacter(event.target.closest('form').dataset.id);
-    if (char && Object.hasOwn(avatarAssets, value)) { $('#settingsAvatar').className = `preview-art ${value}`; $('#settingsAvatar').innerHTML = avatar({ ...char, avatar: value }); }
-  }
 });
 main.addEventListener('click', async (event) => {
   const filter = event.target.closest('[data-filter]');
@@ -58,12 +50,15 @@ main.addEventListener('click', async (event) => {
   if (action === 'preset') openCreate(catalogCharacters().find((preset) => preset.id === button.dataset.id));
   if (action === 'preview') {
     const target = button.dataset.catalog === 'true' ? catalogCharacters().find((preset) => preset.id === button.dataset.id) : char;
-    if (target) openPreview(target);
+    if (target) openPreview(profileForPreview(target));
   }
   if (action === 'favorite' && char) {
     char.favorite = !char.favorite; persist(); renderCards();
   }
-  if (action === 'suggest') { $('#chatInput').value = button.dataset.message; $('#chatForm').requestSubmit(); }
+  if (action === 'suggest' && !$('#chatInput').value) {
+    $('#chatInput').value = button.dataset.message;
+    $('#chatForm').requestSubmit();
+  }
   if (action === 'duplicate' && char) {
     if (button.disabled) return;
     button.disabled = true;

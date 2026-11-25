@@ -126,9 +126,8 @@ async def apply_studio_persona(
         llm_config.request_timeout = 45
     if hasattr(llm_config, "max_retries") and llm_config.max_retries is None:
         llm_config.max_retries = 0
-    live2d_model = (
-        Live2dModel("sogangi") if profile.avatar == "sogangi" else context.live2d_model
-    )
+    model_name = {"sogangi": "sogangi", "ivory-crown": "kang-iseo"}.get(profile.avatar)
+    live2d_model = Live2dModel(model_name) if model_name else context.live2d_model
     system_prompt = await context.construct_system_prompt(
         character.persona_prompt,
         live2d_model=live2d_model,
