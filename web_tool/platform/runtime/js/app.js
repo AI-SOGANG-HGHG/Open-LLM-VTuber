@@ -113,6 +113,7 @@ const studioProfile = await getStudioProfile();
     firstAudio: null,
     firstText: null,
     textStreaming: false,
+    pcmStream: false,
     requestId: null,
     timeout: null,
     ticker: null,
@@ -474,6 +475,7 @@ const studioProfile = await getStudioProfile();
   function begin(text) {
     if (!state.ready || state.busy || !text.trim()) return;
     notice('');
+    const pcmReady = state.pcmStream && playback.prepareStream();
     playback.startTurn();
     clearPendingExpressions();
     state.discard = false;
@@ -510,6 +512,7 @@ const studioProfile = await getStudioProfile();
       text,
       text_stream: true,
       require_spoken_response: true,
+      pcm_stream: pcmReady,
       request_id: state.requestId,
     });
   }
@@ -605,6 +608,7 @@ const studioProfile = await getStudioProfile();
         connection.dispose();
         return;
       }
+      state.pcmStream = data.pcm_stream === true;
       if (state.historyUid) restoreHistory(state.historyUid, true);
       else newHistory();
     } else if (data.type === 'new-history-created') {
@@ -661,26 +665,37 @@ const studioProfile = await getStudioProfile();
         if (state.muted) queueExpression(name, true);
       }
       ui.timing.textContent = `첫 문장 ${(state.firstText / 1000).toFixed(1)}초`;
+    } else if (data.type === 'tts-unavailable' && state.busy && !state.discard) {
+      notice('강이서 음성 연결이 끊겼어요. 답변은 대화창에서 볼 수 있어요.');
     } else if (data.type === 'audio' && state.busy && !state.discard) {
       const text = data.display_text?.text;
+      if (data.pcm && !data.display_text) {
+        playback.enqueuePcm(data, null);
+        return;
+      }
       if (!state.textStreaming) appendAssistant(text);
       const textIndex = pendingTextExpressions.findIndex((entry) => entry.text === text);
       const textExpression = textIndex < 0 ? null : pendingTextExpressions.splice(textIndex, 1)[0];
       // Text may already have queued this expression while sound was muted.
       const expression = textExpression?.queued ? null : responseExpression(text);
-      if (state.muted || !data.audio) queueExpression(expression, true);
-      if (data.audio) {
+      if (state.muted || !(data.audio || data.pcm)) queueExpression(expression, true);
+      if (data.audio || data.pcm) {
         if (state.firstAudio === null) {
           state.firstAudio = performance.now() - state.started;
           ui.timing.textContent = `${state.firstText !== null ? `첫 문장 ${(state.firstText / 1000).toFixed(1)}초 · ` : ''}첫 음성 ${(state.firstAudio / 1000).toFixed(1)}초`;
         }
         if (!state.muted && !state.failed) {
+          const change = queueExpression(expression, false);
+          if (data.pcm) {
+            playback.enqueuePcm(data, change);
+            return;
+          }
           playback.enqueue({
             audio: data.audio,
             volumes: data.volumes,
             slice: data.slice_length,
             // Apply the change when playback starts. An empty tag keeps the current face.
-            expression: queueExpression(expression, false),
+            expression: change,
           });
         }
       }
@@ -818,6 +833,7 @@ const studioProfile = await getStudioProfile();
     clearPendingExpressions();
     microphone.cancel();
     playback.stop();
+    playback.disposeStream();
     renderer.dispose();
   }
   window.addEventListener('pagehide', () => {

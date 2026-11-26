@@ -19,6 +19,7 @@ from pydantic import (
 
 from .agent.agent_factory import AgentFactory
 from .live2d_model import Live2dModel
+from .tts import kang_iseo_stream
 from .studio_profiles import (
     BigFive,
     PersonaPreset,
@@ -133,9 +134,13 @@ async def apply_studio_persona(
         live2d_model=live2d_model,
         use_inline_expressions=preset is None,
     )
+    agent_settings = agent_config.agent_settings.model_dump()
+    if profile.avatar == "ivory-crown" and kang_iseo_stream.enabled():
+        # Let Qwen voice the entire first sentence, including its introductory phrase.
+        agent_settings["basic_memory_agent"]["faster_first_response"] = False
     agent = AgentFactory.create_agent(
         conversation_agent_choice=agent_config.conversation_agent_choice,
-        agent_settings=agent_config.agent_settings.model_dump(),
+        agent_settings=agent_settings,
         llm_configs=agent_config.llm_configs.model_dump(),
         system_prompt=system_prompt,
         live2d_model=live2d_model,
@@ -164,6 +169,9 @@ async def apply_studio_persona(
         else:
             agent.enable_studio_runtime(profile.preset_id, *runtime_args)
     old_agent = context.agent_engine
+    context.studio_kang_iseo_voice_scope = (
+        character.conf_uid if profile.avatar == "ivory-crown" else None
+    )
     context.character_config = character
     context.config = context.config.model_copy(update={"character_config": character})
     context.agent_engine = agent

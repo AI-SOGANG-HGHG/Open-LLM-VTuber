@@ -50,6 +50,7 @@ class ServiceContext:
 
         self.live2d_model: Live2dModel = None
         self.asr_engine: ASRInterface = None
+        self.studio_kang_iseo_voice_scope: str | None = None
         self.tts_engine: TTSInterface = None
         self.agent_engine: AgentInterface = None
         # translate_engine can be none if translation is disabled

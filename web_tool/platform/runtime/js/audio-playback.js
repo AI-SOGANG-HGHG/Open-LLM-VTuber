@@ -1,3 +1,5 @@
+import { createPcmPlayback } from './pcm-playback.js';
+
 export function createAudioPlayback({ preferences, renderer, canPlay, onStart, onUnavailable, onComplete, onError }) {
   const queue = [];
   let playing = null;
@@ -6,14 +8,17 @@ export function createAudioPlayback({ preferences, renderer, canPlay, onStart, o
   let synthesisDone = false;
   let acknowledged = false;
 
+  const pcm = createPcmPlayback({ preferences, renderer, onStart, onError, onDrain: completeIfReady });
+
   function completeIfReady() {
-    if (synthesisDone && !playing && !queue.length && !acknowledged) {
+    if (synthesisDone && !pcm.pending && !playing && !queue.length && !acknowledged) {
       acknowledged = true;
       onComplete();
     }
   }
 
   function updateSettings() {
+    pcm.updateSettings();
     if (!playing) return;
     playing.volume = preferences.volume;
     playing.playbackRate = preferences.rate;
@@ -68,6 +73,7 @@ export function createAudioPlayback({ preferences, renderer, canPlay, onStart, o
   }
 
   function stop() {
+    pcm.stop();
     cancelAnimationFrame(lipFrame);
     renderer.cancelGesture();
     renderer.setMouthOpen(0);
@@ -84,6 +90,12 @@ export function createAudioPlayback({ preferences, renderer, canPlay, onStart, o
   }
 
   return {
+    prepareStream: pcm.prepare,
+    disposeStream: pcm.dispose,
+    enqueuePcm(data, expression) {
+      if (!canPlay()) return;
+      if (!pcm.enqueue(data.pcm, data.sample_rate, expression) && expression) onUnavailable?.(expression);
+    },
     startTurn() {
       epoch++;
       synthesisDone = false;

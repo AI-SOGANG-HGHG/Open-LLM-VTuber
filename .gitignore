@@ -19,6 +19,9 @@ conf.yaml
 /characters/*
 !/characters/ko_sogangi.yaml
 !/characters/README.md
+!/characters/voices/
+/characters/voices/*
+!/characters/voices/kang-iseo-reference.wav
 # but all of the defaults are already tracked, so no need to un-ignore them
 
 # ignore avatars

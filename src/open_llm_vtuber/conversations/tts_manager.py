@@ -16,7 +16,8 @@ from .types import WebSocketSend
 class TTSTaskManager:
     """Manages TTS tasks and ensures ordered delivery to frontend while allowing parallel TTS generation"""
 
-    def __init__(self) -> None:
+    def __init__(self, pcm_stream=None) -> None:
+        self._pcm_stream = pcm_stream
         self.task_list: List[asyncio.Task] = []
         self._lock = asyncio.Lock()
         # Queue to store ordered payloads
@@ -47,6 +48,13 @@ class TTSTaskManager:
             tts_engine: TTS engine instance
             websocket_send: WebSocket send function
         """
+        if self._pcm_stream is not None:
+            self._sequence_counter += 1
+            self.task_list.append(asyncio.create_task(
+                self._send_pcm_sentence(tts_text, display_text, actions, websocket_send)
+            ))
+            return
+
         if len(re.sub(r'[\s.,!?，。！？\'"』」）】\s]+', "", tts_text)) == 0:
             logger.debug("Empty TTS text, sending silent display payload")
             # Get current sequence number for silent payload
@@ -88,6 +96,30 @@ class TTSTaskManager:
             )
         )
         self.task_list.append(task)
+
+    async def _send_pcm_sentence(self, text, display_text, actions, websocket_send):
+        # Each sentence can arrive while the preceding sentence is still playing.
+        # Keep a single synthesis request active per turn, in submission order.
+        async with self._lock:
+            first = True
+            if re.search(r"\w", text):
+                stream = self._pcm_stream(text)
+                try:
+                    async for pcm in stream:
+                        payload = {"type": "audio", "pcm": pcm, "sample_rate": 24000}
+                        if first:
+                            payload["display_text"] = display_text.to_dict()
+                            payload["actions"] = actions.to_dict() if actions else None
+                        await websocket_send(json.dumps(payload))
+                        first = False
+                except Exception as error:
+                    logger.warning("Studio streaming TTS failed: {}", type(error).__name__)
+                    await websocket_send(json.dumps({"type": "tts-unavailable"}))
+                finally:
+                    await stream.aclose()
+            if first:
+                payload = prepare_audio_payload(None, display_text=display_text, actions=actions)
+                await websocket_send(json.dumps(payload))
 
     async def _process_payload_queue(self, websocket_send: WebSocketSend) -> None:
         """

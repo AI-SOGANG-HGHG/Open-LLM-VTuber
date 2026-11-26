@@ -16,6 +16,7 @@ from .conversation_utils import (
     EMOJI_LIST,
 )
 from .types import WebSocketSend
+from ..tts import kang_iseo_stream
 from .tts_manager import TTSTaskManager
 from ..chat_history_manager import store_message
 from ..service_context import ServiceContext
@@ -48,7 +49,11 @@ async def process_single_conversation(
         str: Complete response text
     """
     # Create TTSTaskManager for this conversation
-    tts_manager = TTSTaskManager()
+    stream_voice = (
+        metadata and metadata.get("pcm_stream") and kang_iseo_stream.enabled()
+        and context.studio_kang_iseo_voice_scope == context.character_config.conf_uid
+    )
+    tts_manager = TTSTaskManager(pcm_stream=kang_iseo_stream.stream_pcm if stream_voice else None)
     full_response = ""  # Initialize full_response here
     studio_turn = None
 

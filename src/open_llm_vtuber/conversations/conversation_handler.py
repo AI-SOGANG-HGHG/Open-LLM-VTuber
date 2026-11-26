@@ -32,7 +32,7 @@ async def handle_conversation_trigger(
     """Handle triggers that start a conversation"""
     metadata = {
         key: True
-        for key in ("text_stream", "require_spoken_response")
+        for key in ("text_stream", "require_spoken_response", "pcm_stream")
         if data.get(key) is True
     } or None
 

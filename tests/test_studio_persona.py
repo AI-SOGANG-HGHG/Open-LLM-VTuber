@@ -285,6 +285,25 @@ class StudioPersonaTests(unittest.IsolatedAsyncioTestCase):
         )
         old_agent.close.assert_awaited_once()
 
+    async def test_qwen_first_sentence_setting_is_scoped_to_iseo(self):
+        context = context_fixture()
+        profile = StudioPersona(**payload())
+        configured = context.character_config.agent_config.agent_settings.basic_memory_agent.faster_first_response
+        with (
+            patch("src.open_llm_vtuber.studio_persona.AgentFactory.create_agent") as factory,
+            patch("src.open_llm_vtuber.studio_persona.kang_iseo_stream.enabled") as enabled,
+        ):
+            factory.return_value = SimpleNamespace()
+            for avatar, qwen, expected in [
+                ("ivory-crown", True, False),
+                ("mao", True, configured),
+                ("ivory-crown", False, configured),
+            ]:
+                enabled.return_value = qwen
+                await apply_studio_persona(context, profile.model_copy(update={"avatar": avatar}))
+                settings = factory.call_args.kwargs["agent_settings"]["basic_memory_agent"]
+                self.assertEqual(settings["faster_first_response"], expected)
+
     async def test_vad_studio_uses_sogangi_model_without_inline_expression_prompt(self):
         context = context_fixture()
         default_model = context.live2d_model

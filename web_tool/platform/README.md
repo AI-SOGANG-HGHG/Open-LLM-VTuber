@@ -22,6 +22,24 @@ powershell -ExecutionPolicy Bypass -File .\connect-studio.ps1
 
 실제 대화와 서버 저장 기능은 `http://localhost:12393/web-tool/platform/`에서 사용한다. 같은 서버의 대화실에 에이전트 ID로 연결한다. 화면 전용 미리보기는 루프백에서 웹 리소스·모델·렌더링 라이브러리를 제공한다.
 
+### 강이서 Qwen 스트리밍 음성 (선택)
+
+Apple Silicon에서 MLX Audio 0.6.5와 Qwen3-TTS 12Hz 0.6B Base MLX 모델을 준비한다. MLX Audio 환경에서 아래 명령으로 음성 서버를 실행한다.
+
+```sh
+python -m uvicorn mlx_audio.server:app --host 127.0.0.1 --port 12420
+```
+
+프로젝트 루트에서 Studio 서버를 실행할 때 두 환경 변수를 설정한다. 모델 경로는 음성 서버에서 읽을 수 있는 로컬 모델 디렉터리로 바꾼다.
+
+```sh
+export STUDIO_KANG_ISEO_TTS_URL=http://127.0.0.1:12420/v1/audio/speech
+export STUDIO_KANG_ISEO_TTS_MODEL=/path/to/qwen3-tts-0.6b-base-mlx
+python run_server.py
+```
+
+강이서의 **음성·Live2D 대화**에서 말을 걸면 문장마다 24 kHz 모노 PCM을 WebSocket으로 받아 재생한다. 동봉된 음색 레퍼런스는 지시문으로 합성한 강이서 시안이다. 음성 서버가 별도 파일 시스템을 사용하면 같은 WAV를 복사하고 Studio의 `STUDIO_KANG_ISEO_TTS_REFERENCE`에 음성 서버 쪽 경로를 지정한다.
+
 ## 시연 순서
 
 1. 배포 서버에서는 화면에서 팀 계정으로 로그인한다. 로컬 화면 전용 미리보기에서는 표시 이름으로 둘러본다. 서버 로그인 설정은 [팀용 HTTPS 안내](../../docs/team-https.md)를 따른다.

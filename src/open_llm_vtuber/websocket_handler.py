@@ -7,6 +7,7 @@ import numpy as np
 from loguru import logger
 
 from .service_context import ServiceContext
+from .tts import kang_iseo_stream
 from .studio_persona import StudioPersona, apply_studio_persona
 from .studio_registry import AgentNotFound, StudioRegistry, WORKSPACE_COOKIE
 from uuid import UUID
@@ -681,6 +682,7 @@ class WebSocketHandler:
             json.dumps(
                 {
                     "type": "studio-persona-applied",
+                    "pcm_stream": profile.avatar == "ivory-crown" and kang_iseo_stream.enabled(),
                     "character_id": profile.character_id,
                     "conf_uid": registered.history_scope
                     if registered
