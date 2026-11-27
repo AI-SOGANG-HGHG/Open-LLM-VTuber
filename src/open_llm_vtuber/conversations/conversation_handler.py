@@ -73,11 +73,19 @@ async def handle_conversation_trigger(
         if (
             isinstance(candidates, list)
             and 0 < len(candidates) <= MAX_CANDIDATES
-            and all(isinstance(text, str) and len(text) <= 4096 for text in candidates)
+            and all(
+                isinstance(item, dict)
+                and set(item) == {"author", "text"}
+                and isinstance(item["author"], str)
+                and len(item["author"]) <= 256
+                and isinstance(item["text"], str)
+                and len(item["text"]) <= 4096
+                for item in candidates
+            )
         ):
             metadata = {
                 **(metadata or {}),
-                "broadcast_candidates": json.dumps(candidates, ensure_ascii=False),
+                "broadcast_candidates": candidates,
             }
     else:  # mic-audio-end
         user_input = received_data_buffers[client_uid]

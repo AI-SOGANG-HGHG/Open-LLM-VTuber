@@ -27,7 +27,7 @@ class StudioBroadcast:
         self.server_url = server_url
         self.token = os.getenv("STUDIO_CHZZK_TOKEN", "")
         self.session: BroadcastSession | None = None
-        self.pending: deque[dict] = deque(maxlen=MAX_PENDING)
+        self.pending: deque[tuple[float, dict]] = deque(maxlen=MAX_PENDING)
         self.changed = asyncio.Event()
 
     async def handle_screen(self, socket: WebSocket) -> None:
@@ -75,14 +75,18 @@ class StudioBroadcast:
                 if len(text) > 4096 or len(author) > 256:
                     continue
                 self.pending.append(
-                    {
-                        "type": "text-input",
-                        "source": data["source"],
-                        "text": text,
-                        "amount": data.get("amount"),
-                        "text_stream": True,
-                        "require_spoken_response": True,
-                    }
+                    (
+                        asyncio.get_running_loop().time(),
+                        {
+                            "type": "text-input",
+                            "source": data["source"],
+                            "text": text,
+                            "author": author,
+                            "amount": data.get("amount"),
+                            "text_stream": True,
+                            "require_spoken_response": True,
+                        },
+                    )
                 )
                 self.changed.set()
         except (ValueError, WebSocketDisconnect):
@@ -203,7 +207,7 @@ class BroadcastSession(ProxyHandler):
             await self.broadcast.changed.wait()
             self.broadcast.changed.clear()
             while self.ready and self.broadcast.pending:
-                message = self.broadcast.pending.popleft()
+                received, message = self.broadcast.pending.popleft()
                 if message["source"] == "chzzk_donation":
                     await self._handle_text_input(
                         {**message, "author": "시청자"}, "collector"
@@ -214,14 +218,16 @@ class BroadcastSession(ProxyHandler):
                     continue
                 text = message["text"].strip()
                 try:
-                    if self.safety_filter.check_text(text) is not None:
+                    if not text or self.safety_filter.check_text(text) is not None:
                         continue
+                    author = self.safety_filter.sanitize_author(message["author"])
                 except Exception:
                     logger.warning(
                         "Discarding Studio chat because rule validation failed"
                     )
                     continue
-                self.message_queue.offer(text)
+                await self.screen.send_json({"type": "chzzk-chat", "text": text})
+                self.message_queue.offer(text, author, received)
 
     async def forward_to_server(
         self, message: dict, sender_id: str | None = None
@@ -258,6 +264,8 @@ class BroadcastSession(ProxyHandler):
         if self.profile_applied and kind in {"new-history-created", "history-data"}:
             self.history_loaded = True
         if kind == "user-input-transcription":
+            if "broadcast_candidates" in message:
+                return
             message = {
                 "type": kind,
                 "text": message.get("text", ""),
