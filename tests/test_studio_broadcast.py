@@ -1,6 +1,7 @@
 """Exercise the authenticated Studio/collector sockets with local model fixtures."""
 
 import asyncio
+import json
 from pathlib import Path
 import socket
 from tempfile import TemporaryDirectory
@@ -143,55 +144,153 @@ class StudioBroadcastTests(unittest.IsolatedAsyncioTestCase):
             }
         )
 
-    async def test_collector_input_waits_for_profile_and_replays_through_studio(self):
-        collector_headers = {"Authorization": f"Bearer {TOKEN}"}
-        async with self.client.ws_connect(
-            self.base + CHZZK_COLLECTOR_PATH, headers=collector_headers
-        ) as collector:
-            for text in ("발표가 잘 끝났어요!", "안녕!"):
-                await collector.send_json(
-                    {
-                        "type": "text-input",
-                        "source": "chzzk_chat",
-                        "author": "시청자",
-                        "text": text,
-                    }
-                )
-            async with self.client.ws_connect(
+    async def send_chat(self, collector, text, author="시청자", *, donation=None):
+        await collector.send_json(
+            {
+                "type": "text-input",
+                "source": "chzzk_chat" if donation is None else "chzzk_donation",
+                "author": author,
+                "text": text,
+                "amount": donation,
+            }
+        )
+
+    async def receive_board(self, screen, texts, *, latest_author=None):
+        async def matching_board():
+            while True:
+                event = await self._receive(screen, "chzzk-chat-board", None)
+                candidates = event["candidates"]
+                if {item["text"] for item in candidates} == set(texts) and (
+                    latest_author is None
+                    or any(item["author"] == latest_author for item in candidates)
+                ):
+                    return candidates
+
+        return await asyncio.wait_for(matching_board(), timeout=5)
+
+    async def receive_turn(self, screen, expected_text, *, candidates=None):
+        incoming = await self.receive(screen, "user-input-transcription", expected_text)
+        request_id = incoming["request_id"]
+        started = await self.receive(screen, "control", "conversation-chain-start")
+        self.assertEqual(started["request_id"], request_id)
+        trace = await self.receive(screen, "studio-turn-context")
+        self.assertEqual(trace["request_id"], request_id)
+        audio = await self.receive(screen, "audio")
+        self.assertEqual(audio["request_id"], request_id)
+        self.assertTrue(audio["audio"])
+        self.assertIn("방송 테스트 캐릭터", self.llm.generation_system)
+        if candidates is not None:
+            model_input = self.llm.request[-1]["content"][-1]["text"]
+            self.assertEqual(json.loads(model_input), candidates)
+            self.assertIn("비슷한 질문은 하나로 묶고", self.llm.generation_system)
+        await self.receive(screen, "backend-synth-complete")
+        return request_id
+
+    async def finish_playback(self, screen, request_id):
+        await screen.send_json(
+            {"type": "frontend-playback-complete", "request_id": request_id}
+        )
+        completed = await self.receive(screen, "control", "conversation-chain-end")
+        self.assertEqual(completed["request_id"], request_id)
+
+    async def test_collector_input_waits_for_profile_and_batches_during_playback(self):
+        async with (
+            self.client.ws_connect(
+                self.base + CHZZK_COLLECTOR_PATH,
+                headers={"Authorization": f"Bearer {TOKEN}"},
+            ) as collector,
+            self.client.ws_connect(
                 self.base + "/proxy-ws?mode=studio", headers=self.screen_headers()
-            ) as screen:
-                await self.select_agent(screen)
-                selected = await self.receive(screen, "studio-persona-applied")
-                self.assertEqual(selected["agent_id"], self.agent.agent_id)
-                self.assertIsNone(self.llm.request)
-                await screen.send_json({"type": "create-new-history"})
-                await self.receive(screen, "new-history-created")
-                for text in ("발표가 잘 끝났어요!", "안녕!"):
-                    incoming = await self.receive(
-                        screen, "user-input-transcription", text
-                    )
-                    request_id = incoming["request_id"]
-                    started = await self.receive(
-                        screen, "control", "conversation-chain-start"
-                    )
-                    self.assertEqual(started["request_id"], request_id)
-                    trace = await self.receive(screen, "studio-turn-context")
-                    self.assertEqual(trace["request_id"], request_id)
-                    self.assertEqual(trace["expression"], "joy")
-                    audio = await self.receive(screen, "audio")
-                    self.assertEqual(audio["request_id"], request_id)
-                    self.assertTrue(audio["audio"])
-                    self.assertIn("방송 테스트 캐릭터", self.llm.generation_system)
-                    if text.startswith("발표"):
-                        self.assertIn("발표는 오전 열 시", str(self.llm.request))
-                    await self.receive(screen, "backend-synth-complete")
-                    await screen.send_json(
-                        {"type": "frontend-playback-complete", "request_id": request_id}
-                    )
-                    completed = await self.receive(
-                        screen, "control", "conversation-chain-end"
-                    )
-                    self.assertEqual(completed["request_id"], request_id)
+            ) as screen,
+        ):
+            await self.send_chat(collector, "발표는 몇 시에 시작해요?")
+            await self.select_agent(screen)
+            selected = await self.receive(screen, "studio-persona-applied")
+            self.assertEqual(selected["agent_id"], self.agent.agent_id)
+            self.assertIsNone(self.llm.request)
+            await screen.send_json({"type": "create-new-history"})
+            await self.receive(screen, "new-history-created")
+            first = await self.receive_turn(
+                screen,
+                "시청자: 발표는 몇 시에 시작해요?",
+                candidates=[{"author": "시청자", "text": "발표는 몇 시에 시작해요?"}],
+            )
+            self.assertIn("발표는 오전 열 시", str(self.llm.request))
+            await self.send_chat(collector, "안녕!")
+            await self.receive_board(screen, ["안녕!"])
+
+            questions = [
+                "오늘 어떤 게임 해?",
+                "마인크래프트 할 거야?",
+                "방송 몇 시까지 해?",
+                "마크 언제 시작해?",
+                "발표는 어떤 주제인가요?",
+            ]
+            for index, question in enumerate(questions):
+                await self.send_chat(collector, question, f"시청자{index}")
+            ranked = await self.receive_board(screen, questions)
+            self.assertEqual(ranked[0]["text"], questions[-1])
+            previous_generation = self.llm.request
+            await self.send_chat(collector, "🎮")
+            await self.send_chat(collector, "방송 응원합니다", donation=1000)
+            await self.send_chat(collector, "마크 언제 시작해?", "새시청자")
+            await self.receive_board(screen, questions, latest_author="새시청자")
+            self.assertIs(previous_generation, self.llm.request)
+            await self.finish_playback(screen, first)
+
+            donation = await self.receive_turn(screen, "방송 응원합니다")
+            self.assertIsNot(previous_generation, self.llm.request)
+            await self.finish_playback(screen, donation)
+
+            next_turn = await self.receive(screen, "user-input-transcription")
+            candidates = next_turn["broadcast_candidates"]
+            self.assertEqual(len(candidates), 5)
+            self.assertEqual({item["text"] for item in candidates}, set(questions))
+            self.assertEqual(
+                next_turn["text"],
+                "\n".join(f"{item['author']}: {item['text']}" for item in candidates),
+            )
+            request_id = next_turn["request_id"]
+            result = await self.receive(screen, "audio")
+            self.assertEqual(result["request_id"], request_id)
+            self.assertEqual(
+                json.loads(self.llm.request[-1]["content"][-1]["text"]), candidates
+            )
+            await self.receive(screen, "backend-synth-complete")
+            await self.finish_playback(screen, request_id)
+
+    async def test_board_expires_without_new_chat_during_playback(self):
+        async with (
+            self.client.ws_connect(
+                self.base + CHZZK_COLLECTOR_PATH,
+                headers={"Authorization": f"Bearer {TOKEN}"},
+            ) as collector,
+            self.client.ws_connect(
+                self.base + "/proxy-ws?mode=studio", headers=self.screen_headers()
+            ) as screen,
+        ):
+            await self.select_agent(screen)
+            await self.receive(screen, "studio-persona-applied")
+            await screen.send_json({"type": "create-new-history"})
+            await self.receive(screen, "new-history-created")
+            await screen.send_json({"type": "text-input", "text": "방송 시작합니다"})
+            active = await self.receive_turn(screen, "방송 시작합니다")
+
+            with (
+                patch("src.open_llm_vtuber.studio_broadcast.CANDIDATE_TTL", 0.2),
+                patch("src.open_llm_vtuber.studio_chat_board.CANDIDATE_TTL", 0.2),
+            ):
+                await self.send_chat(collector, "방송은 언제 끝나요?")
+                await self.receive_board(screen, ["방송은 언제 끝나요?"])
+                await self.receive_board(screen, [])
+            await self.finish_playback(screen, active)
+            await self.send_chat(collector, "다음 게임은 뭔가요?")
+            fresh = await self.receive_turn(
+                screen,
+                "시청자: 다음 게임은 뭔가요?",
+                candidates=[{"author": "시청자", "text": "다음 게임은 뭔가요?"}],
+            )
+            await self.finish_playback(screen, fresh)
 
     async def test_browser_and_collector_credentials_are_checked_independently(self):
         screen_url = self.base + "/proxy-ws?mode=studio"

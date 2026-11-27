@@ -9,6 +9,7 @@ from loguru import logger
 from ..chat_group import ChatGroupManager
 from ..chat_history_manager import store_message
 from ..service_context import ServiceContext
+from ..studio_chat_board import MAX_CANDIDATES
 from .group_conversation import process_group_conversation
 from .single_conversation import process_single_conversation
 from .conversation_utils import EMOJI_LIST
@@ -68,6 +69,24 @@ async def handle_conversation_trigger(
         )
     elif msg_type == "text-input":
         user_input = data.get("text", "")
+        candidates = data.get("broadcast_candidates")
+        if (
+            isinstance(candidates, list)
+            and 0 < len(candidates) <= MAX_CANDIDATES
+            and all(
+                isinstance(item, dict)
+                and set(item) == {"author", "text"}
+                and isinstance(item["author"], str)
+                and len(item["author"]) <= 256
+                and isinstance(item["text"], str)
+                and len(item["text"]) <= 4096
+                for item in candidates
+            )
+        ):
+            metadata = {
+                **(metadata or {}),
+                "broadcast_candidates": json.dumps(candidates, ensure_ascii=False),
+            }
     else:  # mic-audio-end
         user_input = received_data_buffers[client_uid]
         received_data_buffers[client_uid] = np.array([])

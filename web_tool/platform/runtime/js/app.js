@@ -17,6 +17,21 @@ const broadcastMode = Boolean(studioProfile && new URLSearchParams(location.sear
 (() => {
   'use strict';
   const $ = (id) => document.getElementById(id);
+  const board = $('chatBoard');
+  const boardEmpty = $('chatBoardEmpty');
+  const boardCandidates = $('chatBoardCandidates');
+  board.hidden = !broadcastMode;
+  function renderChatBoard(candidates = []) {
+    const items = candidates.slice(0, 5).map(({ author, text }) => {
+      const item = document.createElement('li');
+      const name = document.createElement('strong');
+      name.textContent = author;
+      item.append(name, document.createTextNode(text));
+      return item;
+    });
+    boardCandidates.replaceChildren(...items);
+    boardEmpty.hidden = Boolean(items.length);
+  }
   const characterName = studioProfile?.name || '서강이';
   const historyTitle = `대화 기록 · ${characterName}`;
   const sessionScope = studioProfile ? `${studioProfile.workspace_id}.${studioProfile.character_id}${broadcastMode ? '.broadcast' : ''}` : '';
@@ -588,6 +603,10 @@ const broadcastMode = Boolean(studioProfile && new URLSearchParams(location.sear
   }
   function handleServerMessage(data) {
     if (broadcastMode) {
+      if (data.type === 'chzzk-chat-board') {
+        renderChatBoard(Array.isArray(data.candidates) ? data.candidates : []);
+        return;
+      }
       if (data.type === 'user-input-transcription' && data.request_id) {
         broadcastInput = data;
         return;
@@ -739,6 +758,7 @@ const broadcastMode = Boolean(studioProfile && new URLSearchParams(location.sear
     }
   }
   function handleDisconnect(delay) {
+    if (broadcastMode) renderChatBoard();
     clearTimeout(state.historyTimer);
     state.historyPending = null;
     resetExpression();

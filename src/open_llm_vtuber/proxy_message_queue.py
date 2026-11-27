@@ -61,6 +61,9 @@ class ProxyMessageQueue:
             self.message_queue.appendleft(queue_item)
         else:
             self.message_queue.append(queue_item)
+        self.notify_pending()
+
+    def notify_pending(self) -> None:
         self._changed.set()
         self._ensure_consumer_running()
 
@@ -131,12 +134,14 @@ class ProxyMessageQueue:
         if (
             not self.dispatch_enabled
             or self.conversation_active
-            or not self.message_queue
             or not self._forward_func
         ):
             return
 
-        message, sender_id = self.message_queue.popleft()
+        item = self._take_next()
+        if item is None:
+            return
+        message, sender_id = item
         request_id = message.get("request_id")
         if not isinstance(request_id, str) or not 0 < len(request_id) <= 128:
             request_id = uuid.uuid4().hex
@@ -152,6 +157,9 @@ class ProxyMessageQueue:
         except Exception as error:
             logger.error("Failed to forward queued proxy message: {}", error)
             self.complete_conversation(request_id)
+
+    def _take_next(self) -> tuple[dict[str, Any], str | None] | None:
+        return self.message_queue.popleft() if self.message_queue else None
 
     async def _forward_message(
         self,
