@@ -21,6 +21,7 @@ from src.open_llm_vtuber.studio_auth import (
     StudioAuth,
     install_studio_auth,
 )
+from src.open_llm_vtuber.studio_broadcast import BroadcastSession, StudioBroadcast
 from src.open_llm_vtuber.studio_persona import StudioPersona
 from src.open_llm_vtuber.studio_registry import StudioRegistry, WORKSPACE_COOKIE
 from test_studio_persona import RecordedStudioLLM, context_fixture, payload
@@ -28,6 +29,58 @@ from test_studio_persona import RecordedStudioLLM, context_fixture, payload
 
 ORIGIN = "https://studio.test"
 TOKEN = "local-test-collector-token"
+
+
+class BroadcastChatCandidateTests(unittest.IsolatedAsyncioTestCase):
+    async def test_board_filters_ranks_expires_and_batches_at_turn_boundary(self):
+        session = BroadcastSession(StudioBroadcast("ws://unused"), Mock())
+        queue = session.message_queue
+        forward = AsyncMock()
+        queue.initialize(forward)
+        self.addCleanup(queue.stop)
+        queue.set_dispatch_enabled(True)
+        now = asyncio.get_running_loop().time()
+
+        def chat(text, age=0):
+            session._queue_chzzk_chat(
+                {
+                    "type": "text-input",
+                    "author": "시청자",
+                    "text": text,
+                    "_received_at": now - age,
+                },
+                "collector",
+            )
+
+        async def wait_for_turn(count):
+            async def wait():
+                while forward.await_count < count * 2:
+                    await asyncio.sleep(0)
+
+            await asyncio.wait_for(wait(), timeout=1)
+            return forward.await_args.args[0]
+
+        chat("ㅋㅋㅋ 😂")
+        chat("ㅇㅇ")
+        chat("마크 언제 해요?", age=15)
+        self.assertIsNone(session._take_chat_turn())
+        forward.assert_not_awaited()
+
+        chat("오늘 발표 몇 시예요?")
+        first = await wait_for_turn(1)
+        self.assertEqual(first["text"], "오늘 발표 몇 시예요?")
+
+        chat("오늘 발표 몇 시예요?")
+        for index in range(6):
+            chat(f"마크 질문 {index}?", age=6 - index)
+        self.assertEqual(len(session.chat_candidates), 5)
+        self.assertEqual(forward.await_count, 2)
+        queue.complete_conversation(first["request_id"])
+        second = await wait_for_turn(2)
+        self.assertIn("마크 질문 5?", second["text"])
+        self.assertNotIn("마크 질문 0?", second["text"])
+        self.assertNotIn("오늘 발표", second["text"])
+        self.assertEqual(session.chat_candidates, [])
 
 
 class StudioBroadcastTests(unittest.IsolatedAsyncioTestCase):
@@ -38,7 +91,7 @@ class StudioBroadcastTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         temporary = TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
-        directory = Path(temporary.name)
+        directory = Path(temporary.name).resolve()
         registry = StudioRegistry(directory / "studio.sqlite3")
         data = payload(preset_id="warm")
         data.update(
@@ -145,10 +198,11 @@ class StudioBroadcastTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_collector_input_waits_for_profile_and_replays_through_studio(self):
         collector_headers = {"Authorization": f"Bearer {TOKEN}"}
+        question = "발표는 언제 해요? 지난 발표가 잘 끝났어요!"
         async with self.client.ws_connect(
             self.base + CHZZK_COLLECTOR_PATH, headers=collector_headers
         ) as collector:
-            for text in ("발표가 잘 끝났어요!", "안녕!"):
+            for text in (question,):
                 await collector.send_json(
                     {
                         "type": "text-input",
@@ -166,7 +220,7 @@ class StudioBroadcastTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIsNone(self.llm.request)
                 await screen.send_json({"type": "create-new-history"})
                 await self.receive(screen, "new-history-created")
-                for text in ("발표가 잘 끝났어요!", "안녕!"):
+                for text in (question,):
                     incoming = await self.receive(
                         screen, "user-input-transcription", text
                     )

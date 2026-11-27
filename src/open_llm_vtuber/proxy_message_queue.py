@@ -11,6 +11,7 @@ from loguru import logger
 
 CONVERSATION_TIMEOUT_SECONDS = 30
 ForwardMessage = Callable[[dict[str, Any], str | None], Awaitable[None]]
+QueuedMessage = tuple[dict[str, Any], str | None]
 
 
 class ProxyMessageQueue:
@@ -21,6 +22,7 @@ class ProxyMessageQueue:
         *,
         turn_timeout: float = CONVERSATION_TIMEOUT_SECONDS,
         max_pending: int | None = None,
+        take_fallback: Callable[[], QueuedMessage | None] | None = None,
     ) -> None:
         """Initialize the pending queue and conversation state."""
         self.message_queue: deque[tuple[dict[str, Any], str | None]] = deque()
@@ -32,10 +34,16 @@ class ProxyMessageQueue:
         self._forward_func: ForwardMessage | None = None
         self.turn_timeout = turn_timeout
         self.max_pending = max_pending
+        self._take_fallback = take_fallback
         self.dispatch_enabled = True
 
     def set_dispatch_enabled(self, enabled: bool) -> None:
         self.dispatch_enabled = enabled
+        self._changed.set()
+        self._ensure_consumer_running()
+
+    def notify_pending(self) -> None:
+        """Wake the dispatcher after an input source adds a candidate."""
         self._changed.set()
         self._ensure_consumer_running()
 
@@ -61,8 +69,7 @@ class ProxyMessageQueue:
             self.message_queue.appendleft(queue_item)
         else:
             self.message_queue.append(queue_item)
-        self._changed.set()
-        self._ensure_consumer_running()
+        self.notify_pending()
 
     @property
     def conversation_active(self) -> bool:
@@ -96,7 +103,7 @@ class ProxyMessageQueue:
         if (
             self._forward_func
             and self.dispatch_enabled
-            and self.has_pending_messages()
+            and (self.has_pending_messages() or self._take_fallback is not None)
             and (self._consumer_task is None or self._consumer_task.done())
         ):
             self._consumer_task = asyncio.create_task(self._consume_loop())
@@ -116,9 +123,8 @@ class ProxyMessageQueue:
                         self.conversation_active = False
 
                 if not self.conversation_active:
-                    if not self.has_pending_messages():
+                    if not await self.dispatch_next():
                         return
-                    await self.dispatch_next()
                     continue
 
             try:
@@ -126,17 +132,24 @@ class ProxyMessageQueue:
             except asyncio.TimeoutError:
                 pass
 
-    async def dispatch_next(self) -> None:
-        """Dispatch the first pending message while the caller holds the queue lock."""
+    async def dispatch_next(self) -> bool:
+        """Dispatch queued input or take a fresh fallback while holding the lock."""
         if (
             not self.dispatch_enabled
             or self.conversation_active
-            or not self.message_queue
             or not self._forward_func
         ):
-            return
+            return False
 
-        message, sender_id = self.message_queue.popleft()
+        if self.message_queue:
+            item = self.message_queue.popleft()
+        elif self._take_fallback is not None:
+            item = self._take_fallback()
+        else:
+            item = None
+        if item is None:
+            return False
+        message, sender_id = item
         request_id = message.get("request_id")
         if not isinstance(request_id, str) or not 0 < len(request_id) <= 128:
             request_id = uuid.uuid4().hex
@@ -152,6 +165,7 @@ class ProxyMessageQueue:
         except Exception as error:
             logger.error("Failed to forward queued proxy message: {}", error)
             self.complete_conversation(request_id)
+        return True
 
     async def _forward_message(
         self,
