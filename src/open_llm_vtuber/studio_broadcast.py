@@ -13,7 +13,7 @@ from loguru import logger
 from starlette.websockets import WebSocketDisconnect
 
 from .proxy_handler import ProxyHandler
-from .studio_chat_board import CANDIDATE_TTL, StudioChatBoard
+from .studio_chat_board import StudioChatBoard
 from .studio_auth import COOKIE
 from .studio_registry import WORKSPACE_COOKIE
 
@@ -27,7 +27,7 @@ class StudioBroadcast:
         self.server_url = server_url
         self.token = os.getenv("STUDIO_CHZZK_TOKEN", "")
         self.session: BroadcastSession | None = None
-        self.pending: deque[tuple[float, dict]] = deque(maxlen=MAX_PENDING)
+        self.pending: deque[dict] = deque(maxlen=MAX_PENDING)
         self.changed = asyncio.Event()
 
     async def handle_screen(self, socket: WebSocket) -> None:
@@ -75,18 +75,14 @@ class StudioBroadcast:
                 if len(text) > 4096 or len(author) > 256:
                     continue
                 self.pending.append(
-                    (
-                        asyncio.get_running_loop().time(),
-                        {
-                            "type": "text-input",
-                            "source": data["source"],
-                            "text": text,
-                            "author": author,
-                            "amount": data.get("amount"),
-                            "text_stream": True,
-                            "require_spoken_response": True,
-                        },
-                    )
+                    {
+                        "type": "text-input",
+                        "source": data["source"],
+                        "text": text,
+                        "amount": data.get("amount"),
+                        "text_stream": True,
+                        "require_spoken_response": True,
+                    }
                 )
                 self.changed.set()
         except (ValueError, WebSocketDisconnect):
@@ -104,7 +100,7 @@ class BroadcastSession(ProxyHandler):
         self.turn_text = ""
         self.reply_text = ""
         self.track_topic = False
-        self.message_queue = StudioChatBoard(turn_timeout=95, max_pending=MAX_PENDING)
+        self.message_queue = StudioChatBoard(max_pending=MAX_PENDING)
         self.message_queue.set_dispatch_enabled(False)
 
     def _headers(self) -> dict[str, str]:
@@ -138,7 +134,6 @@ class BroadcastSession(ProxyHandler):
                             self.forward_server_messages(),
                             self._read_screen(),
                             self._consume_chzzk(),
-                            self._publish_board(),
                         )
                     ]
                     done, _ = await asyncio.wait(
@@ -208,9 +203,11 @@ class BroadcastSession(ProxyHandler):
             await self.broadcast.changed.wait()
             self.broadcast.changed.clear()
             while self.ready and self.broadcast.pending:
-                received, message = self.broadcast.pending.popleft()
+                message = self.broadcast.pending.popleft()
                 if message["source"] == "chzzk_donation":
-                    await self._handle_text_input(message, "collector")
+                    await self._handle_text_input(
+                        {**message, "author": "시청자"}, "collector"
+                    )
                     continue
 
                 if self.safety_filter is None:
@@ -219,38 +216,12 @@ class BroadcastSession(ProxyHandler):
                 try:
                     if self.safety_filter.check_text(text) is not None:
                         continue
-                    author = self.safety_filter.sanitize_author(message["author"])
                 except Exception:
                     logger.warning(
                         "Discarding Studio chat because rule validation failed"
                     )
                     continue
-                self.message_queue.offer(author, text, received)
-
-    async def _publish_board(self) -> None:
-        board = self.message_queue
-        loop = asyncio.get_running_loop()
-        previous = None
-        while True:
-            board.prune()
-            board.board_changed.clear()
-            snapshot = (
-                [item.payload() for item in board.candidates] if self.ready else []
-            )
-            if snapshot != previous:
-                await self.screen.send_json(
-                    {"type": "chzzk-chat-board", "candidates": snapshot}
-                )
-                previous = snapshot
-            deadline = min(
-                (item.received + CANDIDATE_TTL for item in board.candidates),
-                default=None,
-            )
-            timeout = None if deadline is None else max(0, deadline - loop.time())
-            try:
-                await asyncio.wait_for(board.board_changed.wait(), timeout=timeout)
-            except asyncio.TimeoutError:
-                pass
+                self.message_queue.offer(text)
 
     async def forward_to_server(
         self, message: dict, sender_id: str | None = None
@@ -286,6 +257,12 @@ class BroadcastSession(ProxyHandler):
             self.profile_applied = True
         if self.profile_applied and kind in {"new-history-created", "history-data"}:
             self.history_loaded = True
+        if kind == "user-input-transcription":
+            message = {
+                "type": kind,
+                "text": message.get("text", ""),
+                "request_id": message.get("request_id"),
+            }
         await self.screen.send_json(message)
         if self.history_loaded and kind in {
             "new-history-created",
@@ -295,4 +272,3 @@ class BroadcastSession(ProxyHandler):
             self.ready = True
             self.message_queue.set_dispatch_enabled(True)
             self.broadcast.changed.set()
-            self.message_queue.board_changed.set()

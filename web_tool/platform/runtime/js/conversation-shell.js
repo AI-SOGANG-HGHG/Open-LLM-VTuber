@@ -135,11 +135,6 @@ export function mountConversationShell(studio) {
             음성 켜짐
           </button>
         </div>
-        <section id="chatBoard" class="chat-board" aria-labelledby="chatBoardHeading" hidden>
-          <h3 id="chatBoardHeading">치지직 채팅 전광판</h3>
-          <p id="chatBoardEmpty">대기 중인 채팅 후보가 없어요.</p>
-          <ol id="chatBoardCandidates"></ol>
-        </section>
         <div id="messages" class="messages" role="log" aria-label="대화 기록" aria-live="polite">
           <div class="welcome" id="welcome">
             <span class="welcome-spark" aria-hidden="true">✳</span>

@@ -19,11 +19,12 @@ class ProxyMessageQueue:
     def __init__(
         self,
         *,
-        turn_timeout: float = CONVERSATION_TIMEOUT_SECONDS,
+        turn_timeout: float | None = CONVERSATION_TIMEOUT_SECONDS,
         max_pending: int | None = None,
     ) -> None:
         """Initialize the pending queue and conversation state."""
         self.message_queue: deque[tuple[dict[str, Any], str | None]] = deque()
+        self._active = False
         self._deadline: float | None = None
         self._request_id: str | None = None
         self.lock = asyncio.Lock()
@@ -70,15 +71,18 @@ class ProxyMessageQueue:
     @property
     def conversation_active(self) -> bool:
         """Return whether the queue is waiting for the current turn to finish."""
-        return self._deadline is not None
+        return self._active
 
     @conversation_active.setter
     def conversation_active(self, active: bool) -> None:
         """Set or release the conversation lock."""
-        if active:
-            self._deadline = asyncio.get_running_loop().time() + self.turn_timeout
-        else:
-            self._deadline = None
+        self._active = active
+        self._deadline = (
+            asyncio.get_running_loop().time() + self.turn_timeout
+            if active and self.turn_timeout is not None
+            else None
+        )
+        if not active:
             self._request_id = None
         self._changed.set()
 

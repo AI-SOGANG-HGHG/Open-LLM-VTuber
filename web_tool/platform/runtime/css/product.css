@@ -146,33 +146,3 @@ select:focus-visible {
 #avatarRetry[hidden] {
   display: none;
 }
-
-.chat-board {
-  flex: none;
-  margin: 0.5rem 0;
-  padding: 0.55rem 0.75rem;
-  border: 1px solid currentColor;
-  border-radius: 0.65rem;
-  font-size: 0.8rem;
-}
-.chat-board h3,
-.chat-board p,
-.chat-board ol {
-  margin: 0;
-}
-.chat-board h3 {
-  margin-bottom: 0.25rem;
-  font-size: inherit;
-}
-.chat-board ol {
-  max-height: min(8rem, 17vh);
-  overflow: auto;
-  padding-inline-start: 1.4rem;
-}
-.chat-board li {
-  padding-block: 0.1rem;
-  overflow-wrap: anywhere;
-}
-.chat-board li strong {
-  margin-inline-end: 0.5em;
-}

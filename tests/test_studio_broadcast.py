@@ -22,6 +22,7 @@ from src.open_llm_vtuber.studio_auth import (
     StudioAuth,
     install_studio_auth,
 )
+from src.open_llm_vtuber.studio_chat_board import StudioChatBoard
 from src.open_llm_vtuber.studio_persona import StudioPersona
 from src.open_llm_vtuber.studio_registry import StudioRegistry, WORKSPACE_COOKIE
 from test_studio_persona import RecordedStudioLLM, context_fixture, payload
@@ -131,6 +132,7 @@ class StudioBroadcastTests(unittest.IsolatedAsyncioTestCase):
             event = await ws.receive()
             self.assertEqual(event.type, aiohttp.WSMsgType.TEXT, event)
             data = event.json()
+            self.assertNotEqual(data.get("type"), "chzzk-chat-board")
             if data.get("type") == kind and (text is None or data.get("text") == text):
                 return data
 
@@ -155,21 +157,9 @@ class StudioBroadcastTests(unittest.IsolatedAsyncioTestCase):
             }
         )
 
-    async def receive_board(self, screen, texts, *, latest_author=None):
-        async def matching_board():
-            while True:
-                event = await self._receive(screen, "chzzk-chat-board", None)
-                candidates = event["candidates"]
-                if {item["text"] for item in candidates} == set(texts) and (
-                    latest_author is None
-                    or any(item["author"] == latest_author for item in candidates)
-                ):
-                    return candidates
-
-        return await asyncio.wait_for(matching_board(), timeout=5)
-
     async def receive_turn(self, screen, expected_text, *, candidates=None):
         incoming = await self.receive(screen, "user-input-transcription", expected_text)
+        self.assertEqual(set(incoming), {"type", "text", "request_id"})
         request_id = incoming["request_id"]
         started = await self.receive(screen, "control", "conversation-chain-start")
         self.assertEqual(started["request_id"], request_id)
@@ -212,12 +202,11 @@ class StudioBroadcastTests(unittest.IsolatedAsyncioTestCase):
             await self.receive(screen, "new-history-created")
             first = await self.receive_turn(
                 screen,
-                "시청자: 발표는 몇 시에 시작해요?",
-                candidates=[{"author": "시청자", "text": "발표는 몇 시에 시작해요?"}],
+                "발표는 몇 시에 시작해요?",
+                candidates=["발표는 몇 시에 시작해요?"],
             )
             self.assertIn("발표는 오전 열 시", str(self.llm.request))
             await self.send_chat(collector, "안녕!")
-            await self.receive_board(screen, ["안녕!"])
 
             questions = [
                 "오늘 어떤 게임 해?",
@@ -226,15 +215,24 @@ class StudioBroadcastTests(unittest.IsolatedAsyncioTestCase):
                 "마크 언제 시작해?",
                 "발표는 어떤 주제인가요?",
             ]
-            for index, question in enumerate(questions):
-                await self.send_chat(collector, question, f"시청자{index}")
-            ranked = await self.receive_board(screen, questions)
-            self.assertEqual(ranked[0]["text"], questions[-1])
+            buffered = asyncio.Event()
+            offer = StudioChatBoard.offer
+
+            def observe_offer(board, text):
+                offer(board, text)
+                if text == "마크  언제 시작해?":
+                    buffered.set()
+
             previous_generation = self.llm.request
-            await self.send_chat(collector, "🎮")
-            await self.send_chat(collector, "방송 응원합니다", donation=1000)
-            await self.send_chat(collector, "마크 언제 시작해?", "새시청자")
-            await self.receive_board(screen, questions, latest_author="새시청자")
+            with patch.object(StudioChatBoard, "offer", observe_offer):
+                for index, question in enumerate(questions):
+                    await self.send_chat(collector, question, f"시청자{index}")
+                await self.send_chat(collector, "🎮")
+                await self.send_chat(collector, "방송 응원합니다", donation=1000)
+                # A fresh spelling of the same question replaces its candidate.
+                await self.send_chat(collector, "마크  언제 시작해?", "새시청자")
+                await asyncio.wait_for(buffered.wait(), timeout=5)
+
             self.assertIs(previous_generation, self.llm.request)
             await self.finish_playback(screen, first)
 
@@ -242,55 +240,17 @@ class StudioBroadcastTests(unittest.IsolatedAsyncioTestCase):
             self.assertIsNot(previous_generation, self.llm.request)
             await self.finish_playback(screen, donation)
 
-            next_turn = await self.receive(screen, "user-input-transcription")
-            candidates = next_turn["broadcast_candidates"]
-            self.assertEqual(len(candidates), 5)
-            self.assertEqual({item["text"] for item in candidates}, set(questions))
-            self.assertEqual(
-                next_turn["text"],
-                "\n".join(f"{item['author']}: {item['text']}" for item in candidates),
+            candidates = [
+                questions[4],
+                questions[2],
+                "마크  언제 시작해?",
+                questions[1],
+                questions[0],
+            ]
+            batch = await self.receive_turn(
+                screen, "\n".join(candidates), candidates=candidates
             )
-            request_id = next_turn["request_id"]
-            result = await self.receive(screen, "audio")
-            self.assertEqual(result["request_id"], request_id)
-            self.assertEqual(
-                json.loads(self.llm.request[-1]["content"][-1]["text"]), candidates
-            )
-            await self.receive(screen, "backend-synth-complete")
-            await self.finish_playback(screen, request_id)
-
-    async def test_board_expires_without_new_chat_during_playback(self):
-        async with (
-            self.client.ws_connect(
-                self.base + CHZZK_COLLECTOR_PATH,
-                headers={"Authorization": f"Bearer {TOKEN}"},
-            ) as collector,
-            self.client.ws_connect(
-                self.base + "/proxy-ws?mode=studio", headers=self.screen_headers()
-            ) as screen,
-        ):
-            await self.select_agent(screen)
-            await self.receive(screen, "studio-persona-applied")
-            await screen.send_json({"type": "create-new-history"})
-            await self.receive(screen, "new-history-created")
-            await screen.send_json({"type": "text-input", "text": "방송 시작합니다"})
-            active = await self.receive_turn(screen, "방송 시작합니다")
-
-            with (
-                patch("src.open_llm_vtuber.studio_broadcast.CANDIDATE_TTL", 0.2),
-                patch("src.open_llm_vtuber.studio_chat_board.CANDIDATE_TTL", 0.2),
-            ):
-                await self.send_chat(collector, "방송은 언제 끝나요?")
-                await self.receive_board(screen, ["방송은 언제 끝나요?"])
-                await self.receive_board(screen, [])
-            await self.finish_playback(screen, active)
-            await self.send_chat(collector, "다음 게임은 뭔가요?")
-            fresh = await self.receive_turn(
-                screen,
-                "시청자: 다음 게임은 뭔가요?",
-                candidates=[{"author": "시청자", "text": "다음 게임은 뭔가요?"}],
-            )
-            await self.finish_playback(screen, fresh)
+            await self.finish_playback(screen, batch)
 
     async def test_browser_and_collector_credentials_are_checked_independently(self):
         screen_url = self.base + "/proxy-ws?mode=studio"
