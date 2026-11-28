@@ -3,6 +3,7 @@
 import asyncio
 import json
 import uuid
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 import aiohttp
@@ -184,7 +185,13 @@ class ProxyHandler:
             logger.error(f"Error handling client connection: {e}")
             await self.handle_client_disconnect(client_id)
 
-    async def _handle_text_input(self, message: dict[str, Any], client_id: str) -> None:
+    async def _handle_text_input(
+        self,
+        message: dict[str, Any],
+        client_id: str,
+        *,
+        consume_chat: Callable[[str], Awaitable[bool]] | None = None,
+    ) -> None:
         """Validate Chzzk input before queuing it or interrupting the current turn."""
         source = message.get("source")
         if source not in ("chzzk_chat", "chzzk_donation"):
@@ -213,6 +220,8 @@ class ProxyHandler:
             return
         is_donation = source == "chzzk_donation"
         if is_safe:
+            if not is_donation and consume_chat and await consume_chat(text):
+                return
             message = {**message, "author": result}
         elif not is_donation:
             logger.warning(

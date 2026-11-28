@@ -134,6 +134,20 @@ class ProxyDonationFilterTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(message["text"], "커피 한 잔 마셔~")
         self.assertEqual(message["author"], "김철수")
 
+    async def test_vote_collector_only_receives_approved_regular_chat(self) -> None:
+        collect = mock.AsyncMock(return_value=True)
+        for message in (
+            chzzk_payload("ㅅㅂ"),
+            chzzk_payload("치킨", amount=1000),
+            chzzk_payload("라면"),
+        ):
+            await self.handler._handle_text_input(
+                message, CLIENT_ID, consume_chat=collect
+            )
+        collect.assert_awaited_once_with("라면")
+        [donation] = self.queued()
+        self.assertEqual(donation["source"], "chzzk_donation")
+
     async def test_blocked_donation_dropped_when_sanitizing_fails(self) -> None:
         """If the nickname cannot be sanitized, the donation is discarded."""
         self.handler.safety_filter.sanitize_author = mock.Mock(
