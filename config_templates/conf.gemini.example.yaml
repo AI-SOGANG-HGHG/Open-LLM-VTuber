@@ -144,8 +144,8 @@ character_config:
         temperature: 1.0 # value between 0 to 2
 
       openai_llm:
-        llm_api_key: 'Your Open AI API key'
-        model: 'gpt-4o'
+        llm_api_key: '${OPENAI_API_KEY}'
+        model: 'gpt-5.4-mini'
         temperature: 1.0 # value between 0 to 2
 
       gemini_llm:

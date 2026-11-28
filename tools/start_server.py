@@ -25,16 +25,45 @@ def main():
         str(Path(sys.executable).parent) + os.pathsep + os.environ.get("PATH", "")
     )
 
-    credentials = dotenv_values(ROOT / ".env", interpolate=False)
-    key = (
-        credentials.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY", "")
-    ).strip()
-    if not key or key in {"YOUR_API_KEY", "YOUR_GEMINI_API_KEY"}:
-        print(
-            f"Set GEMINI_API_KEY in {ROOT / '.env'} and save the file.", file=sys.stderr
-        )
+    if not (ROOT / "conf.yaml").is_file():
+        print("Copy config_templates/conf.studio.yaml to conf.yaml.", file=sys.stderr)
         return 2
-    os.environ["GEMINI_API_KEY"] = key
+
+    provider_keys = {"openai_llm": "OPENAI_API_KEY", "gemini_llm": "GEMINI_API_KEY"}
+    credentials = dotenv_values(ROOT / ".env", interpolate=False)
+    for name in provider_keys.values():
+        if credentials.get(name):
+            os.environ[name] = credentials[name].strip()
+
+    from loguru import logger
+    from src.open_llm_vtuber.logging_utils import secret_redactor
+    from src.open_llm_vtuber.config_manager import read_yaml, validate_config
+
+    secret_redactor.add_config(
+        {name: os.environ.get(name) for name in provider_keys.values()}
+    )
+    logger.configure(patcher=secret_redactor)
+    raw_config = read_yaml("conf.yaml")
+    secret_redactor.add_config(raw_config)
+    agent = raw_config.get("character_config", {}).get("agent_config", {})
+    if agent.get("conversation_agent_choice") == "basic_memory_agent":
+        provider = (
+            agent.get("agent_settings", {})
+            .get("basic_memory_agent", {})
+            .get("llm_provider")
+        )
+        key_name = provider_keys.get(provider)
+        if key_name:
+            key = (
+                (agent.get("llm_configs", {}).get(provider) or {}).get("llm_api_key")
+                or ""
+            ).strip()
+            if not key or key.startswith(("${", "YOUR_", "Your ")):
+                print(
+                    f"Set {key_name} in .env and reference it in {provider}.llm_api_key.",
+                    file=sys.stderr,
+                )
+                return 2
 
     auth_file = ROOT / "private/studio-auth.env"
     if auth_file.is_file():
@@ -48,12 +77,6 @@ def main():
             if settings.get(name):
                 os.environ[name] = settings[name]
 
-    if not (ROOT / "conf.yaml").is_file():
-        print(
-            "Copy config_templates/conf.gemini.example.yaml to conf.yaml.",
-            file=sys.stderr,
-        )
-        return 2
     if not (ROOT / "frontend/index.html").is_file():
         print("Run git submodule update --init --recursive first.", file=sys.stderr)
         return 2
@@ -66,14 +89,6 @@ def main():
 
     if args.check:
         # The check never prints or sends the key and does not initialize engines.
-        from loguru import logger
-        from src.open_llm_vtuber.logging_utils import secret_redactor
-        from src.open_llm_vtuber.config_manager import read_yaml, validate_config
-
-        secret_redactor.add_config({"llm_api_key": key})
-        logger.configure(patcher=secret_redactor)
-        raw_config = read_yaml("conf.yaml")
-        secret_redactor.add_config(raw_config)
         config = validate_config(raw_config)
         from src.open_llm_vtuber.server import WebSocketServer  # noqa: F401
         from src.open_llm_vtuber.studio_auth import StudioAuth
