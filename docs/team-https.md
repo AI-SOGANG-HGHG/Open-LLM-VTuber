@@ -20,7 +20,7 @@ This development deployment uses one shared team account. Individual accounts,
 signup, a character database and per-user data permissions are separate work.
 Existing character settings remain in each browser. The team login details
 are in `private/web-access.env` (mode 600 in a mode-700 ignored directory).
-The Gemini `.env` remains separate. Do not put either password or key in Git.
+Model API keys are stored in the separate `.env`. Do not put either password or key in Git.
 
 Successful login sets an opaque `__Host-studio_session` cookie with Secure,
 HttpOnly, SameSite=Strict, path `/`, and an eight-hour lifetime. Sessions are

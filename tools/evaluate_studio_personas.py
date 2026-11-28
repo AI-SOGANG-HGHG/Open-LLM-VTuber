@@ -144,10 +144,11 @@ async def evaluate(args, data, cases):
     from loguru import logger
 
     logger.remove()
-    if args.env_file and not os.environ.get("GEMINI_API_KEY"):
-        key = dotenv_values(args.env_file, interpolate=False).get("GEMINI_API_KEY")
-        if key:
-            os.environ["GEMINI_API_KEY"] = key
+    if args.env_file:
+        credentials = dotenv_values(args.env_file, interpolate=False)
+        for name in ("OPENAI_API_KEY", "GEMINI_API_KEY"):
+            if not os.environ.get(name) and credentials.get(name):
+                os.environ[name] = credentials[name]
 
     from src.open_llm_vtuber.config_manager.utils import read_yaml, validate_config
     from src.open_llm_vtuber.studio_registry import StudioRegistry
@@ -225,7 +226,7 @@ def main():
     parser.add_argument(
         "--env-file",
         type=Path,
-        help="Read GEMINI_API_KEY if it is absent from the environment",
+        help="Read missing OpenAI and Gemini credentials from this file",
     )
     parser.add_argument("--cases", type=Path, default=DEFAULT_CASES)
     parser.add_argument("--case", action="append", dest="selected")

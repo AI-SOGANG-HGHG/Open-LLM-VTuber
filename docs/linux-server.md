@@ -1,7 +1,7 @@
-# Linux server with Gemini
+# Linux server with GPT-5.4 mini
 
 Use the latest platform code and its pinned frontend submodule. The launcher
-reads `GEMINI_API_KEY` from the repository's private `.env` file and passes it
+reads `OPENAI_API_KEY` from the repository's private `.env` file and passes it
 to the existing configuration loader. It does not execute the file as shell code.
 
 ## Key and configuration
@@ -11,23 +11,25 @@ Create the local files once; preserve existing files if they already exist:
 ```bash
 umask 077
 test -e .env || cp .env.example .env
-test -e conf.yaml || cp config_templates/conf.gemini.example.yaml conf.yaml
+test -e conf.yaml || cp config_templates/conf.studio.yaml conf.yaml
 chmod 600 .env conf.yaml
 ```
 
-Edit `.env` and enter the key after `GEMINI_API_KEY=`. Save the file, without
+Edit `.env` and enter the OpenAI key after `OPENAI_API_KEY=`. Save the file, without
 putting the key into a shell command, shared document, or chat message. Both
 `.env` and `conf.yaml` are ignored by Git and Docker. The key remains on this
 server between restarts; restart the application after editing it.
 
-Leave `${GEMINI_API_KEY}` in `conf.yaml`. The model name, Korean Edge TTS voice,
-and CPU SenseVoice settings come from the existing Gemini template. Model
-availability and API quota must be checked with the configured account.
+The default template selects `openai_llm` with `model: gpt-5.4-mini`,
+Korean Edge TTS and CPU SenseVoice. Keep `${OPENAI_API_KEY}` in the provider's
+`llm_api_key` field. Existing OpenAI deployments can update only that model
+field and restart. The optional Gemini template and Gemini-backed Chzzk
+filter use `GEMINI_API_KEY`.
 
 ## Runtime and launch
 
 The standard project setup is `uv sync --locked`, FFmpeg on PATH, and
-`git submodule update --init --recursive`. For the CPU Gemini configuration,
+`git submodule update --init --recursive`. For the default CPU configuration,
 GPU inference dependencies are not required by the selected engines. To install
 only the selected runtime and regression-check dependencies on Linux:
 
@@ -62,7 +64,7 @@ bash start-server.sh
 ```
 
 `--check` validates configuration and selected engine imports without calling
-Gemini, initializing models, or testing audio. First startup downloads the
+the model provider, initializing models, or testing audio. First startup downloads the
 SenseVoice model if it is missing. The configured application is served at
 `http://localhost:12393/web-tool/platform/`. Stop a foreground server with
 Ctrl+C. `python tools/platform_preview.py` separately serves only the static
