@@ -51,22 +51,28 @@ class ProxyMessageQueue:
         sender_id: str | None = None,
         *,
         priority: bool = False,
-    ) -> None:
+    ) -> bool:
         """Queue a message and its sender ID, inserting at the front for priority."""
         queue_item = (message, sender_id)
         if self.max_pending is not None and len(self.message_queue) >= self.max_pending:
             if not priority:
-                return
+                return False
             self.message_queue.pop()
         if priority:
             self.message_queue.appendleft(queue_item)
         else:
             self.message_queue.append(queue_item)
         self.notify_pending()
+        return True
 
     def notify_pending(self) -> None:
         self._changed.set()
         self._ensure_consumer_running()
+
+    def discard_pending(self, matches: Callable[[dict], bool]) -> None:
+        self.message_queue = deque(
+            item for item in self.message_queue if not matches(item[0])
+        )
 
     @property
     def conversation_active(self) -> bool:

@@ -8,7 +8,7 @@ import { createHistoryView } from './history-view.js';
 import { createAudioPlayback } from './audio-playback.js';
 import { createMicrophone } from './microphone.js';
 import { createConversationConnection } from './conversation-connection.js';
-import { mountConversationShell } from './conversation-shell.js';
+import { mountConversationShell } from './conversation-shell.js?studio=18';
 
 mountConversationShell(document.documentElement.hasAttribute('data-studio-pending'));
 const studioProfile = await getStudioProfile();
@@ -37,6 +37,7 @@ const broadcastMode = Boolean(studioProfile && new URLSearchParams(location.sear
       'noticeText',
       'retry',
       'composer',
+      'audienceQuestion',
       'messageInput',
       'sendButton',
       'stopButton',
@@ -345,10 +346,12 @@ const broadcastMode = Boolean(studioProfile && new URLSearchParams(location.sear
   }
   function controls() {
     const microphoneBusy = microphone.busy;
-    const blocked = !state.ready || state.busy || microphoneBusy;
+    const blocked = !state.ready || (state.busy && !broadcastMode) || microphoneBusy;
     ui.messageInput.disabled = Boolean(microphoneBusy);
     ui.messageInput.placeholder = !state.ready
       ? '연결을 기다리는 동안 메시지를 적어 둘 수 있어요.'
+      : broadcastMode
+        ? '방송 채팅이나 질문의 답을 입력해 주세요.'
       : state.busy
         ? '답변을 기다리는 동안 다음 메시지를 적어 둘 수 있어요.'
         : '메시지를 입력해 주세요.';
@@ -506,7 +509,7 @@ const broadcastMode = Boolean(studioProfile && new URLSearchParams(location.sear
     );
   }
   function begin(text) {
-    if (!state.ready || state.busy || !text.trim()) return;
+    if (!state.ready || (state.busy && !broadcastMode) || microphone.busy || !text.trim()) return;
     const requestId = createRandomId();
     ui.messageInput.value = '';
     if (broadcastMode) persistSession();
@@ -568,8 +571,17 @@ const broadcastMode = Boolean(studioProfile && new URLSearchParams(location.sear
     ui.timing.textContent = '답변에는 틀린 내용이 있을 수 있어요.';
   }
   let broadcastInput;
+  let audiencePoll = null;
+  function displayAudiencePoll(votes = [0, 0]) {
+    ui.audienceQuestion.hidden = !audiencePoll;
+    ui.audienceQuestion.textContent = audiencePoll
+      ? `${audiencePoll.text} · ${audiencePoll.choices.map((choice, i) => `${i + 1}번 ${choice} (${votes[i]}표)`).join(' / ')}`
+      : '';
+  }
   function prepareConnection() {
     broadcastInput = null;
+    audiencePoll = null;
+    displayAudiencePoll();
     requestedConfig = false;
     resetExpression();
     clearTimeout(state.historyTimer);
@@ -596,6 +608,13 @@ const broadcastMode = Boolean(studioProfile && new URLSearchParams(location.sear
         }
         return;
       }
+      if (data.type === 'audience-vote-counts' || data.type === 'audience-question-closed') {
+        if (audiencePoll?.requestId === data.request_id) {
+          if (data.type === 'audience-question-closed') audiencePoll = null;
+          displayAudiencePoll(data.votes);
+        }
+        return;
+      }
       if (data.type === 'user-input-transcription' && data.request_id) {
         broadcastInput = data;
         return;
@@ -610,6 +629,10 @@ const broadcastMode = Boolean(studioProfile && new URLSearchParams(location.sear
         const text = broadcastInput?.request_id === data.request_id ? broadcastInput.text : '';
         broadcastInput = null;
         startResponse(text, data.request_id);
+        if (data.audience_question) {
+          audiencePoll = { ...data.audience_question, requestId: data.request_id };
+          displayAudiencePoll();
+        }
         return;
       }
     }
@@ -747,6 +770,8 @@ const broadcastMode = Boolean(studioProfile && new URLSearchParams(location.sear
     }
   }
   function handleDisconnect(delay) {
+    audiencePoll = null;
+    displayAudiencePoll();
     clearTimeout(state.historyTimer);
     state.historyPending = null;
     resetExpression();

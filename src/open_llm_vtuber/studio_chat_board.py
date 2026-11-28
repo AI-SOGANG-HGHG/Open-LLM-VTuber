@@ -70,7 +70,8 @@ class StudioChatBoard(ProxyMessageQueue):
             return
 
         candidate = ChatCandidate(
-            text, author, received, words, bool(REQUEST.search(text)), bool(BROADCAST_FEEDBACK.search(text))
+            text, author, received, words,
+            bool(REQUEST.search(text)), bool(BROADCAST_FEEDBACK.search(text)),
         )
         # Ignore punctuation and spacing when identifying repeated copies.
         key = "".join(words)

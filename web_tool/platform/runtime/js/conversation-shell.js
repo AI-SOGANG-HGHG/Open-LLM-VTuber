@@ -158,6 +158,7 @@ export function mountConversationShell(studio) {
           </button>
         </div>
         <form id="composer" class="composer">
+          <p id="audienceQuestion" role="status" hidden></p>
           <label class="sr-only" for="messageInput">${copy.messageLabel}</label
           ><textarea
             id="messageInput"

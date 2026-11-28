@@ -4,22 +4,25 @@ import asyncio
 import os
 import secrets
 from collections import deque
+from functools import partial
 from http.cookies import SimpleCookie
 from ipaddress import ip_address
 
 import aiohttp
 from fastapi import WebSocket
-from loguru import logger
 from starlette.websockets import WebSocketDisconnect
 
 from .proxy_handler import ProxyHandler
 from .studio_chat_board import StudioChatBoard
+from . import studio_audience
+from .studio_audience import AudienceQuestion
 from .studio_auth import COOKIE
 from .studio_registry import WORKSPACE_COOKIE
 
 
 HISTORY_REQUESTS = {"create-new-history", "fetch-and-set-history"}
 MAX_PENDING = 100
+IDLE_SPEAK_SECONDS = 10.0
 
 
 class StudioBroadcast:
@@ -27,7 +30,7 @@ class StudioBroadcast:
         self.server_url = server_url
         self.token = os.getenv("STUDIO_CHZZK_TOKEN", "")
         self.session: BroadcastSession | None = None
-        self.pending: deque[tuple[float, dict]] = deque(maxlen=MAX_PENDING)
+        self.pending: deque[dict] = deque(maxlen=MAX_PENDING)
         self.changed = asyncio.Event()
 
     async def handle_screen(self, socket: WebSocket) -> None:
@@ -75,18 +78,16 @@ class StudioBroadcast:
                 if len(text) > 4096 or len(author) > 256:
                     continue
                 self.pending.append(
-                    (
-                        asyncio.get_running_loop().time(),
-                        {
-                            "type": "text-input",
-                            "source": data["source"],
-                            "text": text,
-                            "author": author,
-                            "amount": data.get("amount"),
-                            "text_stream": True,
-                            "require_spoken_response": True,
-                        },
-                    )
+                    {
+                        "type": "text-input",
+                        "_received_at": asyncio.get_running_loop().time(),
+                        "source": data["source"],
+                        "text": text,
+                        "author": author,
+                        "amount": data.get("amount"),
+                        "text_stream": True,
+                        "require_spoken_response": True,
+                    }
                 )
                 self.changed.set()
         except (ValueError, WebSocketDisconnect):
@@ -106,6 +107,72 @@ class BroadcastSession(ProxyHandler):
         self.track_topic = False
         self.message_queue = StudioChatBoard(max_pending=MAX_PENDING)
         self.message_queue.set_dispatch_enabled(False)
+        self.opening_queued = False
+        self.next_idle_at = 0.0
+        self.question: AudienceQuestion | None = None
+        self.topics = studio_audience.shuffled_topics()
+        self.ask_on_idle = True
+
+    def _reset_idle_timer(self) -> None:
+        self.next_idle_at = asyncio.get_running_loop().time() + IDLE_SPEAK_SECONDS
+        self.broadcast.changed.set()
+
+    def _queue_proactive_speech(self, reason: str, **details) -> bool:
+        queued = self.message_queue.queue_message(
+            {
+                "type": "ai-speak-signal",
+                "broadcast_reason": reason,
+                "text_stream": True,
+                "require_spoken_response": True,
+                **details,
+            }
+        )
+        self._reset_idle_timer()
+        return queued
+
+    def _speak_on_idle(self) -> None:
+        self.question = None
+        if self.ask_on_idle:
+            question = AudienceQuestion(next(self.topics))
+            if self._queue_proactive_speech(
+                "audience_question",
+                audience_topic=question.topic,
+                request_id=question.request_id,
+            ):
+                self.question = question
+        else:
+            self._queue_proactive_speech("idle")
+        self.ask_on_idle = not self.ask_on_idle
+
+    async def _collect_answer(self, received_at: float, text: str) -> bool:
+        question = self.question
+        if question is None or not question.collect(text, received_at):
+            return False
+        await self.screen.send_json(
+            {
+                "type": "audience-vote-counts",
+                "request_id": question.request_id,
+                "votes": question.votes.copy(),
+            }
+        )
+        return True
+
+    async def _consume_viewer_chat(
+        self, received_at: float, text: str, author: str
+    ) -> bool:
+        await self.screen.send_json({"type": "chzzk-chat", "text": text})
+        if not await self._collect_answer(received_at, text):
+            self.message_queue.offer(text, author, received_at)
+        return True
+
+    async def _close_question(self) -> None:
+        question = self.question
+        self.question = None
+        self._reset_idle_timer()
+        if question and question.opened_at is not None:
+            await self.screen.send_json(
+                {"type": "audience-question-closed", "request_id": question.request_id}
+            )
 
     def _headers(self) -> dict[str, str]:
         cookies = SimpleCookie()
@@ -182,52 +249,103 @@ class BroadcastSession(ProxyHandler):
                     self.ready = False
                     self.message_queue.set_dispatch_enabled(False)
                     self.message_queue.set_topic("")
+                    await self._close_question()
+                    self.message_queue.discard_pending(
+                        lambda item: item.get("type") == "ai-speak-signal"
+                        and item.get("broadcast_reason")
+                        in ("audience_question", "audience_reaction")
+                    )
                     if kind == "apply-studio-persona":
                         self.profile_applied = False
                         self.history_loaded = False
                         self.message_queue.clear()
                     await self.forward_to_server(data)
             elif kind == "text-input" and self.ready:
+                self._reset_idle_timer()
                 data.pop("broadcast_candidates", None)
-                self.message_queue.queue_message(data, "screen")
+                text = data.get("text")
+                if isinstance(text, str) and not await self._collect_answer(
+                    asyncio.get_running_loop().time(), text
+                ):
+                    self.message_queue.queue_message(data, "screen")
             elif kind in {"interrupt-signal", "frontend-playback-complete"}:
                 async with self.message_queue.lock:
                     if self.message_queue.matches_active(data.get("request_id")):
                         if kind == "frontend-playback-complete":
                             # The conversation engine waits for an untagged acknowledgement.
                             data.pop("request_id")
+                        elif (
+                            self.question
+                            and self.question.request_id == data["request_id"]
+                        ):
+                            await self._close_question()
                         await self.forward_to_server(data)
                         if kind == "interrupt-signal":
                             self.message_queue.conversation_active = False
+                            self._reset_idle_timer()
             elif kind == "fetch-history-list" and self.profile_applied:
                 await self.forward_to_server(data)
 
     async def _consume_chzzk(self) -> None:
-        while True:
-            await self.broadcast.changed.wait()
-            self.broadcast.changed.clear()
-            while self.ready and self.broadcast.pending:
-                received, message = self.broadcast.pending.popleft()
-                if message["source"] == "chzzk_donation":
-                    await self._handle_text_input(
-                        {**message, "author": "시청자"}, "collector"
-                    )
-                    continue
+        loop = asyncio.get_running_loop()
 
-                if self.safety_filter is None:
-                    continue
-                text = message["text"].strip()
-                try:
-                    if not text or self.safety_filter.check_text(text) is not None:
-                        continue
-                    author = self.safety_filter.sanitize_author(message["author"])
-                except Exception:
-                    logger.warning(
-                        "Discarding Studio chat because rule validation failed"
-                    )
-                    continue
-                await self.screen.send_json({"type": "chzzk-chat", "text": text})
-                self.message_queue.offer(text, author, received)
+        while True:
+            self.broadcast.changed.clear()
+            for _ in range(len(self.broadcast.pending)):
+                if not self.ready:
+                    break
+                message = self.broadcast.pending.popleft()
+                received_at = message.pop("_received_at")
+                await self._handle_text_input(
+                    message,
+                    "collector",
+                    consume_chat=partial(self._consume_viewer_chat, received_at),
+                )
+
+            wait_seconds = IDLE_SPEAK_SECONDS
+            question = self.question
+            if question is not None and question.closes_at is not None:
+                deadline = question.closes_at
+                remaining = deadline - loop.time()
+                if remaining > 0:
+                    wait_seconds = remaining
+                elif (
+                    not self.broadcast.pending
+                    or self.broadcast.pending[0]["_received_at"] >= deadline
+                ):
+                    # Count by arrival time even when asynchronous filtering runs late.
+                    if not any(question.votes) or self._queue_proactive_speech(
+                        "audience_reaction",
+                        audience_topic=question.topic,
+                        audience_votes=question.votes.copy(),
+                    ):
+                        await self._close_question()
+            elif question and question.opened_at is not None:
+                # A timeout or urgent donation may release the queue without a turn-end.
+                if not self.message_queue.matches_active(question.request_id):
+                    await self._close_question()
+            elif self.ready and self.opening_queued:
+                async with self.message_queue.lock:
+                    if (
+                        not self.broadcast.pending
+                        and not self.message_queue.conversation_active
+                        and not self.message_queue.has_pending_messages()
+                    ):
+                        remaining = self.next_idle_at - loop.time()
+                        if remaining <= 0:
+                            self._speak_on_idle()
+                            await self.message_queue.dispatch_next()
+                        else:
+                            wait_seconds = remaining
+
+            if self.ready and self.broadcast.pending:
+                continue
+            try:
+                await asyncio.wait_for(
+                    self.broadcast.changed.wait(), timeout=wait_seconds
+                )
+            except asyncio.TimeoutError:
+                continue
 
     async def forward_to_server(
         self, message: dict, sender_id: str | None = None
@@ -236,13 +354,10 @@ class BroadcastSession(ProxyHandler):
             raise aiohttp.ClientConnectionError("Studio broadcast connection closed")
         if message.get("type") != "user-input-transcription":
             await self.server_ws.send_json(message)
-            if message.get("type") == "text-input":
-                text = message.get("text")
-                self.track_topic = message.get(
-                    "source"
-                ) != "chzzk_donation" and isinstance(text, str)
+            if message.get("type") in {"text-input", "ai-speak-signal"}:
+                self.track_topic = message.get("source") != "chzzk_donation"
                 if self.track_topic:
-                    self.turn_text = text[-4096:]
+                    self.turn_text = (message.get("text") or "")[-4096:]
                     self.reply_text = ""
                     self.message_queue.set_topic(self.turn_text)
 
@@ -271,12 +386,45 @@ class BroadcastSession(ProxyHandler):
                 "text": message.get("text", ""),
                 "request_id": message.get("request_id"),
             }
+        question = self.question
+        if (
+            question
+            and question.request_id == message.get("request_id")
+            and self.message_queue.matches_active(question.request_id)
+        ):
+            if kind == "control" and message.get("text") == "conversation-chain-start":
+                prompt, choices = studio_audience.QUESTIONS[question.topic]
+                question.opened_at = asyncio.get_running_loop().time()
+                message = {
+                    **message,
+                    "audience_question": {"text": prompt, "choices": choices},
+                }
+            elif kind == "control" and message.get("text") == "conversation-chain-end":
+                question.closes_at = (
+                    asyncio.get_running_loop().time() + studio_audience.ANSWER_SECONDS
+                )
+            elif kind == "error":
+                await self._close_question()
+        elif kind == "interrupt-signal" and question and question.closes_at is None:
+            await self._close_question()
         await self.screen.send_json(message)
+
+        if kind == "control" and message.get("text") == "conversation-chain-end":
+            self._reset_idle_timer()
+
         if self.history_loaded and kind in {
             "new-history-created",
             "history-data",
             "history-error",
         }:
             self.ready = True
+
+            if not self.opening_queued and kind in {
+                "new-history-created",
+                "history-data",
+            }:
+                self.opening_queued = True
+                self._queue_proactive_speech("opening")
+
             self.message_queue.set_dispatch_enabled(True)
             self.broadcast.changed.set()

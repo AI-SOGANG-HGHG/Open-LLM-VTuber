@@ -3,6 +3,7 @@
 import asyncio
 import json
 import uuid
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 import aiohttp
@@ -184,7 +185,13 @@ class ProxyHandler:
             logger.error(f"Error handling client connection: {e}")
             await self.handle_client_disconnect(client_id)
 
-    async def _handle_text_input(self, message: dict[str, Any], client_id: str) -> None:
+    async def _handle_text_input(
+        self,
+        message: dict[str, Any],
+        client_id: str,
+        *,
+        consume_chat: Callable[[str, str], Awaitable[bool]] | None = None,
+    ) -> None:
         """Validate Chzzk input before queuing it or interrupting the current turn."""
         source = message.get("source")
         if source not in ("chzzk_chat", "chzzk_donation"):
@@ -213,6 +220,8 @@ class ProxyHandler:
             return
         is_donation = source == "chzzk_donation"
         if is_safe:
+            if not is_donation and consume_chat and await consume_chat(text, result):
+                return
             message = {**message, "author": result}
         elif not is_donation:
             logger.warning(
@@ -252,13 +261,8 @@ class ProxyHandler:
                     )
                 self.message_queue.queue_message(message, client_id, priority=True)
                 await self.message_queue.dispatch_next()
-        elif is_donation:
-            self.message_queue.queue_message(message, client_id, priority=True)
         else:
-            self._queue_chzzk_chat(message, client_id)
-
-    def _queue_chzzk_chat(self, message: dict, client_id: str) -> None:
-        self.message_queue.queue_message(message, client_id)
+            self.message_queue.queue_message(message, client_id, priority=is_donation)
 
     async def handle_client_disconnect(self, client_id: str):
         """

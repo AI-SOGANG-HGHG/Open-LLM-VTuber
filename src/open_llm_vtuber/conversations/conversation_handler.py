@@ -1,5 +1,6 @@
 import asyncio
 import json
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Optional, Callable
 
 import numpy as np
@@ -10,11 +11,52 @@ from ..chat_group import ChatGroupManager
 from ..chat_history_manager import store_message
 from ..service_context import ServiceContext
 from ..studio_chat_board import MAX_CANDIDATES
+from ..studio_audience import audience_prompt
 from .group_conversation import process_group_conversation
 from .single_conversation import process_single_conversation
 from .conversation_utils import EMOJI_LIST
 from .types import GroupConversationState
 from prompts import prompt_loader
+
+KST = timezone(timedelta(hours=9))
+
+
+def _broadcast_speech_prompt(
+    reason: object, character_name: str, *, topic: object = None, votes: object = None
+) -> str | None:
+    if reason in ("audience_question", "audience_reaction"):
+        return audience_prompt(reason, topic, votes)
+    if reason == "opening":
+        hour = datetime.now(KST).hour
+        if hour < 6:
+            period = "새벽"
+        elif hour < 12:
+            period = "아침"
+        elif hour < 15:
+            period = "점심"
+        elif hour < 18:
+            period = "오후"
+        elif hour < 21:
+            period = "저녁"
+        else:
+            period = "밤"
+        return (
+            f"지금은 한국 시간으로 {period}이고, 네 방송이 막 시작됐어. "
+            f"시청자에게 {period}에 어울리는 가벼운 인사를 먼저 건네. "
+            f"이어서 네 이름 {character_name}을 넣어 짧게 자기소개하고, "
+            "마지막에는 이제 방송을 시작한다는 말로 마무리해. "
+            "설정된 캐릭터의 평소 말투와 존댓말·반말 습관을 살려서 "
+            "실제로 입 밖에 낼 대사만 두세 문장으로 말해."
+        )
+    if reason == "idle":
+        return (
+            "생방송 중 잠시 채팅이 뜸해졌어. 네가 먼저 시청자에게 말을 걸어. "
+            "네 성격과 평소 말투가 드러나는 짧은 한마디나, "
+            "시청자가 한 단어로도 답할 수 있는 질문을 골라. "
+            "방금 한 인사나 질문을 반복하지 말고, "
+            "실제로 입 밖에 낼 대사만 한두 문장으로 말해."
+        )
+    return None
 
 
 async def handle_conversation_trigger(
@@ -38,35 +80,42 @@ async def handle_conversation_trigger(
     } or None
 
     if msg_type == "ai-speak-signal":
-        try:
-            # Get proactive speak prompt from config
-            prompt_name = "proactive_speak_prompt"
-            prompt_file = context.system_config.tool_prompts.get(prompt_name)
-            if prompt_file:
-                user_input = prompt_loader.load_util(prompt_file)
-            else:
-                logger.warning("Proactive speak prompt not configured, using default")
-                user_input = "Please say something."
-        except Exception as e:
-            logger.error(f"Error loading proactive speak prompt: {e}")
-            user_input = "Please say something."
-
-        # Add metadata to indicate this is a proactive speak request
-        # that should be skipped in both memory and history
-        metadata = {
-            "proactive_speak": True,
-            "skip_memory": True,  # Skip storing in AI's internal memory
-            "skip_history": True,  # Skip storing in local conversation history
-        }
-
-        await websocket.send_text(
-            json.dumps(
-                {
-                    "type": "full-text",
-                    "text": "AI wants to speak something...",
-                }
-            )
+        user_input = _broadcast_speech_prompt(
+            data.get("broadcast_reason"),
+            context.character_config.character_name,
+            topic=data.get("audience_topic"),
+            votes=data.get("audience_votes"),
         )
+
+        if user_input is None:
+            try:
+                prompt_file = context.system_config.tool_prompts.get(
+                    "proactive_speak_prompt"
+                )
+                user_input = (
+                    prompt_loader.load_util(prompt_file)
+                    if prompt_file
+                    else "Please say something."
+                )
+            except Exception as e:
+                logger.warning(f"Error loading proactive speak prompt: {e}")
+                user_input = "Please say something."
+
+            await websocket.send_text(
+                json.dumps(
+                    {
+                        "type": "full-text",
+                        "text": "AI wants to speak something...",
+                    }
+                )
+            )
+
+        metadata = {
+            **(metadata or {}),
+            "proactive_speak": True,
+            "skip_memory": True,
+            "skip_history": True,
+        }
     elif msg_type == "text-input":
         user_input = data.get("text", "")
         candidates = data.get("broadcast_candidates")

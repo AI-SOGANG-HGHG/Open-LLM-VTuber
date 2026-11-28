@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+from itertools import islice
 from pathlib import Path
 import socket
 from tempfile import TemporaryDirectory
@@ -16,6 +17,11 @@ from fastapi import FastAPI
 import uvicorn
 
 from src.open_llm_vtuber.routes import init_client_ws_route, init_proxy_route
+from src.open_llm_vtuber.studio_audience import (
+    QUESTIONS,
+    AudienceQuestion,
+    shuffled_topics,
+)
 from src.open_llm_vtuber.studio_auth import (
     CHZZK_COLLECTOR_PATH,
     COOKIE,
@@ -23,12 +29,89 @@ from src.open_llm_vtuber.studio_auth import (
     install_studio_auth,
 )
 from src.open_llm_vtuber.studio_persona import StudioPersona
+from src.open_llm_vtuber.studio_broadcast import BroadcastSession, StudioBroadcast
+from src.open_llm_vtuber.studio_chat_board import StudioChatBoard
 from src.open_llm_vtuber.studio_registry import StudioRegistry, WORKSPACE_COOKIE
 from test_studio_persona import RecordedStudioLLM, context_fixture, payload
 
 
 ORIGIN = "https://studio.test"
 TOKEN = "local-test-collector-token"
+
+
+class AudienceQuestionTests(unittest.TestCase):
+    def test_votes_from_question_display_through_deadline(self):
+        question = AudienceQuestion("late_snack")
+        self.assertFalse(question.collect("1", 11.0))
+        question.opened_at = 20.0
+        self.assertFalse(question.collect("1", 19.99))
+        self.assertTrue(question.collect("2번이요!", 20.0))
+        self.assertTrue(question.collect("1번", 45.0))
+        question.closes_at = 60.0
+        self.assertFalse(question.collect("라면도 치킨도 좋아", 21.0))
+        self.assertTrue(question.collect("라면!", 59.99))
+        self.assertFalse(question.collect("1", 60.0))
+        self.assertEqual(question.votes, [2, 1])
+
+    def test_random_first_question_and_no_repeat_at_round_boundary(self):
+        topics = list(QUESTIONS)
+        with patch(
+            "src.open_llm_vtuber.studio_audience.random.sample",
+            side_effect=[topics[::-1], topics.copy(), topics.copy()],
+        ):
+            sequence = shuffled_topics()
+            first = list(islice(sequence, len(topics)))
+            second = list(islice(sequence, len(topics)))
+            self.assertEqual(first[0], topics[-1])
+            self.assertCountEqual(first, topics)
+            self.assertCountEqual(second, topics)
+            self.assertNotEqual(first[-1], second[0])
+            self.assertEqual(next(shuffled_topics()), topics[0])
+
+
+class BroadcastSchedulingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_feedback_is_single_then_topic_match_outranks_question(self):
+        board = StudioChatBoard(max_pending=100)
+        board.set_topic("동굴 탐험")
+        now = asyncio.get_running_loop().time()
+        for text in ("동굴 나도 여기서 죽었어", "저녁 뭐 먹어?", "마이크가 안 들려요"):
+            board.offer(text, "시청자", now)
+        feedback, _ = board._take_next()
+        self.assertEqual(feedback["text"], "마이크가 안 들려요")
+        batch, _ = board._take_next()
+        self.assertEqual(
+            [item["text"] for item in batch["broadcast_candidates"]],
+            ["동굴 나도 여기서 죽었어", "저녁 뭐 먹어?"],
+        )
+
+    async def test_chat_ready_at_idle_deadline_gets_the_only_turn(self):
+        session = BroadcastSession(StudioBroadcast("ws://unused"), AsyncMock())
+        session.ready = session.opening_queued = True
+        queue = session.message_queue
+        sent = asyncio.Event()
+        messages = []
+
+        async def forward(message, sender):
+            messages.append(message["type"])
+            if message["type"] == "text-input":
+                sent.set()
+
+        queue.initialize(forward)
+        queue.set_dispatch_enabled(True)
+        async with queue.lock:
+            consumer = asyncio.create_task(session._consume_chzzk())
+            await asyncio.sleep(0)
+            queue.offer("나도 여기서 죽었어", "시청자", asyncio.get_running_loop().time())
+        try:
+            await asyncio.wait_for(sent.wait(), timeout=2)
+            self.assertEqual(messages, ["user-input-transcription", "text-input"])
+            self.assertTrue(queue.conversation_active)
+            self.assertFalse(queue.has_pending_messages())
+            self.assertIsNone(session.question)
+        finally:
+            consumer.cancel()
+            await asyncio.gather(consumer, return_exceptions=True)
+            queue.stop()
 
 
 class StudioBroadcastTests(unittest.IsolatedAsyncioTestCase):
@@ -204,13 +287,14 @@ class StudioBroadcastTests(unittest.IsolatedAsyncioTestCase):
                 self.base + "/proxy-ws?mode=studio", headers=self.screen_headers()
             ) as screen,
         ):
-            await self.send_chat(collector, "발표는 몇 시에 시작해요?")
             await self.select_agent(screen)
             selected = await self.receive(screen, "studio-persona-applied")
             self.assertEqual(selected["agent_id"], self.agent.agent_id)
             self.assertIsNone(self.llm.request)
             await screen.send_json({"type": "create-new-history"})
             await self.receive(screen, "new-history-created")
+            await self.finish_spoken_turn(screen)
+            await self.send_chat(collector, "발표는 몇 시에 시작해요?")
             await self.receive_chat(screen, "발표는 몇 시에 시작해요?")
             first = await self.receive_turn(
                 screen,
@@ -269,21 +353,114 @@ class StudioBroadcastTests(unittest.IsolatedAsyncioTestCase):
             await self.receive(screen, "studio-persona-applied")
             await screen.send_json({"type": "create-new-history"})
             await self.receive(screen, "new-history-created")
+            await self.finish_spoken_turn(screen)
             await screen.send_json({"type": "text-input", "text": "방송 시작합니다"})
             current = await self.receive_turn(screen, "방송 시작합니다")
-            with patch("src.open_llm_vtuber.studio_chat_board.CANDIDATE_TTL", 0.25):
+            # Age the first candidate deterministically; keep the real 15s TTL
+            # for the fresh candidate while audio playback finishes.
+            offer = StudioChatBoard.offer
+
+            def offer_aged(board, text, author, received):
+                if text == "오래된 질문이에요?":
+                    received -= 16
+                offer(board, text, author, received)
+
+            with patch.object(StudioChatBoard, "offer", offer_aged):
                 await self.send_chat(collector, "오래된 질문이에요?")
                 await self.receive_chat(screen, "오래된 질문이에요?")
-                await asyncio.sleep(0.3)
                 await self.send_chat(collector, "새 질문이에요?")
                 await self.receive_chat(screen, "새 질문이에요?")
-                await self.finish_playback(screen, current)
-                fresh = await self.receive_turn(
-                    screen,
-                    None,
-                    candidates=[{"author": "시청자", "text": "새 질문이에요?"}],
-                )
+            await self.finish_playback(screen, current)
+            fresh = await self.receive_turn(
+                screen,
+                None,
+                candidates=[{"author": "시청자", "text": "새 질문이에요?"}],
+            )
             await self.finish_playback(screen, fresh)
+
+    async def finish_spoken_turn(self, screen):
+        started = await self.receive(screen, "control", "conversation-chain-start")
+        request_id = started["request_id"]
+        await self.receive(screen, "backend-synth-complete")
+        await screen.send_json(
+            {"type": "frontend-playback-complete", "request_id": request_id}
+        )
+        end = await self.receive(screen, "control", "conversation-chain-end")
+        self.assertEqual(end["request_id"], request_id)
+
+    async def test_audience_question_collects_votes_and_reacts_once(self):
+        self.start_patch(
+            patch("src.open_llm_vtuber.studio_broadcast.IDLE_SPEAK_SECONDS", 0.25)
+        )
+        self.start_patch(
+            patch("src.open_llm_vtuber.studio_audience.ANSWER_SECONDS", 1.0)
+        )
+        async with (
+            self.client.ws_connect(
+                self.base + "/proxy-ws?mode=studio", headers=self.screen_headers()
+            ) as screen,
+            self.client.ws_connect(
+                self.base + CHZZK_COLLECTOR_PATH,
+                headers={"Authorization": f"Bearer {TOKEN}"},
+            ) as collector,
+        ):
+            await self.select_agent(screen)
+            await self.receive(screen, "studio-persona-applied")
+            await screen.send_json({"type": "create-new-history"})
+            await self.receive(screen, "new-history-created")
+            await self.finish_spoken_turn(screen)
+            # Even paraphrased speech has stable numbered choices on screen.
+            started = await self.receive(screen, "control", "conversation-chain-start")
+            question = started["audience_question"]
+            first, second = question["choices"]
+            await self.receive(screen, "backend-synth-complete")
+            self.assertIn(question["text"], str(self.llm.request[-1]))
+            await screen.send_json({"type": "text-input", "text": "1번"})
+            self.assertEqual(
+                (await self.receive(screen, "audience-vote-counts"))["votes"], [1, 0]
+            )
+            await asyncio.sleep(
+                1.1
+            )  # Playback still active beyond the usual answer interval
+            await collector.send_json(
+                {
+                    "type": "text-input",
+                    "source": "chzzk_chat",
+                    "author": "시청자",
+                    "text": second,
+                }
+            )
+            self.assertEqual(
+                (await self.receive(screen, "audience-vote-counts"))["votes"], [1, 1]
+            )
+            await screen.send_json(
+                {
+                    "type": "frontend-playback-complete",
+                    "request_id": started["request_id"],
+                }
+            )
+            await self.receive(screen, "control", "conversation-chain-end")
+            self.llm.reply_chunks = ("맛있겠네!",)
+            for text in (first, "다른 이야기"):
+                await collector.send_json(
+                    {
+                        "type": "text-input",
+                        "source": "chzzk_chat",
+                        "author": "시청자",
+                        "text": text,
+                    }
+                )
+            await self.receive_chat(screen, "다른 이야기")
+            await self.finish_spoken_turn(screen)
+            await self.finish_spoken_turn(screen)
+            self.assertIn(f"{first} 2표, {second} 1표", str(self.llm.request[-1]))
+            self.assertIn("방송 테스트 캐릭터", self.llm.generation_system)
+            await self.finish_spoken_turn(screen)
+            self.assertIn("채팅이 뜸해졌어", str(self.llm.request[-1]))
+            await self.finish_spoken_turn(screen)
+            self.assertNotIn(question["text"], str(self.llm.request[-1]))
+            await self.finish_spoken_turn(screen)
+            self.assertIn("채팅이 뜸해졌어", str(self.llm.request[-1]))
 
     async def test_browser_and_collector_credentials_are_checked_independently(self):
         screen_url = self.base + "/proxy-ws?mode=studio"
