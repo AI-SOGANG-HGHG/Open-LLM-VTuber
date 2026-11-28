@@ -10,8 +10,13 @@ from .proxy_message_queue import ProxyMessageQueue
 MAX_CANDIDATES = 5
 CANDIDATE_TTL = 15
 WORDS = re.compile(r"[^\W_]+", re.UNICODE)
+BROADCAST_FEEDBACK = re.compile(
+    r"(?:소리|음성|마이크|볼륨|화면|영상|방송).{0,16}"
+    r"(?:안\s*(?:들|보|나)|작아|작게|작습니다|커요|큽니다|멈|끊|깨져|밀려)"
+)
 REQUEST = re.compile(
-    r"[?？]|(?:인가요|나요|할까|할래|거야|해\s*줘|주세요|부탁|알려|궁금)[.!\s]*$|(?:^|\s)(?:뭐|무슨|언제|어떤|어떻게|왜|몇)(?=\s|$)"
+    r"[?？]|(?:인가요|나요|까요|할까|할래|거야|줘요?|주세요|해\s*봐|부탁해?|알려|궁금)[.!~\s]*$"
+    r"|(?:^|\s)(?:뭐|무엇|무슨|언제|어디|누구|얼마|어떤|어떻게|왜|몇)"
 )
 
 
@@ -26,6 +31,7 @@ class ChatCandidate:
     received: float
     words: tuple[str, ...]
     request: bool
+    feedback: bool
 
 
 class StudioChatBoard(ProxyMessageQueue):
@@ -38,10 +44,11 @@ class StudioChatBoard(ProxyMessageQueue):
         self.topic = set(_words(text))
         self.candidates.sort(key=self._rank, reverse=True)
 
-    def _rank(self, candidate: ChatCandidate) -> tuple[bool, int, float]:
+    def _rank(self, candidate: ChatCandidate) -> tuple[bool, int, bool, float]:
         return (
-            candidate.request,
+            candidate.feedback,
             len(self.topic.intersection(candidate.words)),
+            candidate.request,
             candidate.received,
         )
 
@@ -63,7 +70,7 @@ class StudioChatBoard(ProxyMessageQueue):
             return
 
         candidate = ChatCandidate(
-            text, author, received, words, bool(REQUEST.search(text))
+            text, author, received, words, bool(REQUEST.search(text)), bool(BROADCAST_FEEDBACK.search(text))
         )
         # Ignore punctuation and spacing when identifying repeated copies.
         key = "".join(words)
@@ -91,8 +98,9 @@ class StudioChatBoard(ProxyMessageQueue):
         if not self.candidates:
             return None
 
-        candidates = self.candidates.copy()
-        self.candidates.clear()
+        count = 1 if self.candidates[0].feedback else len(self.candidates)
+        candidates = self.candidates[:count]
+        del self.candidates[:count]
         return (
             {
                 "type": "text-input",

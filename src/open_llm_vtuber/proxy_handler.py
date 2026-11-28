@@ -252,8 +252,13 @@ class ProxyHandler:
                     )
                 self.message_queue.queue_message(message, client_id, priority=True)
                 await self.message_queue.dispatch_next()
+        elif is_donation:
+            self.message_queue.queue_message(message, client_id, priority=True)
         else:
-            self.message_queue.queue_message(message, client_id, priority=is_donation)
+            self._queue_chzzk_chat(message, client_id)
+
+    def _queue_chzzk_chat(self, message: dict, client_id: str) -> None:
+        self.message_queue.queue_message(message, client_id)
 
     async def handle_client_disconnect(self, client_id: str):
         """
