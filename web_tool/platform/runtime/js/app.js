@@ -366,13 +366,13 @@ const broadcastMode = Boolean(studioProfile && new URLSearchParams(location.sear
       .replace(/\[(neutral|anger|disgust|fear|joy|smirk|sad(?:ness)?|surprise)$/gi, '')
       .trim();
   }
-  function message(role, text = '') {
+  function message(role, text = '', labelText) {
     ui.welcome.hidden = true;
     const node = document.createElement('div');
     node.className = `message ${role}`;
     const label = document.createElement('span');
     label.className = 'message-label';
-    label.textContent = role === 'user' ? '나' : characterName;
+    label.textContent = labelText ?? (role === 'user' ? '나' : characterName);
     const body = document.createElement('div');
     body.className = 'message-body';
     body.textContent = role === 'user' ? String(text || '') : clean(text);
@@ -588,6 +588,14 @@ const broadcastMode = Boolean(studioProfile && new URLSearchParams(location.sear
   }
   function handleServerMessage(data) {
     if (broadcastMode) {
+      if (data.type === 'chzzk-chat') {
+        if (state.ready && typeof data.text === 'string' && data.text) {
+          message('user', data.text, '시청자');
+          scrollMessagesToEnd();
+          controls();
+        }
+        return;
+      }
       if (data.type === 'user-input-transcription' && data.request_id) {
         broadcastInput = data;
         return;

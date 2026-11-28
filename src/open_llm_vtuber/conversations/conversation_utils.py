@@ -186,8 +186,8 @@ async def finalize_conversation_turn(
     broadcast_ctx: Optional[BroadcastContext] = None,
     *,
     on_complete: Callable[[], Awaitable[None]] | None = None,
-) -> None:
-    """Finalize a conversation turn"""
+) -> bool:
+    """Finalize a turn and report whether playback completed."""
     await tts_manager.wait_for_completion()
     if tts_manager.has_output:
         playback = asyncio.create_task(
@@ -206,7 +206,7 @@ async def finalize_conversation_turn(
 
         if not response:
             logger.warning(f"No playback completion response from {client_uid}")
-            return
+            return False
 
     if on_complete is not None:
         await on_complete()
@@ -220,6 +220,7 @@ async def finalize_conversation_turn(
         )
 
     await send_conversation_end_signal(websocket_send, broadcast_ctx)
+    return True
 
 
 async def send_conversation_end_signal(

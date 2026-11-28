@@ -9,10 +9,11 @@ from ipaddress import ip_address
 
 import aiohttp
 from fastapi import WebSocket
+from loguru import logger
 from starlette.websockets import WebSocketDisconnect
 
 from .proxy_handler import ProxyHandler
-from .proxy_message_queue import ProxyMessageQueue
+from .studio_chat_board import StudioChatBoard
 from .studio_auth import COOKIE
 from .studio_registry import WORKSPACE_COOKIE
 
@@ -26,7 +27,7 @@ class StudioBroadcast:
         self.server_url = server_url
         self.token = os.getenv("STUDIO_CHZZK_TOKEN", "")
         self.session: BroadcastSession | None = None
-        self.pending: deque[dict] = deque(maxlen=MAX_PENDING)
+        self.pending: deque[tuple[float, dict]] = deque(maxlen=MAX_PENDING)
         self.changed = asyncio.Event()
 
     async def handle_screen(self, socket: WebSocket) -> None:
@@ -74,15 +75,18 @@ class StudioBroadcast:
                 if len(text) > 4096 or len(author) > 256:
                     continue
                 self.pending.append(
-                    {
-                        "type": "text-input",
-                        "source": data["source"],
-                        "text": text,
-                        "author": author,
-                        "amount": data.get("amount"),
-                        "text_stream": True,
-                        "require_spoken_response": True,
-                    }
+                    (
+                        asyncio.get_running_loop().time(),
+                        {
+                            "type": "text-input",
+                            "source": data["source"],
+                            "text": text,
+                            "author": author,
+                            "amount": data.get("amount"),
+                            "text_stream": True,
+                            "require_spoken_response": True,
+                        },
+                    )
                 )
                 self.changed.set()
         except (ValueError, WebSocketDisconnect):
@@ -97,7 +101,10 @@ class BroadcastSession(ProxyHandler):
         self.profile_applied = False
         self.history_loaded = False
         self.ready = False
-        self.message_queue = ProxyMessageQueue(turn_timeout=95, max_pending=MAX_PENDING)
+        self.turn_text = ""
+        self.reply_text = ""
+        self.track_topic = False
+        self.message_queue = StudioChatBoard(max_pending=MAX_PENDING)
         self.message_queue.set_dispatch_enabled(False)
 
     def _headers(self) -> dict[str, str]:
@@ -174,12 +181,14 @@ class BroadcastSession(ProxyHandler):
                         continue
                     self.ready = False
                     self.message_queue.set_dispatch_enabled(False)
+                    self.message_queue.set_topic("")
                     if kind == "apply-studio-persona":
                         self.profile_applied = False
                         self.history_loaded = False
                         self.message_queue.clear()
                     await self.forward_to_server(data)
             elif kind == "text-input" and self.ready:
+                data.pop("broadcast_candidates", None)
                 self.message_queue.queue_message(data, "screen")
             elif kind in {"interrupt-signal", "frontend-playback-complete"}:
                 async with self.message_queue.lock:
@@ -198,9 +207,27 @@ class BroadcastSession(ProxyHandler):
             await self.broadcast.changed.wait()
             self.broadcast.changed.clear()
             while self.ready and self.broadcast.pending:
-                await self._handle_text_input(
-                    self.broadcast.pending.popleft(), "collector"
-                )
+                received, message = self.broadcast.pending.popleft()
+                if message["source"] == "chzzk_donation":
+                    await self._handle_text_input(
+                        {**message, "author": "시청자"}, "collector"
+                    )
+                    continue
+
+                if self.safety_filter is None:
+                    continue
+                text = message["text"].strip()
+                try:
+                    if not text or self.safety_filter.check_text(text) is not None:
+                        continue
+                    author = self.safety_filter.sanitize_author(message["author"])
+                except Exception:
+                    logger.warning(
+                        "Discarding Studio chat because rule validation failed"
+                    )
+                    continue
+                await self.screen.send_json({"type": "chzzk-chat", "text": text})
+                self.message_queue.offer(text, author, received)
 
     async def forward_to_server(
         self, message: dict, sender_id: str | None = None
@@ -209,15 +236,41 @@ class BroadcastSession(ProxyHandler):
             raise aiohttp.ClientConnectionError("Studio broadcast connection closed")
         if message.get("type") != "user-input-transcription":
             await self.server_ws.send_json(message)
+            if message.get("type") == "text-input":
+                text = message.get("text")
+                self.track_topic = message.get(
+                    "source"
+                ) != "chzzk_donation" and isinstance(text, str)
+                if self.track_topic:
+                    self.turn_text = text[-4096:]
+                    self.reply_text = ""
+                    self.message_queue.set_topic(self.turn_text)
 
     async def broadcast_to_clients(
         self, message: dict, exclude_client: str | None = None
     ) -> None:
         kind = message.get("type")
+        if (
+            self.track_topic
+            and kind == "text-response"
+            and self.message_queue.matches_active(message.get("request_id"))
+        ):
+            display = message.get("display_text")
+            if isinstance(display, dict) and isinstance(display.get("text"), str):
+                self.reply_text = (self.reply_text + " " + display["text"])[-4096:]
+                self.message_queue.set_topic(f"{self.turn_text} {self.reply_text}")
         if kind == "studio-persona-applied":
             self.profile_applied = True
         if self.profile_applied and kind in {"new-history-created", "history-data"}:
             self.history_loaded = True
+        if kind == "user-input-transcription":
+            if "broadcast_candidates" in message:
+                return
+            message = {
+                "type": kind,
+                "text": message.get("text", ""),
+                "request_id": message.get("request_id"),
+            }
         await self.screen.send_json(message)
         if self.history_loaded and kind in {
             "new-history-created",
